@@ -3,14 +3,14 @@
 Defines TS-specific smell rules and orchestrates multi-line smell detection.
 """
 
-import logging
 import json
+import logging
 import re
 from pathlib import Path
 
-from desloppify.core.text.text_api import get_project_root
-from desloppify.core.fallbacks import log_best_effort_failure
 from desloppify.core.discovery_api import find_source_files, find_ts_files
+from desloppify.core.fallbacks import log_best_effort_failure
+from desloppify.core.text.text_api import get_project_root
 from desloppify.languages.typescript.detectors._smell_detectors import (
     _detect_async_no_await,
     _detect_catch_return_default,
@@ -26,8 +26,8 @@ from desloppify.languages.typescript.detectors._smell_detectors import (
     _detect_window_globals,
 )
 from desloppify.languages.typescript.detectors._smell_helpers import (
-    _FileContext,
     _build_ts_line_state,
+    _FileContext,
     _ts_match_is_in_string,
 )
 

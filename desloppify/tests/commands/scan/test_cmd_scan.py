@@ -13,10 +13,10 @@ from desloppify.app.commands.scan.cmd import (
     _audit_excluded_dirs,
     _collect_codebase_metrics,
     _effective_include_slow,
-    format_delta,
     _resolve_scan_profile,
     _warn_explicit_lang_with_no_files,
     cmd_scan,
+    format_delta,
     show_diff_summary,
     show_dimension_deltas,
     show_post_scan_analysis,
@@ -123,7 +123,9 @@ class TestCmdScanExecution:
             lambda payload, **_kwargs: captured.update(query=payload),
         )
         monkeypatch.setattr(
-            scan_cmd_mod, "emit_scorecard_badge", lambda _args, _config, _state: None
+            scan_cmd_mod,
+            "emit_scorecard_badge",
+            lambda _args, _config, _state: (None, None),
         )
         monkeypatch.setattr(
             scan_cmd_mod,
@@ -204,7 +206,11 @@ class TestCmdScanExecution:
             lambda *_args, **_kwargs: {"command": "scan", "ok": True},
         )
         monkeypatch.setattr(scan_cmd_mod, "write_query", lambda *_args, **_kwargs: None)
-        monkeypatch.setattr(scan_cmd_mod, "emit_scorecard_badge", lambda *_args, **_kwargs: None)
+        monkeypatch.setattr(
+            scan_cmd_mod,
+            "emit_scorecard_badge",
+            lambda *_args, **_kwargs: (None, None),
+        )
         monkeypatch.setattr(scan_cmd_mod, "print_llm_summary", lambda *_args, **_kwargs: None)
 
         cmd_scan(args)

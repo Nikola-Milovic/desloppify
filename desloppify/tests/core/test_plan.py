@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from datetime import date
 
-from desloppify.engine.planning.core import (
+import pytest
+
+from desloppify.engine.planning import (
     CONFIDENCE_ORDER,
     generate_plan_md,
     get_next_item,
@@ -392,14 +394,12 @@ class TestGetNextItem:
         result = get_next_item(st)
         assert result["id"] == "many"
 
-    def test_tier_param_accepted_but_ignored(self):
-        """tier param is accepted for backward compat but no longer filters."""
+    def test_tier_param_is_rejected(self):
         f1 = _issue("t1", tier=1, confidence="high")
         f2 = _issue("t3", tier=3, confidence="high")
         st = _state([f1, f2])
-        result = get_next_item(st, tier=3)
-        # tier is ignored — returns the first item by confidence/count sort
-        assert result is not None
+        with pytest.raises(TypeError):
+            get_next_item(st, tier=3)
 
 
 class TestGetNextItems:

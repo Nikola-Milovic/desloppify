@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-import desloppify.languages.typescript.detectors.deprecated as deprecated_detector_mod
 import desloppify.core.paths_api as paths_api_mod
+import desloppify.languages.typescript.detectors.deprecated as deprecated_detector_mod
 
 
 @pytest.fixture(autouse=True)
@@ -142,7 +142,8 @@ class TestDetectDeprecated:
                 "export function oldHelper() { return null; }\n"
             ),
         )
-        entries, count = deprecated_detector_mod.detect_deprecated(tmp_path)
+        result = deprecated_detector_mod.detect_deprecated_result(tmp_path)
+        entries, count = result.as_tuple()
         assert len(entries) >= 1
         assert entries[0]["symbol"] == "oldHelper"
         assert entries[0]["kind"] == "top-level"
@@ -161,14 +162,14 @@ class TestDetectDeprecated:
                 "export function oldThing() {}\n"
             ),
         )
-        entries, _ = deprecated_detector_mod.detect_deprecated(tmp_path)
+        entries, _ = deprecated_detector_mod.detect_deprecated_result(tmp_path).as_tuple()
         symbols = [e["symbol"] for e in entries if e["symbol"] == "oldThing"]
         assert len(symbols) <= 1
 
     def test_empty_directory(self, tmp_path):
         """Empty directory returns no entries."""
 
-        entries, count = deprecated_detector_mod.detect_deprecated(tmp_path)
+        entries, count = deprecated_detector_mod.detect_deprecated_result(tmp_path).as_tuple()
         assert entries == []
         assert count == 0
 
@@ -176,7 +177,7 @@ class TestDetectDeprecated:
         """Files without @deprecated produce no entries."""
 
         _write(tmp_path, "clean.ts", "export function activeHelper() { return 1; }\n")
-        entries, _ = deprecated_detector_mod.detect_deprecated(tmp_path)
+        entries, _ = deprecated_detector_mod.detect_deprecated_result(tmp_path).as_tuple()
         assert entries == []
 
     def test_distinguishes_top_level_and_property(self, tmp_path):
@@ -196,7 +197,7 @@ class TestDetectDeprecated:
                 "}\n"
             ),
         )
-        entries, _ = deprecated_detector_mod.detect_deprecated(tmp_path)
+        entries, _ = deprecated_detector_mod.detect_deprecated_result(tmp_path).as_tuple()
         kinds = {e["kind"] for e in entries}
         assert "top-level" in kinds
         assert "property" in kinds
@@ -213,6 +214,6 @@ class TestDetectDeprecated:
                 "export function oldFunc() {}\n"
             ),
         )
-        entries, _ = deprecated_detector_mod.detect_deprecated(tmp_path)
+        entries, _ = deprecated_detector_mod.detect_deprecated_result(tmp_path).as_tuple()
         symbols = {e["symbol"] for e in entries}
         assert "oldFunc" in symbols

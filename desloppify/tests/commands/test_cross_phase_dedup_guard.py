@@ -15,7 +15,9 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from desloppify.languages._framework.base.phase_builders import EXCLUSIVE_DETECTOR_MODULES
+from desloppify.languages._framework.base.phase_builders import (
+    EXCLUSIVE_DETECTOR_MODULES,
+)
 
 _LANGUAGES_DIR = Path(__file__).resolve().parents[2] / "languages"
 

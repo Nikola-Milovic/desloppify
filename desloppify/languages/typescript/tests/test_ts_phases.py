@@ -68,7 +68,7 @@ def test_phase_structural_uses_lang_thresholds(monkeypatch, tmp_path: Path):
     )
 
     lang = _FakeLang()
-    issues, potentials = phases._phase_structural(tmp_path, lang)
+    issues, potentials = phases.phase_structural(tmp_path, lang)
 
     # Issues should be empty since all detectors return empty lists
     assert issues == []
@@ -147,7 +147,7 @@ def test_phase_coupling_passes_orphaned_options(monkeypatch, tmp_path: Path):
     )
 
     lang = _FakeCouplingLang()
-    issues, potentials = phases._phase_coupling(tmp_path, lang)
+    issues, potentials = phases.phase_coupling(tmp_path, lang)
 
     # Issues should be empty since all detectors return empty lists
     assert issues == []

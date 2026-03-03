@@ -230,8 +230,13 @@ def _detect_del_param(
         if not param_names:
             continue
 
+        # Strip leading docstring before checking first 3 body statements.
+        body = node.body
+        if body and _is_docstring(body[0]):
+            body = body[1:]
+
         # Only check first 3 body statements (del is typically early cleanup).
-        for stmt in node.body[:3]:
+        for stmt in body[:3]:
             if not isinstance(stmt, ast.Delete):
                 continue
             for target in stmt.targets:

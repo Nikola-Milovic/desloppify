@@ -8,12 +8,16 @@ import tempfile
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+from desloppify.core.discovery_api import rel
 from desloppify.core.registry import _DISPLAY_ORDER, DETECTORS
+from desloppify.engine._scoring.policy.core import (
+    DIMENSIONS,
+    FILE_BASED_DETECTORS,
+)
 from desloppify.engine.detectors.review_coverage import (
     detect_holistic_review_staleness,
     detect_review_coverage,
 )
-from desloppify.core.discovery_api import rel
 from desloppify.intelligence.review import (
     DIMENSION_PROMPTS,
 )
@@ -26,10 +30,6 @@ from desloppify.intelligence.review import (
 from desloppify.languages._framework.runtime import make_lang_run
 from desloppify.languages.python import PythonConfig
 from desloppify.languages.typescript import TypeScriptConfig
-from desloppify.engine._scoring.policy.core import (
-    DIMENSIONS,
-    FILE_BASED_DETECTORS,
-)
 from desloppify.state import empty_state, find_suspect_detectors
 
 # ── Helpers ──────────────────────────────────────────────────────

@@ -7,7 +7,6 @@ from collections import defaultdict
 
 from desloppify.app.commands.helpers.display import short_issue_id
 from desloppify.app.commands.helpers.runtime import command_runtime
-from desloppify.app.commands.plan.triage.shared import _unenriched_clusters
 from desloppify.app.commands.plan.triage_playbook import (
     TRIAGE_CMD_CLUSTER_ADD,
     TRIAGE_CMD_CLUSTER_CREATE,
@@ -35,6 +34,7 @@ from .helpers import (
     _print_cascade_clear_feedback,
     _triage_coverage,
 )
+from .stage_helpers import _unenriched_clusters
 
 
 def _print_stage_progress(stages: dict, plan: dict | None = None) -> None:

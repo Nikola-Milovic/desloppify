@@ -2,10 +2,19 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import json
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from desloppify.intelligence.review.feedback_contract import (
+    ASSESSMENT_FEEDBACK_THRESHOLD,
+    LOW_SCORE_ISSUE_THRESHOLD,
+)
+from desloppify.intelligence.review.importing.contracts import (
+    AssessmentImportPolicyModel,
+    ReviewImportPayload,
+)
 
 from .import_output import (
     print_assessment_mode_banner,
@@ -27,14 +36,6 @@ from .import_policy import (
     assessment_mode_label,
     assessment_policy_from_payload,
     assessment_policy_model_from_payload,
-)
-from desloppify.intelligence.review.importing.contracts import (
-    AssessmentImportPolicyModel,
-    ReviewImportPayload,
-)
-from desloppify.intelligence.review.feedback_contract import (
-    ASSESSMENT_FEEDBACK_THRESHOLD,
-    LOW_SCORE_ISSUE_THRESHOLD,
 )
 
 
@@ -59,8 +60,6 @@ class ImportLoadConfig:
     attested_external: bool = False
     manual_override: bool = False
     manual_attest: str | None = None
-    assessment_override: bool = False
-    assessment_note: str | None = None
 
 
 def _coerce_import_load_config(
@@ -73,8 +72,6 @@ def _coerce_import_load_config(
     attested_external: bool,
     manual_override: bool,
     manual_attest: str | None,
-    assessment_override: bool,
-    assessment_note: str | None,
 ) -> ImportLoadConfig:
     if config is not None:
         return config
@@ -86,8 +83,6 @@ def _coerce_import_load_config(
         attested_external=attested_external,
         manual_override=manual_override,
         manual_attest=manual_attest,
-        assessment_override=assessment_override,
-        assessment_note=assessment_note,
     )
 
 
@@ -173,8 +168,6 @@ def _parse_and_validate_import(
     attested_external: bool = False,
     manual_override: bool = False,
     manual_attest: str | None = None,
-    assessment_override: bool = False,
-    assessment_note: str | None = None,
 ) -> tuple[ReviewImportPayload | None, list[str]]:
     """Parse and validate a review import file (pure function).
 
@@ -190,8 +183,6 @@ def _parse_and_validate_import(
         attested_external=attested_external,
         manual_override=manual_override,
         manual_attest=manual_attest,
-        assessment_override=assessment_override,
-        assessment_note=assessment_note,
     )
     issues_path = Path(import_file)
     if not issues_path.exists():
@@ -219,8 +210,6 @@ def _parse_and_validate_import(
     override_enabled, override_attest = resolve_override_context(
         manual_override=options.manual_override,
         manual_attest=options.manual_attest,
-        assessment_override=options.assessment_override,
-        assessment_note=options.assessment_note,
     )
     if options.attested_external and override_enabled:
         return None, [
@@ -307,8 +296,6 @@ def load_import_issues_data(
     attested_external: bool = False,
     manual_override: bool = False,
     manual_attest: str | None = None,
-    assessment_override: bool = False,
-    assessment_note: str | None = None,
 ) -> ReviewImportPayload:
     """Load and normalize review import payload to object format.
 
@@ -324,8 +311,6 @@ def load_import_issues_data(
         attested_external=attested_external,
         manual_override=manual_override,
         manual_attest=manual_attest,
-        assessment_override=assessment_override,
-        assessment_note=assessment_note,
     )
     data, errors = _parse_and_validate_import(
         import_file,

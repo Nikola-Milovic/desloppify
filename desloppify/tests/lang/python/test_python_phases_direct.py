@@ -16,14 +16,14 @@ def test_python_phase_constant_shapes():
 
 def test_python_phase_functions_are_callable():
     phase_funcs = [
-        phases._phase_unused,
-        phases._phase_structural,
-        phases._phase_responsibility_cohesion,
-        phases._phase_coupling,
-        phases._phase_smells,
-        phases._phase_mutable_state,
-        phases._phase_layer_violation,
-        phases._phase_dict_keys,
+        phases.phase_unused,
+        phases.phase_structural,
+        phases.phase_responsibility_cohesion,
+        phases.phase_coupling,
+        phases.phase_smells,
+        phases.phase_mutable_state,
+        phases.phase_layer_violation,
+        phases.phase_dict_keys,
     ]
     for fn in phase_funcs:
         assert callable(fn)

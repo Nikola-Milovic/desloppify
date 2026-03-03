@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from desloppify.core.text.text_api import is_numeric
-from desloppify.intelligence.review.dimensions.holistic import DIMENSIONS
 from desloppify.engine._scoring.policy.core import SUBJECTIVE_CHECKS
+from desloppify.intelligence.review.dimensions.holistic import DIMENSIONS
 
 DISPLAY_NAMES: dict[str, str] = {
     # Holistic dimensions

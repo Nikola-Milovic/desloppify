@@ -3,16 +3,15 @@
 from __future__ import annotations
 
 import argparse
-from importlib.metadata import PackageNotFoundError, version as get_version
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as get_version
 
-from desloppify.app.cli_support.parser_groups_plan import _add_plan_parser
 from desloppify.app.cli_support.parser_groups import (
     _add_config_parser,
     _add_detect_parser,
     _add_dev_parser,
     _add_exclude_parser,
     _add_fix_parser,
-    _add_suppress_parser,
     _add_langs_parser,
     _add_move_parser,
     _add_next_parser,
@@ -20,11 +19,13 @@ from desloppify.app.cli_support.parser_groups import (
     _add_scan_parser,
     _add_show_parser,
     _add_status_parser,
+    _add_suppress_parser,
     _add_tree_parser,
     _add_update_skill_parser,
     _add_viz_parser,
     _add_zone_parser,
 )
+from desloppify.app.cli_support.parser_groups_plan import _add_plan_parser
 
 USAGE_EXAMPLES = """
 workflow:

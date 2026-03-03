@@ -4,15 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from .batch_core import (
-    _accumulate_batch_scores,
-    _accumulate_batch_quality,
-    _compute_abstraction_components,
-    _compute_merged_assessments,
-    _issue_identity_key,
-    _issue_pressure_by_dimension,
-    assessment_weight,
-)
 from desloppify.intelligence.review.feedback_contract import (
     REVIEW_QUALITY_HIGH_SCORE_MISSING_ISSUES_KEY,
 )
@@ -21,6 +12,16 @@ from desloppify.intelligence.review.issue_merge import (
     normalize_word_set,
     pick_longer_text,
     track_merged_from,
+)
+
+from .batch_core import (
+    _accumulate_batch_quality,
+    _accumulate_batch_scores,
+    _compute_abstraction_components,
+    _compute_merged_assessments,
+    _issue_identity_key,
+    _issue_pressure_by_dimension,
+    assessment_weight,
 )
 
 

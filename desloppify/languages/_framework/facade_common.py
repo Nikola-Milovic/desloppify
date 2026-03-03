@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-DEFAULT_MAX_IMPORTERS = 10_000
+DEFAULT_MAX_IMPORTERS = 20
 
 
 def _facade_tier_confidence(importer_count: int) -> tuple[int, str]:
@@ -29,8 +29,8 @@ def detect_reexport_facades_common(
 ) -> tuple[list[dict], int]:
     """Collect file-level re-export facades using a language detector callback.
 
-    All pure re-export facades are reported regardless of importer count.
-    Tier is based on removal difficulty.
+    By default this excludes very high-importer facades (importers > 20),
+    but callers can override the ceiling for broader scans.
     """
     entries: list[dict] = []
     total_checked = 0

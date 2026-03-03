@@ -17,7 +17,11 @@ from desloppify.app.commands.helpers.runtime_options import resolve_lang_runtime
 from desloppify.app.commands.helpers.score import target_strict_score_from_config
 from desloppify.app.commands.scan.scan_coverage import (
     coerce_int as _coerce_int,
+)
+from desloppify.app.commands.scan.scan_coverage import (
     persist_scan_coverage as _persist_scan_coverage,
+)
+from desloppify.app.commands.scan.scan_coverage import (
     seed_runtime_coverage_warnings as _seed_runtime_coverage_warnings,
 )
 from desloppify.app.commands.scan.scan_helpers import (
@@ -27,33 +31,33 @@ from desloppify.app.commands.scan.scan_helpers import (
     _resolve_scan_profile,
     _warn_explicit_lang_with_no_files,
 )
-from desloppify.app.commands.scan.scan_wontfix import (
-    augment_with_stale_wontfix_issues as _augment_stale_wontfix_impl,
-)
 from desloppify.app.commands.scan.scan_plan_reconcile import (
     reconcile_plan_post_scan as _reconcile_plan_post_scan_impl,
 )
-from desloppify.core.text.text_api import get_project_root
-from desloppify.engine._work_queue.issues import expire_stale_holistic
-from desloppify.engine import planning as plan_mod
-from desloppify.engine.planning.scan import PlanScanOptions
+from desloppify.app.commands.scan.scan_wontfix import (
+    augment_with_stale_wontfix_issues as _augment_stale_wontfix_impl,
+)
+from desloppify.core.config import save_config as _save_config
 from desloppify.core.file_paths import rel
+from desloppify.core.output import colorize
 from desloppify.core.source_discovery import (
     disable_file_cache,
     enable_file_cache,
     get_exclusions,
 )
+from desloppify.core.text.text_api import get_project_root
+from desloppify.engine import planning as plan_mod
+from desloppify.engine._work_queue.issues import expire_stale_holistic
+from desloppify.engine.planning.scan import PlanScanOptions
 from desloppify.intelligence.review.dimensions.metadata import (
     resettable_default_dimensions,
 )
+from desloppify.languages._framework.base.types import DetectorCoverageRecord
+from desloppify.languages._framework.runtime import LangRunOverrides, make_lang_run
 from desloppify.languages._framework.treesitter import (
     disable_parse_cache,
     enable_parse_cache,
 )
-from desloppify.languages._framework.base.types import DetectorCoverageRecord
-from desloppify.languages._framework.runtime import LangRunOverrides, make_lang_run
-from desloppify.core.config import save_config as _save_config
-from desloppify.core.output import colorize
 
 _WONTFIX_DECAY_SCANS_DEFAULT = 20
 
@@ -74,7 +78,7 @@ def _clear_needs_rescan_flag(config: dict[str, object]) -> None:
         config["needs_rescan"] = True
 
 
-def _reconcile_plan_post_scan(runtime: "ScanRuntime") -> None:
+def _reconcile_plan_post_scan(runtime: ScanRuntime) -> None:
     """Reconcile plan queue metadata and stale subjective review dimensions."""
     _reconcile_plan_post_scan_impl(runtime)
 

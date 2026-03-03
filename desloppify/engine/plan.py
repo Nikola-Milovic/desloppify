@@ -6,32 +6,31 @@ the stable, non-private API used by commands and rendering helpers.
 
 from __future__ import annotations
 
-# --- schema -----------------------------------------------------------------
-from desloppify.engine._plan.schema import (
-    EPIC_PREFIX,
-    ExecutionLogEntry,
-    PLAN_VERSION,
-    Cluster,
-    CommitRecord,
-    ItemOverride,
-    PlanModel,
-    SkipEntry,
-    SupersededEntry,
-    VALID_EPIC_DIRECTIONS,
-    VALID_SKIP_KINDS,
-    empty_plan,
-    ensure_plan_defaults,
-    triage_clusters,
-    validate_plan,
+# --- auto-clustering --------------------------------------------------------
+from desloppify.engine._plan.auto_cluster import (
+    AUTO_PREFIX,
+    auto_cluster_issues,
 )
 
-# --- persistence ------------------------------------------------------------
-from desloppify.engine._plan.persistence import (
-    PLAN_FILE,
-    has_living_plan,
-    load_plan,
-    plan_path_for_state,
-    save_plan,
+# --- commit tracking --------------------------------------------------------
+from desloppify.engine._plan.commit_tracking import (
+    add_uncommitted_issues,
+    commit_tracking_summary,
+    filter_issue_ids_by_pattern,
+    find_commit_for_issue,
+    generate_pr_body,
+    get_uncommitted_issues,
+    purge_uncommitted_ids,
+    record_commit,
+    suggest_commit_message,
+)
+
+# --- epic triage ------------------------------------------------------------
+from desloppify.engine._plan.epic_triage import (
+    build_triage_prompt,
+    collect_triage_input,
+    detect_recurring_patterns,
+    extract_issue_citations,
 )
 
 # --- operations -------------------------------------------------------------
@@ -55,6 +54,15 @@ from desloppify.engine._plan.operations import (
     unskip_items,
 )
 
+# --- persistence ------------------------------------------------------------
+from desloppify.engine._plan.persistence import (
+    PLAN_FILE,
+    has_living_plan,
+    load_plan,
+    plan_path_for_state,
+    save_plan,
+)
+
 # --- reconcile --------------------------------------------------------------
 from desloppify.engine._plan.reconcile import (
     ReconcileResult,
@@ -63,38 +71,38 @@ from desloppify.engine._plan.reconcile import (
     sync_plan_after_review_import,
 )
 
-# --- auto-clustering --------------------------------------------------------
-from desloppify.engine._plan.auto_cluster import (
-    AUTO_PREFIX,
-    auto_cluster_issues,
-)
-
-# --- commit tracking --------------------------------------------------------
-from desloppify.engine._plan.commit_tracking import (
-    add_uncommitted_issues,
-    commit_tracking_summary,
-    filter_issue_ids_by_pattern,
-    find_commit_for_issue,
-    generate_pr_body,
-    get_uncommitted_issues,
-    purge_uncommitted_ids,
-    record_commit,
-    suggest_commit_message,
+# --- schema -----------------------------------------------------------------
+from desloppify.engine._plan.schema import (
+    EPIC_PREFIX,
+    PLAN_VERSION,
+    VALID_EPIC_DIRECTIONS,
+    VALID_SKIP_KINDS,
+    Cluster,
+    CommitRecord,
+    ExecutionLogEntry,
+    ItemOverride,
+    PlanModel,
+    SkipEntry,
+    SupersededEntry,
+    empty_plan,
+    ensure_plan_defaults,
+    triage_clusters,
+    validate_plan,
 )
 
 # --- stale dimensions -------------------------------------------------------
 from desloppify.engine._plan.stale_dimensions import (
+    SYNTHETIC_PREFIXES,
     TRIAGE_ID,
     TRIAGE_IDS,
     TRIAGE_PREFIX,
     TRIAGE_STAGE_IDS,
-    SYNTHETIC_PREFIXES,
     WORKFLOW_CREATE_PLAN_ID,
     WORKFLOW_PREFIX,
     CommunicateScoreSyncResult,
     StaleDimensionSyncResult,
-    UnscoredDimensionSyncResult,
     TriageSyncResult,
+    UnscoredDimensionSyncResult,
     compute_new_issue_ids,
     current_unscored_ids,
     is_triage_stale,
@@ -107,18 +115,11 @@ from desloppify.engine._plan.stale_dimensions import (
     sync_unscored_dimensions,
 )
 
-# --- epic triage ------------------------------------------------------------
-from desloppify.engine._plan.epic_triage import (
-    build_triage_prompt,
-    collect_triage_input,
-    detect_recurring_patterns,
-    extract_issue_citations,
-)
-
 # --- subjective policy ------------------------------------------------------
 from desloppify.engine._plan.subjective_policy import (
     compute_subjective_visibility,
 )
+
 
 def triage_phase_banner(plan: PlanModel) -> str:
     """Return a banner string when triage stage IDs are in the queue."""

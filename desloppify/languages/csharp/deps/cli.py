@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from desloppify.engine.detectors.graph import detect_cycles, get_coupling_score
 from desloppify.core.discovery_api import rel
 from desloppify.core.output import colorize, print_table
+from desloppify.engine.detectors.graph import detect_cycles, get_coupling_score
 
 
 def render_deps_cli(args, *, build_dep_graph, resolve_roslyn_cmd) -> None:

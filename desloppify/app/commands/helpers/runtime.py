@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -10,6 +9,7 @@ from typing import Any
 from desloppify import state as state_mod
 from desloppify.app.commands.helpers.state import state_path
 from desloppify.core.config import load_config
+from desloppify.engine._state.schema import StateModel
 
 
 @dataclass(frozen=True)

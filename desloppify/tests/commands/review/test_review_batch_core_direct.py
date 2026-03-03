@@ -6,11 +6,11 @@ from pathlib import Path
 
 import pytest
 
+from desloppify.app.commands.review import batch_core as batch_core_mod
 from desloppify.app.commands.review.batch_scoring import (
     DimensionMergeScorer,
     ScoreInputs,
 )
-from desloppify.app.commands.review import batch_core as batch_core_mod
 from desloppify.intelligence.review.feedback_contract import (
     LOW_SCORE_ISSUE_THRESHOLD,
     max_batch_issues_for_dimension_count,

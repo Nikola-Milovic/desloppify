@@ -6,19 +6,17 @@ subjective dimension items, and subjective score lookups.
 
 from __future__ import annotations
 
+from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
+from desloppify.engine._work_queue.helpers import (
+    detail_dict,
+    slugify,
+)
 from desloppify.engine.planning.scorecard_projection import (
     all_subjective_entries,
 )
 from desloppify.intelligence.integrity import (
     unassessed_subjective_dimensions,
 )
-from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
-
-from desloppify.engine._work_queue.helpers import (
-    detail_dict,
-    slugify,
-)
-
 
 # ---------------------------------------------------------------------------
 # Dimension key normalization
@@ -117,7 +115,7 @@ def build_triage_stage_items(plan: dict, state: dict) -> list[dict]:
     stage_names = ("observe", "reflect", "organize", "commit")
 
     items: list[dict] = []
-    for idx, (sid, name) in enumerate(zip(TRIAGE_STAGE_IDS, stage_names)):
+    for idx, (sid, name) in enumerate(zip(TRIAGE_STAGE_IDS, stage_names, strict=False)):
         if sid not in present:
             continue
         if name in confirmed:

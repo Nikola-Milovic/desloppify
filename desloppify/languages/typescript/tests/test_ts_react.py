@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pytest
 
-import desloppify.languages.typescript.detectors.react as react_detector_mod
 from desloppify.languages.typescript.detectors.react import (
     _count_return_fields,
     detect_context_nesting,
@@ -14,9 +13,8 @@ from desloppify.languages.typescript.detectors.react import (
 
 
 @pytest.fixture(autouse=True)
-def _root(tmp_path, set_project_root, monkeypatch):
+def _root(tmp_path, set_project_root):
     """Point PROJECT_ROOT at the tmp directory via RuntimeContext."""
-    monkeypatch.setattr(react_detector_mod, "PROJECT_ROOT", tmp_path)
 
 
 def _write(tmp_path: Path, name: str, content: str) -> Path:

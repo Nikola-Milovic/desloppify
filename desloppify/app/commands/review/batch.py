@@ -8,18 +8,18 @@ import sys
 from pathlib import Path
 
 from desloppify.app.commands.helpers.query import write_query_best_effort
-from . import batch_core as batch_core_mod
-from . import batches as review_batches_mod
 from desloppify.core.coercions_api import coerce_positive_int
-from desloppify.core.exception_sets import CommandError, PacketValidationError
 from desloppify.core.discovery_api import safe_write_text
+from desloppify.core.exception_sets import CommandError, PacketValidationError
+from desloppify.core.output import colorize, log
 from desloppify.intelligence import narrative as narrative_mod
 from desloppify.intelligence import review as review_mod
 from desloppify.intelligence.review.feedback_contract import (
     max_batch_issues_for_dimension_count,
 )
-from desloppify.core.output import colorize, log
 
+from . import batch_core as batch_core_mod
+from . import batches as review_batches_mod
 from .helpers import parse_dimensions
 from .import_cmd import do_import as _do_import
 from .packet_policy import coerce_review_batch_file_limit, redacted_review_config
@@ -42,8 +42,14 @@ from .runner_process import (
 from .runtime import setup_lang_concrete as _setup_lang
 from .runtime_paths import (
     blind_packet_path as _blind_packet_path,
+)
+from .runtime_paths import (
     review_packet_dir as _review_packet_dir,
+)
+from .runtime_paths import (
     runtime_project_root as _runtime_project_root,
+)
+from .runtime_paths import (
     subagent_runs_dir as _subagent_runs_dir,
 )
 

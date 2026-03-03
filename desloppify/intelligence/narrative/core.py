@@ -18,15 +18,33 @@ from desloppify.intelligence.narrative.phase import _detect_milestone, _detect_p
 from desloppify.intelligence.narrative.reminders import _compute_reminders
 from desloppify.intelligence.narrative.signals import (
     compute_badge_status as _compute_badge_status,
+)
+from desloppify.intelligence.narrative.signals import (
     compute_primary_action as _compute_primary_action,
+)
+from desloppify.intelligence.narrative.signals import (
     compute_risk_flags as _compute_risk_flags,
+)
+from desloppify.intelligence.narrative.signals import (
     compute_strict_target as _compute_strict_target,
+)
+from desloppify.intelligence.narrative.signals import (
     compute_verification_step as _compute_verification_step,
+)
+from desloppify.intelligence.narrative.signals import (
     compute_why_now as _compute_why_now,
+)
+from desloppify.intelligence.narrative.signals import (
     count_open_by_detector as _count_open_by_detector,
+)
+from desloppify.intelligence.narrative.signals import (
     history_for_lang as _history_for_lang,
-    score_snapshot as _score_snapshot,
+)
+from desloppify.intelligence.narrative.signals import (
     scoped_issues as _scoped_issues,
+)
+from desloppify.intelligence.narrative.signals import (
+    score_snapshot as _score_snapshot,
 )
 from desloppify.intelligence.narrative.strategy_engine import compute_strategy
 from desloppify.intelligence.narrative.types import (

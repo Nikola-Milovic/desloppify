@@ -136,7 +136,7 @@ def migrate_v5_to_v6(plan: dict[str, Any]) -> None:
             stage_names = ("observe", "reflect", "organize", "commit")
             to_inject = [
                 stage_id
-                for stage_id, name in zip(TRIAGE_STAGE_IDS, stage_names)
+                for stage_id, name in zip(TRIAGE_STAGE_IDS, stage_names, strict=False)
                 if name not in confirmed and stage_id not in order
             ]
             for offset, stage_id in enumerate(to_inject):

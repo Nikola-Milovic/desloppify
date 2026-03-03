@@ -12,25 +12,32 @@ from pathlib import Path
 from typing import Any
 
 from desloppify.app.commands.helpers.query import write_query
-from .runtime import setup_lang_concrete
 from desloppify.core.coercions_api import coerce_positive_int
 from desloppify.core.discovery_api import safe_write_text
-from desloppify.intelligence import narrative as narrative_mod
-from desloppify.intelligence import review as review_mod
 from desloppify.core.exception_sets import CommandError
 from desloppify.core.output import colorize
+from desloppify.intelligence import narrative as narrative_mod
+from desloppify.intelligence import review as review_mod
 
+from .batch import FOLLOWUP_SCAN_TIMEOUT_SECONDS
 from .helpers import parse_dimensions
 from .import_cmd import do_import, do_validate_import
-from .batch import FOLLOWUP_SCAN_TIMEOUT_SECONDS
 from .runner_packets import run_stamp, sha256_file, write_packet_snapshot
 from .runner_process import FollowupScanDeps, run_followup_scan
+from .runtime import setup_lang_concrete
 from .runtime_paths import (
     blind_packet_path as _blind_packet_path,
+)
+from .runtime_paths import (
     external_session_root as _external_session_root,
+)
+from .runtime_paths import (
     review_packet_dir as _review_packet_dir,
+)
+from .runtime_paths import (
     runtime_project_root as _runtime_project_root,
 )
+
 EXTERNAL_ATTEST_TEXT = (
     "I validated this review was completed without awareness of overall score and is unbiased."
 )

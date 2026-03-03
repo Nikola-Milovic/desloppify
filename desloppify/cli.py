@@ -4,28 +4,24 @@ from __future__ import annotations
 
 import logging
 import sys
-from pathlib import Path
 
 from desloppify.app.cli_support.parser import create_parser as _create_parser
-from desloppify.app.commands.registry import get_command_handlers
 from desloppify.app.commands.helpers.lang import LangResolutionError, resolve_lang
-from desloppify.core.exception_sets import CommandError
 from desloppify.app.commands.helpers.runtime import CommandRuntime
 from desloppify.app.commands.helpers.state import state_path
-from desloppify.core.registry import detector_names, on_detector_registered
+from desloppify.app.commands.registry import get_command_handlers
 from desloppify.core.config import load_config
 from desloppify.core.discovery_api import set_exclusions
+from desloppify.core.exception_sets import CommandError
 from desloppify.core.output import colorize
 from desloppify.core.paths_api import get_default_path, get_project_root
+from desloppify.core.registry import detector_names, on_detector_registered
 from desloppify.core.runtime_state import runtime_scope
 from desloppify.languages import available_langs
 from desloppify.state import load_state
 
 _DETECTOR_NAMES_CACHE: dict[str, list[str]] = {}
 logger = logging.getLogger(__name__)
-# Backward-compatible test patch hook; runtime path resolution uses get_project_root().
-PROJECT_ROOT = get_project_root()
-_PROJECT_ROOT_SENTINEL = PROJECT_ROOT
 
 
 def _get_detector_names() -> list[str]:
@@ -79,11 +75,7 @@ def _resolve_default_path(args) -> None:
     """
     if getattr(args, "path", None) is not None:
         return
-    runtime_root = (
-        PROJECT_ROOT.resolve()
-        if PROJECT_ROOT is not _PROJECT_ROOT_SENTINEL and isinstance(PROJECT_ROOT, Path)
-        else get_project_root()
-    )
+    runtime_root = get_project_root()
     if getattr(args, "command", None) == "review":
         try:
             state_file = state_path(args)

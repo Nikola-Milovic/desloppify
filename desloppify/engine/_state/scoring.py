@@ -285,11 +285,11 @@ def _update_objective_health(
 
     # Deferred import to avoid circular dependency with desloppify.scoring
     # (scoring -> _scoring/results/core -> _scoring/subjective/core -> review -> state -> _state/merge -> _state/scoring)
+    from desloppify.engine._scoring.detection import merge_potentials
     from desloppify.engine._scoring.results.core import (
         compute_health_score,
         compute_score_bundle,
     )
-    from desloppify.engine._scoring.detection import merge_potentials
 
     merged = merge_potentials(pots)
     if not merged:

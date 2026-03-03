@@ -2,19 +2,19 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from dataclasses import dataclass
 from typing import Any
 
 from desloppify import state as state_mod
 from desloppify.core import registry as registry_mod
+from desloppify.core.output import colorize
+from desloppify.engine._scoring.policy.core import DIMENSIONS
+from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
+from desloppify.engine._state.schema import StateModel
 from desloppify.engine._work_queue.core import (
     QueueBuildOptions,
     build_work_queue,
 )
-from desloppify.engine._scoring.policy.core import DIMENSIONS
-from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
-from desloppify.core.output import colorize
 
 
 @dataclass(frozen=True)

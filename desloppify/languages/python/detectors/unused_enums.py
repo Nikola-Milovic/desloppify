@@ -77,15 +77,15 @@ def detect_unused_enums(path: Path) -> tuple[list[dict], int]:
         return [], len(files)
 
     # Phase 2: check which enums are imported by at least one *other* file.
-    all_enum_names: dict[str, str] = {}  # enum_name → defining_file
+    all_enum_names: dict[str, list[str]] = {}  # enum_name → [defining_files]
     for filepath, defs in enum_defs.items():
         for d in defs:
-            all_enum_names[d["name"]] = filepath
+            all_enum_names.setdefault(d["name"], []).append(filepath)
 
     externally_imported: set[str] = set()
     for filepath, imported in imports_by_file.items():
         for name in imported:
-            if name in all_enum_names and all_enum_names[name] != filepath:
+            if name in all_enum_names and filepath not in all_enum_names[name]:
                 externally_imported.add(name)
 
     # Phase 3: report enums with zero external imports.

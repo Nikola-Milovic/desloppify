@@ -405,7 +405,7 @@ def sync_triage_needed(
             stage_names = ("observe", "reflect", "organize", "commit")
             existing = set(order)
             injected_count = 0
-            for sid, name in zip(TRIAGE_STAGE_IDS, stage_names):
+            for sid, name in zip(TRIAGE_STAGE_IDS, stage_names, strict=False):
                 if name not in confirmed and sid not in existing:
                     order.insert(insert_at + injected_count, sid)
                     injected_count += 1

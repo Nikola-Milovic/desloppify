@@ -4,12 +4,12 @@ import hashlib
 import re
 from pathlib import Path
 
+from desloppify.core.discovery_api import find_py_files
 from desloppify.engine.detectors.base import FunctionInfo
 from desloppify.engine.detectors.passthrough import (
     classify_params,
     classify_passthrough_tier,
 )
-from desloppify.core.discovery_api import find_py_files
 from desloppify.languages.python.extractors_classes import extract_py_classes
 from desloppify.languages.python.extractors_shared import (
     extract_py_params,

@@ -10,10 +10,10 @@ from desloppify.app.commands.helpers.rendering import print_agent_plan
 from desloppify.app.commands.helpers.runtime import command_runtime
 from desloppify.app.commands.helpers.state import state_path
 from desloppify.core import config as config_mod
-from desloppify.core.exception_sets import CommandError
-from desloppify.engine.policy.zones import FileZoneMap, Zone
 from desloppify.core.discovery_api import rel
+from desloppify.core.exception_sets import CommandError
 from desloppify.core.output import colorize
+from desloppify.engine.policy.zones import FileZoneMap, Zone
 
 
 def cmd_zone(args: argparse.Namespace) -> None:

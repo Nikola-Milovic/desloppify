@@ -8,10 +8,10 @@ import keyword
 import re
 
 from desloppify.app.commands.dev_scaffold_templates import build_scaffold_files
-from desloppify.core.text.text_api import get_project_root
 from desloppify.core.discovery_api import safe_write_text
 from desloppify.core.exception_sets import CommandError
 from desloppify.core.output import colorize
+from desloppify.core.text.text_api import get_project_root
 
 
 def cmd_dev(args: argparse.Namespace) -> None:

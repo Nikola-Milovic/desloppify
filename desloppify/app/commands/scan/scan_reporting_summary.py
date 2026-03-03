@@ -2,18 +2,18 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 import logging
 from typing import Any
 
 from desloppify import state as state_mod
+from desloppify.app.commands.helpers.score_update import print_strict_target_nudge
+from desloppify.app.commands.scan.reporting.agent_context import is_agent_environment
 from desloppify.app.commands.scan.scan_helpers import format_delta
 from desloppify.app.commands.status_parts.strict_target import (
     format_strict_target_progress,
 )
-from desloppify.app.commands.helpers.score_update import print_strict_target_nudge
-from desloppify.app.commands.scan.reporting.agent_context import is_agent_environment
 from desloppify.core.output import colorize
+from desloppify.engine._state.schema import StateModel
 from desloppify.engine.concerns import generate_concerns
 
 logger = logging.getLogger(__name__)

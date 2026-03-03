@@ -11,9 +11,9 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from desloppify.core.exception_sets import CommandError
 from desloppify.app.commands.review import external as external_mod
 from desloppify.app.commands.review import runtime_paths as runtime_paths_mod
+from desloppify.core.exception_sets import CommandError
 from desloppify.state import empty_state as build_empty_state
 
 

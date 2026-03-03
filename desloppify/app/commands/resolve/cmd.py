@@ -7,15 +7,12 @@ import logging
 import sys
 
 from desloppify import state as state_mod
+from desloppify.app.commands.helpers.guardrails import require_triage_current_or_exit
 from desloppify.app.commands.helpers.lang import resolve_lang
 from desloppify.app.commands.helpers.queue_progress import show_score_with_plan_context
 from desloppify.app.commands.helpers.state import state_path
-from desloppify.app.commands.helpers.guardrails import require_triage_current_or_exit
-from desloppify.core import config as config_mod  # noqa: F401 (compat export)
 from desloppify.core.exception_sets import PLAN_LOAD_EXCEPTIONS
 from desloppify.core.output import colorize
-
-_logger = logging.getLogger(__name__)
 from desloppify.engine.plan import (
     add_uncommitted_issues,
     append_log_entry,
@@ -29,7 +26,6 @@ from desloppify.intelligence import narrative as narrative_mod
 from desloppify.state import coerce_assessment_score
 
 from .apply import _resolve_all_patterns, _write_resolve_query_entry
-from .suppress import cmd_suppress_pattern
 from .persist import _save_state_or_exit
 from .queue_guard import _check_queue_order_guard
 from .render import (
@@ -47,6 +43,9 @@ from .selection import (
     show_note_length_requirement,
     validate_note_length,
 )
+from .suppress import cmd_suppress_pattern
+
+_logger = logging.getLogger(__name__)
 
 
 def _validate_fixed_note(args: argparse.Namespace) -> bool:

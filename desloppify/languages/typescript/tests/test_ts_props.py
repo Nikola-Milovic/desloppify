@@ -4,14 +4,12 @@ from pathlib import Path
 
 import pytest
 
-import desloppify.languages.typescript.detectors.props as props_detector_mod
 from desloppify.languages.typescript.detectors.props import detect_prop_interface_bloat
 
 
 @pytest.fixture(autouse=True)
-def _root(tmp_path, set_project_root, monkeypatch):
+def _root(tmp_path, set_project_root):
     """Point PROJECT_ROOT at the tmp directory via RuntimeContext."""
-    monkeypatch.setattr(props_detector_mod, "PROJECT_ROOT", tmp_path)
 
 
 def _write(tmp_path: Path, name: str, content: str) -> Path:

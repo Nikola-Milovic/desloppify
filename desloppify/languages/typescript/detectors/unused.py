@@ -12,7 +12,6 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from desloppify.core.text.text_api import get_project_root, strip_c_style_comments
 from desloppify.core.discovery_api import (
     find_ts_files,
     read_file_text,
@@ -21,6 +20,7 @@ from desloppify.core.discovery_api import (
     safe_write_text,
 )
 from desloppify.core.output import colorize, print_table
+from desloppify.core.text.text_api import get_project_root, strip_c_style_comments
 
 TS6133_RE = re.compile(
     r"^(.+)\((\d+),(\d+)\): error TS6133: '(\S+)' is declared but its value is never read\."

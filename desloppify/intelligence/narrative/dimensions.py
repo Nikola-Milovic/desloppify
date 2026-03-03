@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from desloppify.intelligence.narrative._constants import STRUCTURAL_MERGE
+from desloppify.engine._scoring.detection import merge_potentials
 from desloppify.engine._scoring.policy.core import (
     DIMENSIONS,
     TIER_WEIGHTS,
 )
 from desloppify.engine._scoring.results.core import compute_score_impact
-from desloppify.engine._scoring.detection import merge_potentials
+from desloppify.intelligence.narrative._constants import STRUCTURAL_MERGE
 from desloppify.state import StateModel, path_scoped_issues
 
 

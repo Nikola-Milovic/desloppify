@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import desloppify.engine._scoring.results.core as scoring_mod
 from desloppify import state as state_mod
-from . import scan_reporting_presentation as presentation_mod
 from desloppify.app.commands.scan.scan_reporting_subjective import (
     SubjectiveFollowup,
     build_subjective_followup,
@@ -15,21 +14,17 @@ from desloppify.app.commands.scan.scan_reporting_subjective import (
     subjective_integrity_notice_lines,
     subjective_rerun_command,
 )
+from desloppify.core import registry as registry_mod
+from desloppify.core.output import colorize
 from desloppify.engine.planning.scorecard_projection import (
     dimension_cli_key,
-)
-from desloppify.engine.planning.scorecard_projection import (
     scorecard_dimension_cli_keys,
-)
-from desloppify.engine.planning.scorecard_projection import (
     scorecard_dimension_rows,
-)
-from desloppify.engine.planning.scorecard_projection import (
     scorecard_subjective_entries,
 )
-from desloppify.core.output import colorize
-from desloppify.core import registry as registry_mod
 from desloppify.intelligence import narrative as narrative_mod
+
+from . import scan_reporting_presentation as presentation_mod
 
 
 def show_detector_progress(state: dict):

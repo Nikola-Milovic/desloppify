@@ -64,35 +64,10 @@ def coerce_confidence(value: object, *, default: float = 1.0) -> float:
     return max(0.0, min(1.0, parsed))
 
 
-def option_value(
-    *,
-    options: object | None,
-    legacy_options: dict[str, object],
-    name: str,
-    default: object,
-) -> object:
-    """Resolve option value from legacy kwargs first, then options object."""
-    if isinstance(legacy_options, dict) and name in legacy_options:
-        return legacy_options[name]
-
-    if options is None:
-        return default
-
-    if isinstance(options, dict) and name in options:
-        return options[name]
-
-    missing = object()
-    value = getattr(options, name, missing)
-    if value is not missing:
-        return value
-    return default
-
-
 __all__ = [
     "coerce_confidence",
     "coerce_non_negative_float",
     "coerce_non_negative_int",
-    "option_value",
     "coerce_positive_float",
     "coerce_positive_int",
 ]

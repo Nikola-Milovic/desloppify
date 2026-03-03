@@ -53,7 +53,7 @@ def _scored_dimensions(state: StateModel) -> list[str]:
         if isinstance(assessment, dict):
             if assessment.get("score", 0):
                 scored.append(dim_key)
-        elif isinstance(assessment, (int, float)) and assessment:
+        elif isinstance(assessment, int | float) and assessment:
             scored.append(dim_key)
     return sorted(scored)
 

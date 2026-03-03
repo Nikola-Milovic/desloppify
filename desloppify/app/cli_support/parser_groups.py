@@ -4,11 +4,6 @@ from __future__ import annotations
 
 import argparse
 
-from desloppify.app.cli_support.parser_groups_plan import _add_plan_parser
-from desloppify.core.enums import issue_status_tokens
-
-_STATUS_CHOICES = sorted(issue_status_tokens(include_all=True))
-
 from desloppify.app.cli_support.parser_groups_admin import (  # noqa: F401 (re-exports)
     _add_config_parser,
     _add_detect_parser,
@@ -21,6 +16,10 @@ from desloppify.app.cli_support.parser_groups_admin import (  # noqa: F401 (re-e
     _add_viz_parser,
     _add_zone_parser,
 )
+from desloppify.app.cli_support.parser_groups_plan import _add_plan_parser
+from desloppify.core.enums import issue_status_tokens
+
+_STATUS_CHOICES = sorted(issue_status_tokens(include_all=True))
 
 __all__ = [
     "_add_config_parser",

@@ -7,18 +7,20 @@ from collections import defaultdict
 
 from desloppify.app.commands.helpers.rendering import (
     print_agent_plan as render_plan_with_living_plan,
+)
+from desloppify.app.commands.helpers.rendering import (
     print_ranked_actions,
 )
 from desloppify.app.commands.helpers.subjective import print_subjective_followup
 from desloppify.app.commands.scan import (
     scan_reporting_dimensions as reporting_dimensions_mod,
 )
+from desloppify.core.discovery_api import safe_write_text
+from desloppify.core.enums import canonical_issue_status
+from desloppify.core.fallbacks import print_write_error
 from desloppify.core.output import colorize
 from desloppify.core.paths_api import read_code_snippet
-from desloppify.core.fallbacks import print_write_error
-from desloppify.core.enums import canonical_issue_status
 from desloppify.engine.planning import CONFIDENCE_ORDER
-from desloppify.core.discovery_api import safe_write_text
 
 from .formatting import format_detail
 

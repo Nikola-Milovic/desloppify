@@ -10,7 +10,6 @@ from desloppify.engine._state.filtering import (
 from desloppify.engine._state.merge_issues import upsert_issues
 from desloppify.engine._state.scoring import _count_issues
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

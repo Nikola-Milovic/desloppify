@@ -4,16 +4,22 @@ from __future__ import annotations
 
 from desloppify.app.commands.next_parts.render_support import (
     is_auto_fix_command,
+)
+from desloppify.app.commands.next_parts.render_support import (
     render_cluster_item as _render_cluster_item,
+)
+from desloppify.app.commands.next_parts.render_support import (
     render_compact_item as _render_compact_item,
+)
+from desloppify.app.commands.next_parts.render_support import (
     render_grouped as _render_grouped,
 )
 from desloppify.core.output import colorize, log
 from desloppify.core.paths_api import read_code_snippet
 from desloppify.engine._scoring.results.core import (
     compute_health_breakdown,
-    get_dimension_for_detector,
     compute_score_impact,
+    get_dimension_for_detector,
 )
 
 
@@ -270,7 +276,7 @@ def _render_item_explain(
                 if _normalized_dimension_key(ds_name) != dim_key:
                     continue
                 score_val = ds_data.get("score", "?")
-                if isinstance(score_val, (int, float)):
+                if isinstance(score_val, int | float):
                     score_str = f"{score_val:.1f}"
                 else:
                     score_str = str(score_val)

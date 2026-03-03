@@ -1169,7 +1169,9 @@ class TestEslintParser:
         import pytest
 
         from desloppify.languages._framework.generic import parse_eslint
-        from desloppify.languages._framework.generic_parts.parsers import ToolParserError
+        from desloppify.languages._framework.generic_parts.parsers import (
+            ToolParserError,
+        )
 
         with pytest.raises(ToolParserError):
             parse_eslint("not json", Path("/src"))

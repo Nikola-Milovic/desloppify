@@ -2,31 +2,35 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 import hashlib
 from pathlib import Path
 from typing import Any
 
+from desloppify.engine._state.schema import StateModel
 from desloppify.intelligence.review.dimensions.data import load_dimensions_for_lang
-from desloppify.intelligence.review.importing.contracts import (
-    ReviewIssuePayload,
-    ReviewImportPayload,
-)
-from desloppify.intelligence.review.importing.helpers import (
-    _lang_potentials,
-    auto_resolve_review_issues,
-    normalize_review_confidence,
-    parse_review_import_payload,
+from desloppify.intelligence.review.importing.assessments import store_assessments
+from desloppify.intelligence.review.importing.cache import (
     refresh_review_file_cache,
     resolve_import_project_root,
-    review_tier,
+)
+from desloppify.intelligence.review.importing.contracts import (
+    ReviewImportPayload,
+    ReviewIssuePayload,
+)
+from desloppify.intelligence.review.importing.payload import (
     ReviewImportEnvelope,
-    store_assessments,
+    normalize_review_confidence,
+    parse_review_import_payload,
+    review_tier,
+)
+from desloppify.intelligence.review.importing.resolution import (
+    auto_resolve_review_issues,
+)
+from desloppify.intelligence.review.importing.state_helpers import (
+    _lang_potentials,
 )
 from desloppify.intelligence.review.selection import hash_file
 from desloppify.state import MergeScanOptions, make_issue, merge_scan, utc_now
-
-PROJECT_ROOT: Path | None = None
 
 
 def parse_per_file_import_payload(
@@ -46,9 +50,7 @@ def _absolutize_review_path(file_path: str, *, project_root: Path) -> str:
 
 
 def _resolve_per_file_project_root(project_root: Path | str | None) -> Path:
-    """Resolve import root with legacy module-level override support for tests."""
-    if project_root is None and isinstance(PROJECT_ROOT, Path):
-        return PROJECT_ROOT
+    """Resolve import root for per-file review imports."""
     return resolve_import_project_root(project_root)
 
 

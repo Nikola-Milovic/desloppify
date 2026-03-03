@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from desloppify.core.fallbacks import log_best_effort_failure
 from desloppify.core.discovery_api import safe_write_text
+from desloppify.core.fallbacks import log_best_effort_failure
 from desloppify.core.paths_api import get_project_root
 
 

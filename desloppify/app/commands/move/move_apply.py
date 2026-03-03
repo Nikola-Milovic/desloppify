@@ -6,8 +6,8 @@ import shutil
 import sys
 from pathlib import Path
 
-from desloppify.core.fallbacks import restore_files_best_effort, warn_best_effort
 from desloppify.core.discovery_api import rel, safe_write_text
+from desloppify.core.fallbacks import restore_files_best_effort, warn_best_effort
 from desloppify.core.output import colorize
 
 

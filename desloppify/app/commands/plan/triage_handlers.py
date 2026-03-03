@@ -149,17 +149,9 @@ def cmd_plan_triage(args: argparse.Namespace) -> None:
 
     _display_mod._cmd_triage_dashboard(args)
 
-
-def cmd_stage_observe(args: argparse.Namespace) -> None:
-    """Compatibility wrapper for direct stage-observe invocation in tests."""
-    _sync_triage_module_bindings()
-    _stages_mod._cmd_stage_observe(args)
-
-
 __all__ = [
     "_MIN_ATTESTATION_LEN",
     "_triage_coverage",
     "_validate_attestation",
     "cmd_plan_triage",
-    "cmd_stage_observe",
 ]

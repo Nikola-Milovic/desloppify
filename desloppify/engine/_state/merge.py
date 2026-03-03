@@ -10,17 +10,17 @@ __all__ = [
     "merge_scan",
 ]
 
-from desloppify.engine._state.merge_issues import (
-    auto_resolve_disappeared,
-    find_suspect_detectors,
-    upsert_issues,
-)
 from desloppify.engine._state.merge_history import (
     _append_scan_history,
     _build_merge_diff,
     _compute_suppression,
     _merge_scan_inputs,
     _record_scan_metadata,
+)
+from desloppify.engine._state.merge_issues import (
+    auto_resolve_disappeared,
+    find_suspect_detectors,
+    upsert_issues,
 )
 from desloppify.engine._state.schema import (
     ScanDiff,

@@ -2,8 +2,8 @@
 
 import inspect
 
-import desloppify.engine.planning.core as plan_mod
 import desloppify.app.commands.plan.cmd as plan_cmd
+import desloppify.engine.planning as plan_mod
 from desloppify.app.commands.plan.cmd import cmd_plan_output
 
 # ---------------------------------------------------------------------------

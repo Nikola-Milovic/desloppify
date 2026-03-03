@@ -6,8 +6,8 @@ import shutil
 from functools import partial
 from pathlib import Path
 
+from desloppify.core.source_discovery import collect_exclude_dirs, find_py_files
 from desloppify.core.text.text_api import get_area
-from desloppify.core.source_discovery import find_py_files
 from desloppify.engine.detectors.base import FunctionInfo
 from desloppify.engine.policy.zones import COMMON_ZONE_RULES, Zone, ZoneRule
 from desloppify.hook_registry import register_lang_hooks
@@ -27,7 +27,6 @@ from desloppify.languages._framework.base.types import (
 )
 from desloppify.languages.python import test_coverage as py_test_coverage_hooks
 from desloppify.languages.python.commands import get_detect_commands
-from desloppify.core.source_discovery import collect_exclude_dirs
 from desloppify.languages.python.detectors.bandit_adapter import detect_with_bandit
 from desloppify.languages.python.detectors.deps import build_dep_graph
 from desloppify.languages.python.detectors.private_imports import (

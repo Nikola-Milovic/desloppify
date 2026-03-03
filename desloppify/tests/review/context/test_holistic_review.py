@@ -5,12 +5,13 @@ from __future__ import annotations
 import os
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-import desloppify.core._internal.text_utils as _utils_text_mod
 import desloppify.core.discovery_api as _discovery_api_mod
+from desloppify.engine._scoring.detection import detector_pass_rate
+from desloppify.engine._scoring.policy.core import HOLISTIC_POTENTIAL
 from desloppify.engine.detectors.review_coverage import detect_holistic_review_staleness
 from desloppify.intelligence.narrative.core import _count_open_by_detector
 from desloppify.intelligence.review import (
@@ -37,23 +38,25 @@ from desloppify.intelligence.review.context import file_excerpt
 from desloppify.intelligence.review.prepare import HolisticReviewPrepareOptions
 from desloppify.intelligence.review.prepare_batches import (
     batch_concerns as _batch_concerns,
+)
+from desloppify.intelligence.review.prepare_batches import (
     build_investigation_batches as _build_investigation_batches,
 )
 from desloppify.intelligence.review.prepare_batches import filter_batches_to_dimensions
-from desloppify.engine._scoring.policy.core import HOLISTIC_POTENTIAL
-from desloppify.engine._scoring.detection import detector_pass_rate
 from desloppify.state import empty_state, path_scoped_issues
 
 
 @pytest.fixture
 def patch_project_root(monkeypatch):
-    """Patch PROJECT_ROOT via RuntimeContext so all consumers see the override."""
+    """Patch project root via RuntimeContext so all consumers see the override."""
     from desloppify.core.runtime_state import current_runtime_context
+
     ctx = current_runtime_context()
+
     def _patch(tmp_path):
         monkeypatch.setattr(ctx, "project_root", tmp_path)
-        monkeypatch.setattr(_utils_text_mod, "PROJECT_ROOT", tmp_path)
         _discovery_api_mod.clear_source_file_cache_for_tests()
+
     return _patch
 
 
@@ -105,9 +108,9 @@ def prepare_holistic_review(
     )
 
 
-def import_holistic_issues(issues_data, state, lang_name):
+def import_holistic_issues(issues_data, state, lang_name, **kwargs):
     payload = issues_data if isinstance(issues_data, dict) else {"issues": issues_data}
-    return _import_holistic_issues_impl(payload, state, lang_name)
+    return _import_holistic_issues_impl(payload, state, lang_name, **kwargs)
 
 
 # ===================================================================
@@ -677,9 +680,8 @@ class TestImportHolisticIssues:
 
         from desloppify.core.runtime_state import RuntimeContext, runtime_scope
         ctx = RuntimeContext(project_root=tmp_path)
-        with runtime_scope(ctx), \
-             patch("desloppify.intelligence.review.importing.holistic.PROJECT_ROOT", tmp_path):
-            _ = import_holistic_issues(issues_data, state, "python")
+        with runtime_scope(ctx):
+            _ = import_holistic_issues(issues_data, state, "python", project_root=tmp_path)
 
         files_cache = state.get("review_cache", {}).get("files", {})
         assert "pkg/module.py" in files_cache
@@ -719,10 +721,8 @@ class TestImportHolisticIssues:
         from desloppify.core.runtime_state import RuntimeContext, runtime_scope
 
         ctx = RuntimeContext(project_root=tmp_path)
-        with runtime_scope(ctx), patch(
-            "desloppify.intelligence.review.importing.holistic.PROJECT_ROOT", tmp_path
-        ):
-            diff = import_holistic_issues(payload, state, "python")
+        with runtime_scope(ctx):
+            diff = import_holistic_issues(payload, state, "python", project_root=tmp_path)
 
         assert diff["auto_resolved"] >= 1
         assert state["issues"][coverage_id]["status"] == "auto_resolved"

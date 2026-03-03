@@ -7,6 +7,7 @@ import pytest
 
 import desloppify.core._internal.text_utils as utils_text_mod
 import desloppify.core.paths_api as paths_api_mod
+import desloppify.core.tooling as tooling_mod
 from desloppify.core.discovery_api import (
     clear_source_file_cache_for_tests,
     find_source_files,
@@ -18,20 +19,20 @@ from desloppify.core.discovery_api import (
 )
 from desloppify.core.grep import grep_count_files, grep_files, grep_files_containing
 from desloppify.core.paths_api import read_code_snippet
-import desloppify.core.tooling as tooling_mod
 from desloppify.core.tooling import check_tool_staleness, compute_tool_hash
 
 
 @pytest.fixture
 def patch_project_root(monkeypatch):
-    """Patch PROJECT_ROOT via RuntimeContext so all consumers see the override."""
+    """Patch project root via RuntimeContext so all consumers see the override."""
     from desloppify.core.runtime_state import current_runtime_context
+
     ctx = current_runtime_context()
+
     def _patch(tmp_path):
         monkeypatch.setattr(ctx, "project_root", tmp_path)
-        monkeypatch.setattr(paths_api_mod, "PROJECT_ROOT", tmp_path)
-        monkeypatch.setattr(utils_text_mod, "PROJECT_ROOT", tmp_path)
         clear_source_file_cache_for_tests()
+
     return _patch
 
 
@@ -40,7 +41,7 @@ def patch_project_root(monkeypatch):
 
 def test_rel_absolute_under_project_root(monkeypatch):
     """Absolute path under PROJECT_ROOT is converted to relative."""
-    root = paths_api_mod.PROJECT_ROOT
+    root = paths_api_mod.get_project_root()
     abs_path = str(root / "foo" / "bar.py")
     assert rel(abs_path) == "foo/bar.py"
 
@@ -51,7 +52,7 @@ def test_rel_path_outside_project_root(tmp_path, monkeypatch):
     result = rel(outside)
     # Path outside PROJECT_ROOT should be normalized to a relative path
     try:
-        expected = os.path.relpath(outside, str(paths_api_mod.PROJECT_ROOT)).replace(
+        expected = os.path.relpath(outside, str(paths_api_mod.get_project_root())).replace(
             "\\", "/"
         )
     except ValueError:
@@ -63,12 +64,12 @@ def test_rel_path_outside_project_root(tmp_path, monkeypatch):
 # ── resolve_path() ───────────────────────────────────────────
 
 
-def test_resolve_path_relative(monkeypatch):
+def test_resolve_path_relative():
     """Relative path is resolved to absolute under PROJECT_ROOT."""
-    monkeypatch.setattr(paths_api_mod, "PROJECT_ROOT", paths_api_mod.PROJECT_ROOT)
+    root = paths_api_mod.get_project_root()
     result = resolve_path("src/foo.py")
     assert os.path.isabs(result)
-    assert result == str((paths_api_mod.PROJECT_ROOT / "src" / "foo.py").resolve())
+    assert result == str((root / "src" / "foo.py").resolve())
 
 
 def test_resolve_path_absolute(tmp_path):

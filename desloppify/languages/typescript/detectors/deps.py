@@ -8,28 +8,30 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from desloppify.core.text.text_api import get_project_root
 from desloppify.core.file_paths import rel, resolve_path
 from desloppify.core.grep import grep_files
 from desloppify.core.output import colorize, print_table
+from desloppify.core.source_discovery import (
+    find_source_files,
+    find_ts_files,
+)
+from desloppify.core.text.text_api import get_project_root
 from desloppify.engine.detectors.graph import (
     detect_cycles,
     finalize_graph,
     get_coupling_score,
 )
-from desloppify.core.source_discovery import (
-    find_source_files,
-    find_ts_files,
+from desloppify.languages.typescript.detectors.deps_resolve import (
+    load_tsconfig_paths as _load_tsconfig_paths,
+)
+from desloppify.languages.typescript.detectors.deps_resolve import (
+    resolve_module as _resolve_module,
 )
 from desloppify.languages.typescript.detectors.deps_runtime import (
     build_dynamic_import_targets as _build_dynamic_import_targets,
 )
 from desloppify.languages.typescript.detectors.deps_runtime import (
     ts_alias_resolver as _ts_alias_resolver,
-)
-from desloppify.languages.typescript.detectors.deps_resolve import (
-    load_tsconfig_paths as _load_tsconfig_paths,
-    resolve_module as _resolve_module,
 )
 
 _FRAMEWORK_EXTENSIONS = (".svelte", ".vue", ".astro")

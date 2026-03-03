@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import re
 
+from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
 from desloppify.engine.planning.dimension_rows import (
     scorecard_dimension_rows,
 )
-from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
 
 _COMPONENT_TO_DIMENSION: dict[str, str] = {
     "abstraction leverage": "abstraction_fitness",

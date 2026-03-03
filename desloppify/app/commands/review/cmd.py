@@ -131,7 +131,7 @@ def _run_review_mode(
     if bool(getattr(args, "external_submit", False)):
         do_external_submit(
             import_file=str(import_file),
-            session_id=str(getattr(args, "session_id")),
+            session_id=str(args.session_id),
             state=state,
             lang=lang,
             state_file=state_file,

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import desloppify.app.commands.helpers.display as display_mod
 import desloppify.app.commands.next_parts.render_support as next_render_support_mod
-import desloppify.app.commands.resolve.suppress as resolve_suppress_cmd_mod
 import desloppify.app.commands.resolve.persist as resolve_persist_mod
 import desloppify.app.commands.resolve.queue_guard as resolve_queue_guard_mod
 import desloppify.app.commands.resolve.render_support as resolve_render_support_mod
+import desloppify.app.commands.resolve.suppress as resolve_suppress_cmd_mod
 import desloppify.app.commands.review.import_output as review_import_output_mod
 import desloppify.app.commands.review.import_parse as review_import_parse_mod
 import desloppify.app.commands.review.import_policy as review_import_policy_mod
@@ -19,7 +19,6 @@ import desloppify.app.commands.show.dimension_views as show_dimension_views_mod
 import desloppify.app.commands.status_parts.render_dimensions as status_render_dimensions_mod
 import desloppify.app.commands.status_parts.render_io as status_render_io_mod
 import desloppify.app.commands.status_parts.render_structural as status_render_structural_mod
-import desloppify.engine.planning.scorecard_policy as dimension_policy_mod
 import desloppify.core.compatibility as compatibility_mod
 import desloppify.core.grep as grep_mod
 import desloppify.core.output as output_mod
@@ -31,16 +30,16 @@ import desloppify.engine._scoring.results.health as scoring_health_mod
 import desloppify.engine._scoring.results.impact as scoring_impact_mod
 import desloppify.engine._state.schema_scores as schema_scores_mod
 import desloppify.engine._work_queue.plan_order as work_queue_plan_order_mod
-import desloppify.hook_registry as hook_registry_mod
 import desloppify.engine.planning as planning_pkg
 import desloppify.engine.planning.dimension_rows as planning_dimension_rows_mod
 import desloppify.engine.planning.render_sections as planning_render_sections_mod
+import desloppify.engine.planning.scorecard_policy as dimension_policy_mod
+import desloppify.hook_registry as hook_registry_mod
 import desloppify.intelligence.narrative.signals as narrative_signals_mod
 import desloppify.intelligence.review.context_holistic.selection_contexts as selection_contexts_mod
 import desloppify.intelligence.review.selection_cache as review_selection_cache_mod
 import desloppify.languages._framework.scoped_store as scoped_store_mod
 import desloppify.languages.csharp.detectors.deps_support as csharp_deps_support_mod
-import desloppify.languages.python.detectors.compat as py_deps_compat_mod
 import desloppify.languages.python.detectors.deps_dynamic as py_deps_dynamic_mod
 import desloppify.languages.python.detectors.deps_resolution as py_deps_resolution_mod
 import desloppify.languages.python.detectors.smells_runtime as py_smells_runtime_mod
@@ -94,7 +93,6 @@ def test_direct_coverage_priority_modules_smoke():
     assert callable(review_selection_cache_mod.get_file_issues)
     assert callable(scoped_store_mod.resolve_effective_scope)
     assert callable(csharp_deps_support_mod.map_file_to_project)
-    assert callable(py_deps_compat_mod.entries_or_none_on_degradation)
     assert callable(py_deps_dynamic_mod.find_python_dynamic_imports)
     assert callable(py_deps_resolution_mod.resolve_python_import)
     assert callable(py_smells_runtime_mod._detect_empty_except)

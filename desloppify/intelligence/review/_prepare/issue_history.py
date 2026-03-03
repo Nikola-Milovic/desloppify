@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
 from desloppify.core.enums import issue_status_tokens, resolved_statuses
+from desloppify.engine._state.schema import StateModel
 
 _RESOLVED_STATUSES = resolved_statuses()
 _KNOWN_STATUSES = tuple(sorted(issue_status_tokens()))

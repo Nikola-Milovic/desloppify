@@ -2,13 +2,13 @@
 
 import desloppify.core.config as config_mod
 from desloppify.app.commands.helpers.runtime import CommandRuntime
-from desloppify.core.exception_sets import CommandError
 from desloppify.app.commands.zone import (
     _zone_clear,
     _zone_set,
     _zone_show,
     cmd_zone,
 )
+from desloppify.core.exception_sets import CommandError
 
 # ---------------------------------------------------------------------------
 # Module-level sanity

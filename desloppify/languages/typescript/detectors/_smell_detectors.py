@@ -7,10 +7,10 @@ import os
 import re
 
 from desloppify.languages.typescript.detectors._smell_helpers import (
-    _FileContext,
     _code_text,
     _content_line_info,
     _extract_block_body,
+    _FileContext,
     _strip_ts_comments,
     _track_brace_body,
     _ts_match_is_in_string,

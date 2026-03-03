@@ -9,7 +9,6 @@ from desloppify.intelligence.review.context_holistic.budget_analysis import (
     _strip_docstring,
 )
 
-
 _VIOLATION_METHODS = frozenset({"get", "setdefault", "pop"})
 
 def _python_passthrough_target(stmt: ast.stmt) -> str | None:
@@ -301,10 +300,15 @@ def _find_dict_any_annotations(
     for filepath, tree in parsed_trees.items():
         rpath = rel(filepath)
         for node in ast.walk(tree):
-            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
                 continue
             # Check args
-            for arg in node.args.args + node.args.kwonlyargs:
+            all_args = node.args.posonlyargs + node.args.args + node.args.kwonlyargs
+            if node.args.vararg:
+                all_args.append(node.args.vararg)
+            if node.args.kwarg:
+                all_args.append(node.args.kwarg)
+            for arg in all_args:
                 if arg.annotation and _is_dict_str_any(arg.annotation):
                     alt = _guess_alternative(arg.arg, typed_dict_names)
                     results.append({
@@ -343,25 +347,35 @@ def _is_dict_str_any(ann: ast.expr) -> bool:
 
 def _guess_alternative(param_name: str, typed_dict_names: set[str]) -> str | None:
     """Guess a TypedDict alternative by matching param name fragments."""
+    if len(param_name) < 4:
+        return None
     lower = param_name.lower()
+    matches: list[str] = []
     for td_name in sorted(typed_dict_names):
         if td_name.lower() in lower or lower in td_name.lower():
-            return td_name
+            matches.append(td_name)
+    if len(matches) == 1:
+        return matches[0]
     return None
 
 
 # ── Enum bypass scanner ───────────────────────────────────
 
+# Int values too generic to be meaningful enum bypass signals.
+_GENERIC_INT_VALUES: frozenset[object] = frozenset({0, 1, 2, 3, -1})
+
 
 def _collect_enum_defs(
     parsed_trees: dict[str, ast.Module],
-) -> dict[str, dict]:
+) -> dict[tuple[str, str], dict]:
     """Find StrEnum/IntEnum/Enum class defs.
 
-    Returns ``{name: {file, members: {name: value}}}``.
+    Returns ``{(file, name): {file, members: {name: value}}}``.
+    Keyed by ``(file, class_name)`` to avoid silently overwriting
+    same-named enums from different files.
     """
     _ENUM_BASES = {"StrEnum", "IntEnum", "Enum"}
-    result: dict[str, dict] = {}
+    result: dict[tuple[str, str], dict] = {}
     for filepath, tree in parsed_trees.items():
         rpath = rel(filepath)
         for node in ast.walk(tree):
@@ -383,48 +397,66 @@ def _collect_enum_defs(
                         ):
                             members[target.id] = child.value.value
             if members:
-                result[node.name] = {"file": rpath, "members": members}
+                result[(rpath, node.name)] = {"file": rpath, "members": members}
     return result
 
 
 def _find_enum_bypass(
     parsed_trees: dict[str, ast.Module],
-    enum_defs: dict[str, dict],
+    enum_defs: dict[tuple[str, str], dict],
 ) -> list[dict]:
-    """Find raw string/int comparisons that match enum member values."""
+    """Find raw string/int comparisons that match enum member values.
+
+    Only flags ``==`` and ``!=`` comparisons (not ``>``, ``<``, etc.).
+    Skips generic int literals (0, 1, 2, 3, -1, True, False) since they
+    produce too many false positives.  Skips the file where the enum is
+    defined (internal comparisons are expected).
+    """
     if not enum_defs:
         return []
 
-    # Build reverse lookup: value → (enum_name, member_name)
-    value_to_enum: dict[object, tuple[str, str]] = {}
-    for enum_name, info in enum_defs.items():
-        for member_name, value in info["members"].items():
-            if isinstance(value, (str, int)):
-                value_to_enum[value] = (enum_name, member_name)
+    # Collect the set of files that define enums so we can skip them.
+    enum_def_files: set[str] = {info["file"] for info in enum_defs.values()}
 
-    if not value_to_enum:
+    # Build reverse lookup: value → list of (enum_name, member_name).
+    # Using a list avoids last-write-wins when two enums share a value.
+    value_to_enums: dict[object, list[tuple[str, str]]] = {}
+    for (_file, enum_name), info in enum_defs.items():
+        for member_name, value in info["members"].items():
+            if isinstance(value, str):
+                value_to_enums.setdefault(value, []).append((enum_name, member_name))
+            elif isinstance(value, int) and value not in _GENERIC_INT_VALUES:
+                value_to_enums.setdefault(value, []).append((enum_name, member_name))
+
+    if not value_to_enums:
         return []
 
     results: list[dict] = []
     for filepath, tree in parsed_trees.items():
         rpath = rel(filepath)
+        # Skip files that define enums — internal comparisons are expected.
+        if rpath in enum_def_files:
+            continue
         for node in ast.walk(tree):
             if not isinstance(node, ast.Compare):
+                continue
+            # Only flag == and != operators.
+            if not all(isinstance(op, ast.Eq | ast.NotEq) for op in node.ops):
                 continue
             # Check all comparators (left + comparators)
             for const_node in [node.left, *node.comparators]:
                 if not isinstance(const_node, ast.Constant):
                     continue
                 key = const_node.value
-                if key in value_to_enum:
-                    enum_name, member = value_to_enum[key]
-                    results.append({
-                        "file": rpath,
-                        "line": node.lineno,
-                        "enum_name": enum_name,
-                        "member": member,
-                        "raw_value": repr(key),
-                    })
+                if key in value_to_enums:
+                    for enum_name, member in value_to_enums[key]:
+                        results.append({
+                            "file": rpath,
+                            "line": node.lineno,
+                            "enum_name": enum_name,
+                            "member": member,
+                            "raw_value": repr(key),
+                        })
     return results
 
 

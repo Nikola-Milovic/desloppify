@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from pathlib import Path
-from typing import Any
+
+from desloppify.engine._state.schema import StateModel
 
 
 def render_empty_remediation_plan(state: StateModel, lang_name: str) -> str:

@@ -6,7 +6,6 @@ from desloppify.engine._plan.operations import add_to_cluster, create_cluster
 from desloppify.engine._plan.reconcile import reconcile_plan_after_scan
 from desloppify.engine._plan.schema import empty_plan, ensure_plan_defaults
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

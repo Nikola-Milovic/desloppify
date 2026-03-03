@@ -10,7 +10,6 @@ import pytest
 from desloppify.app.commands.scan.scan_preflight import scan_queue_preflight
 from desloppify.core.exception_sets import CommandError
 
-
 # ── CI profile bypass ───────────────────────────────────────
 
 

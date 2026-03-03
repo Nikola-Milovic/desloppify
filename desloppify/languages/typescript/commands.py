@@ -8,11 +8,17 @@ import json
 from collections.abc import Callable
 from pathlib import Path
 
+from desloppify.core.discovery_api import find_ts_files, rel
+from desloppify.core.output import (
+    colorize,
+    display_entries,
+    print_table,
+)
+from desloppify.core.paths_api import get_src_path
 from desloppify.engine.detectors import coupling as coupling_detector_mod
 from desloppify.engine.detectors import dupes as dupes_detector_mod
 from desloppify.engine.detectors import gods as gods_detector_mod
 from desloppify.engine.detectors import orphaned as orphaned_detector_mod
-from desloppify.core.discovery_api import find_ts_files, rel
 from desloppify.languages._framework.commands_base import (
     make_cmd_complexity,
     make_cmd_facade,
@@ -36,12 +42,6 @@ from desloppify.languages.typescript.phases import (
     TS_SKIP_DIRS,
     TS_SKIP_NAMES,
 )
-from desloppify.core.output import (
-    colorize,
-    display_entries,
-    print_table,
-)
-from desloppify.core.paths_api import get_src_path
 
 cmd_large = make_cmd_large(find_ts_files, default_threshold=500, module_name=__name__)
 cmd_complexity = make_cmd_complexity(

@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
-from typing import Any
-
 from desloppify import state as state_mod
 from desloppify.core.output import colorize
+from desloppify.engine._state.schema import StateModel
 
 
 def score_snapshot_or_warn(state: StateModel):

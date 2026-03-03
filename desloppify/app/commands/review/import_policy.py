@@ -6,13 +6,14 @@ import hashlib
 from dataclasses import replace
 from pathlib import Path
 
-from .runtime_paths import blind_packet_path, runtime_project_root
 from desloppify.intelligence.review.importing.contracts import (
     AssessmentImportPolicy,
     AssessmentImportPolicyModel,
     AssessmentProvenanceModel,
     ReviewImportPayload,
 )
+
+from .runtime_paths import blind_packet_path, runtime_project_root
 
 ASSESSMENT_POLICY_KEY = "_assessment_policy"
 BLIND_PROVENANCE_KIND = "blind_review_batch_import"

@@ -10,7 +10,6 @@ that no single detector captures.
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 import hashlib
 import re
 from collections import defaultdict
@@ -18,6 +17,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, TypedDict, cast
 
 from desloppify.core.registry import JUDGMENT_DETECTORS
+from desloppify.engine._state.schema import StateModel
 from desloppify.engine.detectors.base import (
     ELEVATED_LOC_THRESHOLD,
     ELEVATED_NESTING_THRESHOLD,
@@ -57,7 +57,6 @@ class ConcernSignals(TypedDict, total=False):
     monster_funcs: list[str]
 
 
-_NUMERIC_SIGNAL_KEYS = ("max_params", "max_nesting", "loc", "function_count")
 SignalKey = Literal["max_params", "max_nesting", "loc", "function_count", "monster_loc"]
 
 
@@ -112,12 +111,16 @@ def _parse_complexity_signals(detail: dict[str, Any]) -> dict[str, float]:
     """Parse complexity_signals strings into numeric values.
 
     Structural detail dicts store complexity signals as strings like
-    "function with 12 params" and "nesting depth 8" in the
-    ``complexity_signals`` list.  Extract max_params and max_nesting
-    from those labels so the concern generator can evaluate thresholds.
+    "12 params" and "nesting depth 8" in the ``complexity_signals``
+    list.  Extract max_params and max_nesting from those labels so
+    the concern generator can evaluate thresholds.
     """
     result: dict[str, float] = {}
-    for sig in detail.get("complexity_signals", []):
+    raw_signals = detail.get("complexity_signals", [])
+    if not isinstance(raw_signals, list):
+        return result
+
+    for sig in raw_signals:
         if not isinstance(sig, str):
             continue
         m = re.search(r"(\d+)\s*params", sig)
@@ -147,11 +150,6 @@ def _extract_signals(issues: list[dict[str, Any]]) -> ConcernSignals:
             for key in ("max_params", "max_nesting"):
                 if key in parsed:
                     _update_max_signal(signals, cast(SignalKey, key), parsed[key])
-            # Also support legacy "signals" sub-dict format (used in tests).
-            s_raw = detail.get("signals")
-            if isinstance(s_raw, dict):
-                for key in _NUMERIC_SIGNAL_KEYS:
-                    _update_max_signal(signals, cast(SignalKey, key), s_raw.get(key, 0))
 
         if det == "smells" and detail.get("smell_id") == "monster_function":
             _update_max_signal(signals, "monster_loc", detail.get("loc", 0))
@@ -181,15 +179,6 @@ def _has_elevated_signals(issues: list[dict[str, Any]]) -> bool:
                 return True
             if parsed.get("max_nesting", 0) >= ELEVATED_MAX_NESTING:
                 return True
-            # Also support legacy "signals" sub-dict (used in tests).
-            s = detail.get("signals")
-            if isinstance(s, dict):
-                if s.get("max_params", 0) >= ELEVATED_MAX_PARAMS:
-                    return True
-                if s.get("max_nesting", 0) >= ELEVATED_MAX_NESTING:
-                    return True
-                if s.get("loc", 0) >= ELEVATED_LOC:
-                    return True
 
         if det == "smells" and detail.get("smell_id") == "monster_function":
             return True

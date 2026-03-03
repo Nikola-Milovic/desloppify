@@ -1,15 +1,11 @@
-"""Public state API facade.
-
-State internals live in `desloppify.engine._state`; this module exposes the
-stable, non-private API used by commands, review flows, and language phases.
-"""
+"""State helpers and shared state exports for runtime modules."""
 
 from typing import NamedTuple
 
 from desloppify.engine._state.filtering import (
     add_ignore,
-    issue_in_scan_scope,
     is_ignored,
+    issue_in_scan_scope,
     make_issue,
     open_scope_breakdown,
     path_scoped_issues,
@@ -35,12 +31,6 @@ from desloppify.engine._state.resolution import (
     match_issues,
     resolve_issues,
 )
-from desloppify.engine._state.schema_scores import (
-    _get_objective_score,
-    _get_overall_score,
-    _get_strict_score,
-    _get_verified_strict_score,
-)
 from desloppify.engine._state.schema import (
     CURRENT_VERSION,
     STATE_DIR,
@@ -58,6 +48,12 @@ from desloppify.engine._state.schema import (
     migrate_state_keys,
     utc_now,
     validate_state_invariants,
+)
+from desloppify.engine._state.schema_scores import (
+    _get_objective_score,
+    _get_overall_score,
+    _get_strict_score,
+    _get_verified_strict_score,
 )
 from desloppify.engine._state.scoring import (
     suppression_metrics,
@@ -81,23 +77,6 @@ def score_snapshot(state: StateModel) -> ScoreSnapshot:
         strict=_get_strict_score(state),
         verified=_get_verified_strict_score(state),
     )
-
-
-# Backward-compatible wrappers; prefer ``score_snapshot(state)`` for new code.
-def get_overall_score(state: StateModel) -> float | None:
-    return score_snapshot(state).overall
-
-
-def get_objective_score(state: StateModel) -> float | None:
-    return score_snapshot(state).objective
-
-
-def get_strict_score(state: StateModel) -> float | None:
-    return score_snapshot(state).strict
-
-
-def get_verified_strict_score(state: StateModel) -> float | None:
-    return score_snapshot(state).verified
 
 
 __all__ = [

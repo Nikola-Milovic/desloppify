@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from desloppify.engine._state.schema import StateModel
-from typing import Any
 
 
 def _review_file_cache(state: StateModel) -> dict:

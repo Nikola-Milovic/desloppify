@@ -14,6 +14,7 @@ __all__ = [
     "save_state",
 ]
 
+from desloppify.core.discovery_api import safe_write_text
 from desloppify.core.text.text_api import is_numeric
 from desloppify.engine._state.schema import (
     CURRENT_VERSION,
@@ -25,7 +26,6 @@ from desloppify.engine._state.schema import (
     validate_state_invariants,
 )
 from desloppify.engine._state.scoring import _recompute_stats
-from desloppify.core.discovery_api import safe_write_text
 
 logger = logging.getLogger(__name__)
 

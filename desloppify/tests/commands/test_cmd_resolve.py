@@ -4,15 +4,15 @@ import inspect
 
 import pytest
 
-from desloppify.core.exception_sets import CommandError
-import desloppify.app.commands.resolve.apply as resolve_apply_mod
 import desloppify.app.commands.resolve.cmd as resolve_mod
 import desloppify.app.commands.resolve.selection as resolve_selection_mod
+import desloppify.app.commands.resolve.suppress as resolve_suppress_mod
 import desloppify.cli as cli_mod
 import desloppify.engine.plan as plan_mod
 import desloppify.intelligence.narrative as narrative_mod
 import desloppify.state as state_mod
-from desloppify.app.commands.resolve.cmd import cmd_suppress_pattern, cmd_resolve
+from desloppify.app.commands.resolve.cmd import cmd_resolve, cmd_suppress_pattern
+from desloppify.core.exception_sets import CommandError
 from desloppify.engine._work_queue.core import ATTEST_EXAMPLE
 
 
@@ -144,7 +144,7 @@ class TestCmdResolve:
         """Resolving issues should print a success message."""
         monkeypatch.setattr(resolve_mod, "state_path", lambda a: "/tmp/fake.json")
         monkeypatch.setattr(resolve_mod, "require_triage_current_or_exit", lambda **kwargs: None)
-        monkeypatch.setattr(resolve_apply_mod, "write_query", lambda payload: None)
+        monkeypatch.setattr(resolve_mod, "_write_resolve_query_entry", lambda _ctx: None)
 
         fake_state = {
             "issues": {"f1": {"status": "fixed"}},
@@ -188,7 +188,7 @@ class TestCmdResolve:
     def test_wontfix_shows_strict_cost_warning(self, monkeypatch, capsys):
         """Wontfix resolution should warn about strict score impact."""
         monkeypatch.setattr(resolve_mod, "state_path", lambda a: "/tmp/fake.json")
-        monkeypatch.setattr(resolve_apply_mod, "write_query", lambda payload: None)
+        monkeypatch.setattr(resolve_mod, "_write_resolve_query_entry", lambda _ctx: None)
 
         fake_state = {
             "issues": {"f1": {"status": "wontfix", "detector": "smells"}},
@@ -230,7 +230,7 @@ class TestCmdResolve:
 
     def test_reopen_without_attestation_allowed(self, monkeypatch, capsys):
         monkeypatch.setattr(resolve_mod, "state_path", lambda a: "/tmp/fake.json")
-        monkeypatch.setattr(resolve_apply_mod, "write_query", lambda payload: None)
+        monkeypatch.setattr(resolve_mod, "_write_resolve_query_entry", lambda _ctx: None)
 
         fake_state = {
             "issues": {"f1": {"status": "open"}},
@@ -376,7 +376,7 @@ class TestCmdSuppress:
         )
         monkeypatch.setattr(state_mod, "remove_ignored_issues", lambda state, pattern: 0)
         monkeypatch.setattr(
-            resolve_mod.config_mod, "save_config", lambda config: None
+            resolve_suppress_mod, "_save_config_or_exit", lambda _config: None
         )
         monkeypatch.setattr(resolve_mod, "resolve_lang", lambda args: None)
 

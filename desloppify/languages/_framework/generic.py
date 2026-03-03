@@ -7,16 +7,20 @@ gracefully degrades when the tool is not installed or times out.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from desloppify.core.registry import DetectorMeta, register_detector
+from desloppify.core.source_discovery import find_source_files
+from desloppify.engine._scoring.policy.core import (
+    DetectorScoringPolicy,
+    register_scoring_policy,
+)
 from desloppify.engine.detectors.base import FunctionInfo
 from desloppify.engine.policy.zones import COMMON_ZONE_RULES, Zone, ZoneRule
-from desloppify.core.source_discovery import find_source_files
 from desloppify.languages._framework.base.types import (
     DetectorPhase,
     FixerConfig,
@@ -43,10 +47,6 @@ from desloppify.languages._framework.generic_parts.tool_spec import (
 )
 from desloppify.languages._framework.treesitter import (
     PARSE_INIT_ERRORS as _TS_INIT_ERRORS,
-)
-from desloppify.engine._scoring.policy.core import (
-    DetectorScoringPolicy,
-    register_scoring_policy,
 )
 
 logger = logging.getLogger(__name__)
@@ -346,8 +346,8 @@ def generic_lang(
 
 def _make_structural_phase(treesitter_spec=None) -> DetectorPhase:
     """Create a structural analysis phase for generic plugins."""
-    from desloppify.engine.detectors.base import ComplexitySignal
     from desloppify.core.output import log
+    from desloppify.engine.detectors.base import ComplexitySignal
 
     signals = [
         ComplexitySignal(

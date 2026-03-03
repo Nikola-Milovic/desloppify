@@ -13,7 +13,6 @@ from types import SimpleNamespace
 from desloppify.app.commands.helpers import subjective as subjective_mod
 from desloppify.app.commands.status_parts import render as status_render
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

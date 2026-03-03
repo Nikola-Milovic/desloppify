@@ -5,7 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from desloppify.engine._plan.schema import Cluster, PlanModel, ensure_plan_defaults, triage_clusters
+from desloppify.engine._plan.schema import (
+    Cluster,
+    PlanModel,
+    ensure_plan_defaults,
+    triage_clusters,
+)
 from desloppify.engine._state.schema import StateModel
 
 

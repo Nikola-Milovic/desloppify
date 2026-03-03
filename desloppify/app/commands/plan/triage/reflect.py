@@ -6,14 +6,16 @@ import argparse
 import re
 
 from desloppify.app.commands.helpers.runtime import command_runtime
-from desloppify.app.commands.plan.triage import shared as triage_shared_mod
-from desloppify.core.subjective_dimensions import DISPLAY_NAMES
 from desloppify.core.output import colorize
+from desloppify.core.subjective_dimensions import DISPLAY_NAMES
+from desloppify.engine.plan import load_plan
 from desloppify.engine.planning.triage import (
     collect_triage_input,
     detect_recurring_patterns,
 )
-from desloppify.engine.plan import load_plan
+
+from .stage_helpers import _require_triage_pending, _validate_stage_report
+from .stage_persistence import record_triage_stage
 
 
 def _normalize_report_text(text: str) -> str:
@@ -53,7 +55,7 @@ def cmd_stage_reflect(args: argparse.Namespace) -> None:
     state = runtime.state
     plan = load_plan()
 
-    if not triage_shared_mod._require_triage_pending(plan, action="reflect"):
+    if not _require_triage_pending(plan, action="reflect"):
         return
 
     meta = plan.get("epic_triage_meta", {})
@@ -67,7 +69,7 @@ def cmd_stage_reflect(args: argparse.Namespace) -> None:
     issue_count = len(si.open_issues)
 
     min_chars = 50 if issue_count <= 3 else 100
-    validated_report = triage_shared_mod._validate_stage_report(
+    validated_report = _validate_stage_report(
         report,
         stage="reflect",
         min_chars=min_chars,
@@ -114,7 +116,7 @@ def cmd_stage_reflect(args: argparse.Namespace) -> None:
             )
             return
 
-    triage_shared_mod.record_triage_stage(
+    record_triage_stage(
         plan,
         state,
         stage="reflect",

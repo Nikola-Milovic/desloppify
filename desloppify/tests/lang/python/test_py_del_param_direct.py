@@ -88,6 +88,31 @@ class TestDetectDelParam:
     def test_no_params_no_crash(self):
         assert _detect("def f():\n    del something\n") == []
 
+    def test_docstring_then_del_at_third_stmt_detected(self):
+        """Docstring is stripped; del on real 3rd statement is within window."""
+        results = _detect(
+            "def process(data, unused):\n"
+            '    """Process data."""\n'
+            "    x = 1\n"
+            "    y = 2\n"
+            "    del unused\n"
+            "    return data\n"
+        )
+        assert len(results) == 1
+
+    def test_docstring_then_del_beyond_third_stmt_ignored(self):
+        """Docstring is stripped; del on real 4th statement is outside window."""
+        results = _detect(
+            "def process(data, unused):\n"
+            '    """Process data."""\n'
+            "    x = 1\n"
+            "    y = 2\n"
+            "    z = 3\n"
+            "    del unused\n"
+            "    return data\n"
+        )
+        assert results == []
+
     def test_del_self_attribute_ignored(self):
         """del self.x is not a parameter deletion."""
         results = _detect(

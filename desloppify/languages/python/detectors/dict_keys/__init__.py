@@ -9,8 +9,8 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from desloppify.core.text.text_api import get_project_root
 from desloppify.core.discovery_api import find_py_files
+from desloppify.core.text.text_api import get_project_root
 
 logger = logging.getLogger(__name__)
 

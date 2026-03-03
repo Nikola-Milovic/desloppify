@@ -5,14 +5,14 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from desloppify.intelligence.narrative._constants import DETECTOR_TOOLS
-from desloppify.intelligence.narrative.action_models import ActionContext, ActionItem
-from desloppify.languages import get_lang
+from desloppify.engine._scoring.detection import merge_potentials
 from desloppify.engine._scoring.results.core import (
     compute_score_impact,
     get_dimension_for_detector,
 )
-from desloppify.engine._scoring.detection import merge_potentials
+from desloppify.intelligence.narrative._constants import DETECTOR_TOOLS
+from desloppify.intelligence.narrative.action_models import ActionContext, ActionItem
+from desloppify.languages import get_lang
 from desloppify.state import StateModel
 
 

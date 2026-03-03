@@ -93,6 +93,6 @@ def test_get_next_items_orders_by_tier_confidence_and_count():
     assert scoped[0]["id"] == issue_b["id"]
     assert scoped[1]["id"] == issue_a["id"]
 
-    top = plan_select_mod.get_next_item(state, tier=2)
+    top = plan_select_mod.get_next_item(state)
     assert top is not None
     assert top["id"] == issue_c["id"]

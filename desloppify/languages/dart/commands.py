@@ -5,13 +5,13 @@ from __future__ import annotations
 import argparse
 
 from desloppify.languages._framework.commands_base import (
-    make_standard_detect_registry_getter,
     make_cmd_complexity,
     make_cmd_cycles,
     make_cmd_deps,
     make_cmd_dupes,
     make_cmd_large,
     make_cmd_orphaned,
+    make_standard_detect_registry_getter,
 )
 from desloppify.languages.dart.detectors.deps import build_dep_graph
 from desloppify.languages.dart.extractors import extract_functions, find_dart_files

@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
+import desloppify.core.paths_api as paths_api_mod
 import desloppify.languages.typescript.detectors.deps as deps_detector_mod
 import desloppify.languages.typescript.detectors.deps_resolve as deps_resolve_mod
-import desloppify.core.paths_api as paths_api_mod
 from desloppify.engine.detectors import orphaned as orphaned_detector_mod
 
 

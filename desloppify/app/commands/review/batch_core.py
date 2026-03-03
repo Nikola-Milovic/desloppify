@@ -7,8 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .batch_scoring import DimensionMergeScorer
-from .batch_prompt_template import render_batch_prompt
 from desloppify.intelligence.review.feedback_contract import (
     DIMENSION_NOTE_ISSUES_KEY,
     HIGH_SCORE_ISSUES_NOTE_THRESHOLD,
@@ -17,16 +15,19 @@ from desloppify.intelligence.review.feedback_contract import (
     LOW_SCORE_ISSUE_THRESHOLD,
     REVIEW_QUALITY_HIGH_SCORE_MISSING_ISSUES_KEY,
 )
+from desloppify.intelligence.review.importing.contracts import (
+    ReviewIssuePayload,
+    validate_review_issue_payload,
+)
 from desloppify.intelligence.review.issue_merge import (
     merge_list_fields,
     normalize_word_set,
     pick_longer_text,
     track_merged_from,
 )
-from desloppify.intelligence.review.importing.contracts import (
-    ReviewIssuePayload,
-    validate_review_issue_payload,
-)
+
+from .batch_prompt_template import render_batch_prompt
+from .batch_scoring import DimensionMergeScorer
 
 _DIMENSION_SCORER = DimensionMergeScorer()
 

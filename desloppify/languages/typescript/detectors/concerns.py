@@ -8,10 +8,10 @@ import re
 from pathlib import Path
 from typing import Any
 
-from desloppify.core.text.text_api import get_project_root
-from desloppify.core.fallbacks import log_best_effort_failure
 from desloppify.core.discovery_api import find_tsx_files, rel
+from desloppify.core.fallbacks import log_best_effort_failure
 from desloppify.core.output import colorize, print_table
+from desloppify.core.text.text_api import get_project_root
 
 logger = logging.getLogger(__name__)
 

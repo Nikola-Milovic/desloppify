@@ -8,9 +8,8 @@ import desloppify.languages.typescript.detectors.concerns as concerns_detector_m
 
 
 @pytest.fixture(autouse=True)
-def _root(tmp_path, set_project_root, monkeypatch):
+def _root(tmp_path, set_project_root):
     """Point PROJECT_ROOT at the tmp directory via RuntimeContext."""
-    monkeypatch.setattr(concerns_detector_mod, "PROJECT_ROOT", tmp_path)
 
 
 def _write(tmp_path: Path, name: str, content: str) -> Path:

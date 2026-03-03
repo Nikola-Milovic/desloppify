@@ -6,12 +6,12 @@ import logging
 from functools import lru_cache
 
 from desloppify.core.text.text_api import is_numeric
+from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
 from desloppify.intelligence.review.dimensions.data import (
     load_dimensions,
     load_dimensions_for_lang,
 )
 from desloppify.languages import available_langs
-from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
 
 logger = logging.getLogger(__name__)
 

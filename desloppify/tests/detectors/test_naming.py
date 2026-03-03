@@ -3,7 +3,6 @@
 import os
 
 import desloppify.engine.detectors.naming as naming_mod
-import desloppify.core.paths_api as paths_api_mod
 from desloppify.engine.detectors.naming import (
     _classify_convention,
     detect_naming_inconsistencies,
@@ -76,8 +75,6 @@ class TestDetectNamingInconsistencies:
         pascal_files = [f"Comp{i}.tsx" for i in range(6)]
         files = self._build_files(tmp_path, "components", kebab_files + pascal_files)
 
-        # We need to make rel() work — monkeypatch PROJECT_ROOT
-        monkeypatch.setattr(paths_api_mod, "PROJECT_ROOT", tmp_path)
         monkeypatch.setattr(naming_mod, "rel", lambda p: os.path.relpath(p, tmp_path))
 
         entries, total = detect_naming_inconsistencies(

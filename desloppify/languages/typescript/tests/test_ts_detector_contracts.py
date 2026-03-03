@@ -11,7 +11,6 @@ from desloppify.languages.typescript.detectors.contracts import (
 )
 from desloppify.languages.typescript.detectors.deprecated import (
     cmd_deprecated,
-    detect_deprecated,
     detect_deprecated_result,
 )
 from desloppify.languages.typescript.detectors.logs import (
@@ -60,7 +59,7 @@ def test_deprecated_result_contract(tmp_path):
         "/** @deprecated use newOne */ export function oldOne() {}\n",
     )
     result = detect_deprecated_result(tmp_path)
-    entries, total = detect_deprecated(tmp_path)
+    entries, total = result.as_tuple()
     assert result.population_kind == "deprecated_symbols"
     assert result.entries == entries
     assert result.population_size == total

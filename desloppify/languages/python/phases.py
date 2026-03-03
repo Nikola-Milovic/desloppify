@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from desloppify import state as state_mod
+from desloppify.core.output import log
 from desloppify.engine.detectors.base import ComplexitySignal, GodRule
 from desloppify.engine.policy.zones import adjust_potential, filter_entries
 from desloppify.languages._framework.issue_factories import (
@@ -22,18 +23,17 @@ from desloppify.languages.python.detectors.complexity import (
     compute_max_params,
     compute_nesting_depth,
 )
-from desloppify.languages.python.phases_runtime import (
-    run_phase_coupling,
-    run_phase_structural,
-)
 from desloppify.languages.python.phases_quality import (
     phase_dict_keys,
     phase_layer_violation,
     phase_mutable_state,
     phase_smells,
 )
+from desloppify.languages.python.phases_runtime import (
+    run_phase_coupling,
+    run_phase_structural,
+)
 from desloppify.state import Issue
-from desloppify.core.output import log
 
 # ── Config data (single source of truth) ──────────────────
 
@@ -229,19 +229,6 @@ def phase_unused_enums(
     if results:
         log(f"         unused enums: {len(results)} enum classes with zero imports")
     return results, {"unused_enums": adjust_potential(lang.zone_map, total)}
-
-
-# Backward-compatible aliases for internal callers/tests.
-_phase_unused = phase_unused
-_phase_structural = phase_structural
-_phase_coupling = phase_coupling
-_phase_responsibility_cohesion = phase_responsibility_cohesion
-_phase_uncalled_functions = phase_uncalled_functions
-_phase_smells = phase_smells
-_phase_mutable_state = phase_mutable_state
-_phase_layer_violation = phase_layer_violation
-_phase_dict_keys = phase_dict_keys
-
 
 __all__ = [
     "PY_COMPLEXITY_SIGNALS",

@@ -10,9 +10,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from desloppify.core.registry import DETECTORS
-from desloppify.engine.planning.helpers import CONFIDENCE_ORDER
-from desloppify.engine._state.schema import StateModel
 from desloppify.engine._state.filtering import issue_in_scan_scope
+from desloppify.engine._state.schema import StateModel
+from desloppify.engine.planning.helpers import CONFIDENCE_ORDER
 
 # Detectors whose issues are NOT objective mechanical work.
 # Canonical definition — re-exported by stale_dimensions for back-compat.

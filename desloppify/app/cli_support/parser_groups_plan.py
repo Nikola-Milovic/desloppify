@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 
+
 def _add_plan_parser(sub) -> None:
     p_plan = sub.add_parser(
         "plan",

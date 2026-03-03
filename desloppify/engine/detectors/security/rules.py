@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
+from desloppify.core.discovery_api import rel
 from desloppify.engine.detectors.patterns.security import LOG_CALLS as _LOG_CALLS
 from desloppify.engine.detectors.patterns.security import RANDOM_CALLS as _RANDOM_CALLS
 from desloppify.engine.detectors.patterns.security import (
@@ -29,7 +30,6 @@ from desloppify.engine.detectors.patterns.security import (
 from desloppify.engine.detectors.patterns.security import (
     is_placeholder as _is_placeholder,
 )
-from desloppify.core.discovery_api import rel
 
 
 @dataclass(frozen=True)

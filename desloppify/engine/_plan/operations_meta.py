@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from desloppify.engine._plan.schema import ExecutionLogEntry, PlanModel, ensure_plan_defaults
+from desloppify.engine._plan.schema import (
+    ExecutionLogEntry,
+    PlanModel,
+    ensure_plan_defaults,
+)
 from desloppify.engine._state.schema import utc_now
 
 _DEFAULT_MAX_LOG_ENTRIES = 10000

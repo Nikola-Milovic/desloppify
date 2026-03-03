@@ -4,14 +4,14 @@ from __future__ import annotations
 
 import logging
 
-_logger = logging.getLogger(__name__)
-
 from desloppify import state as state_mod
 from desloppify.app.commands.helpers.queue_progress import plan_aware_queue_breakdown
 from desloppify.app.commands.helpers.state import state_path
 from desloppify.core.exception_sets import PLAN_LOAD_EXCEPTIONS, CommandError
 from desloppify.core.output import colorize
 from desloppify.engine.plan import load_plan, save_plan
+
+_logger = logging.getLogger(__name__)
 
 
 def scan_queue_preflight(args) -> None:

@@ -8,7 +8,6 @@ from desloppify.engine._plan.subjective_policy import (
     compute_subjective_visibility,
 )
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -311,6 +310,6 @@ def test_policy_is_frozen():
     assert dataclasses.is_dataclass(policy)
     try:
         policy.objective_count = 99  # type: ignore[misc]
-        assert False, "Should be frozen"
+        raise AssertionError("Should be frozen")
     except (AttributeError, dataclasses.FrozenInstanceError):
         pass

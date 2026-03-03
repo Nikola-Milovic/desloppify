@@ -14,8 +14,8 @@ from desloppify.engine.plan import (
     load_plan,
     reconcile_plan_after_scan,
     save_plan,
-    sync_create_plan_needed,
     sync_communicate_score_needed,
+    sync_create_plan_needed,
     sync_stale_dimensions,
     sync_triage_needed,
     sync_unscored_dimensions,
@@ -128,7 +128,9 @@ def _clear_plan_start_scores_if_queue_empty(
         return False
 
     try:
-        from desloppify.app.commands.helpers.queue_progress import plan_aware_queue_breakdown
+        from desloppify.app.commands.helpers.queue_progress import (
+            plan_aware_queue_breakdown,
+        )
 
         breakdown = plan_aware_queue_breakdown(state, plan)
         queue_empty = breakdown.actionable == 0
@@ -143,7 +145,7 @@ def _clear_plan_start_scores_if_queue_empty(
 
 
 def _subjective_policy_context(
-    runtime: "ScanRuntime",
+    runtime: ScanRuntime,
     plan: dict[str, object],
 ) -> tuple[float, object, bool]:
     from desloppify.app.commands.helpers.score import target_strict_score_from_config
@@ -283,7 +285,7 @@ def _sync_plan_start_scores_and_log(
     return cleared
 
 
-def reconcile_plan_post_scan(runtime: "ScanRuntime") -> None:
+def reconcile_plan_post_scan(runtime: ScanRuntime) -> None:
     """Reconcile plan queue metadata and stale subjective review dimensions."""
     try:
         plan_path = runtime.state_path.parent / "plan.json" if runtime.state_path else None

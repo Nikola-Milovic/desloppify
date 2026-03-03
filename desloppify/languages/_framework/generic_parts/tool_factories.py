@@ -17,7 +17,6 @@ from desloppify.languages._framework.generic_parts.tool_runner import (
     SubprocessRun,
     ToolRunResult,
     resolve_command_argv,
-    run_tool,
     run_tool_result,
 )
 from desloppify.languages._framework.generic_parts.tool_spec import ToolSpec
@@ -104,9 +103,11 @@ def make_detect_fn(
     run_subprocess: SubprocessRun | None = None,
 ) -> Callable:
     """Create detect function that runs a tool with an optional injected runner."""
+
     def detect(path, **kwargs):
         del kwargs
-        return run_tool(cmd, path, parser, run_subprocess=run_subprocess)
+        result = run_tool_result(cmd, path, parser, run_subprocess=run_subprocess)
+        return list(result.entries)
 
     return detect
 
@@ -159,15 +160,8 @@ def make_generic_fixer(
     )
 
 
-# Backwards-compatible aliases for historical import sites.
-make_detect_fn_with_runner = make_detect_fn
-make_generic_fixer_with_runner = make_generic_fixer
-
-
 __all__ = [
     "make_detect_fn",
-    "make_detect_fn_with_runner",
     "make_generic_fixer",
-    "make_generic_fixer_with_runner",
     "make_tool_phase",
 ]

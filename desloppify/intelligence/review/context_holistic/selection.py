@@ -5,24 +5,29 @@ from __future__ import annotations
 from pathlib import Path
 
 from desloppify.engine.policy.zones import EXCLUDED_ZONE_VALUES
+
 from .selection_contexts import (
     api_surface_context as _api_surface_context,
-    architecture_context as _architecture_context,
-    coupling_context as _coupling_context,
-    dependencies_context as _dependencies_context,
-    error_strategy_context as _error_strategy_context,
-    naming_conventions_context as _naming_conventions_context,
-    sibling_behavior_context as _sibling_behavior_context,
-    testing_context as _testing_context,
 )
 from .selection_contexts import (
-    api_surface_context as _api_surface_context,
     architecture_context as _architecture_context,
+)
+from .selection_contexts import (
     coupling_context as _coupling_context,
+)
+from .selection_contexts import (
     dependencies_context as _dependencies_context,
+)
+from .selection_contexts import (
     error_strategy_context as _error_strategy_context,
+)
+from .selection_contexts import (
     naming_conventions_context as _naming_conventions_context,
+)
+from .selection_contexts import (
     sibling_behavior_context as _sibling_behavior_context,
+)
+from .selection_contexts import (
     testing_context as _testing_context,
 )
 

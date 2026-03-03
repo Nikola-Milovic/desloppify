@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-import desloppify.app.commands.scan.reporting.integrity_report as integrity_report_mod
 import desloppify.app.commands.scan.reporting.agent_context as scan_reporting_llm_mod
+import desloppify.app.commands.scan.reporting.integrity_report as integrity_report_mod
 import desloppify.app.commands.scan.scan_reporting_dimensions as scan_reporting_dimensions_mod
 import desloppify.app.commands.scan.scan_reporting_summary as scan_reporting_summary_mod
 

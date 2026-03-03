@@ -2,17 +2,15 @@
 
 from __future__ import annotations
 
-from unittest.mock import patch
-
-from desloppify.intelligence.review import (
-    import_holistic_issues,
-    import_review_issues,
-)
 from desloppify.engine._scoring.policy.core import (
     DIMENSIONS,
     FILE_BASED_DETECTORS,
 )
 from desloppify.engine._scoring.results.core import compute_dimension_scores
+from desloppify.intelligence.review import (
+    import_holistic_issues,
+    import_review_issues,
+)
 from desloppify.state import MergeScanOptions, merge_scan
 from desloppify.state import empty_state as build_empty_state
 from desloppify.tests.review.shared_review_fixtures import _as_review_payload
@@ -78,10 +76,14 @@ class TestImportReviewIssues:
     ):
         # Create actual files so hashing works
         (tmp_path / "src").mkdir(exist_ok=True)
-        with patch("desloppify.intelligence.review.importing.per_file.PROJECT_ROOT", tmp_path):
-            (tmp_path / "src" / "foo.ts").write_text("content")
-            (tmp_path / "src" / "bar.ts").write_text("content")
-            import_review_issues(_as_review_payload(sample_issues_data), empty_state, "typescript")
+        (tmp_path / "src" / "foo.ts").write_text("content")
+        (tmp_path / "src" / "bar.ts").write_text("content")
+        import_review_issues(
+            _as_review_payload(sample_issues_data),
+            empty_state,
+            "typescript",
+            project_root=tmp_path,
+        )
         cache = empty_state.get("review_cache", {}).get("files", {})
         assert len(cache) >= 1  # At least one file cached
 

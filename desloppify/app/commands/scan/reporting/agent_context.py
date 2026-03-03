@@ -2,28 +2,29 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 import logging
 import os
 from pathlib import Path
 from typing import Any
 
 from desloppify import state as state_mod
-from ..scan_reporting_text import build_workflow_guide
 from desloppify.app.commands.update_skill import (
     resolve_interface,
     update_installed_skill,
 )
-from desloppify.engine.planning import scorecard_projection as scorecard_projection_mod
 from desloppify.core import registry as registry_mod
-from desloppify.core.text.text_api import get_project_root
+from desloppify.core import skill_docs as skill_docs_mod
 from desloppify.core.exception_sets import PLAN_LOAD_EXCEPTIONS
 from desloppify.core.fallbacks import log_best_effort_failure
-from desloppify.core import skill_docs as skill_docs_mod
-from desloppify.engine.plan import load_plan
+from desloppify.core.text.text_api import get_project_root
 from desloppify.engine._scoring.results.core import compute_health_breakdown
 from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
+from desloppify.engine._state.schema import StateModel
 from desloppify.engine._work_queue.core import ATTEST_EXAMPLE
+from desloppify.engine.plan import load_plan
+from desloppify.engine.planning import scorecard_projection as scorecard_projection_mod
+
+from ..scan_reporting_text import build_workflow_guide
 
 logger = logging.getLogger(__name__)
 
@@ -391,10 +392,6 @@ def _print_living_plan_notice(plan_snapshot: dict[str, object]) -> None:
     print("Use `desloppify plan` to view and update it.\n")
 
 
-# Backward-compatible alias for older imports/tests.
-_print_llm_summary = print_llm_summary
-
-
 def auto_update_skill() -> None:
     """Auto-install or update the skill document if we detect an agent.
 
@@ -421,4 +418,4 @@ def auto_update_skill() -> None:
         )
 
 
-__all__ = ["is_agent_environment", "print_llm_summary", "_print_llm_summary", "auto_update_skill"]
+__all__ = ["is_agent_environment", "print_llm_summary", "auto_update_skill"]

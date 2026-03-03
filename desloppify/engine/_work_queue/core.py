@@ -15,13 +15,16 @@ from desloppify.engine._work_queue.helpers import (
     ATTEST_EXAMPLE,
     scope_matches,
 )
-from desloppify.engine._work_queue.synthetic import (
-    build_communicate_score_item,
-    build_create_plan_item,
-    build_import_scores_item,
-    build_score_checkpoint_item,
-    build_subjective_items,
-    build_triage_stage_items,
+from desloppify.engine._work_queue.plan_order import (
+    collapse_clusters,
+    enrich_plan_metadata,
+    filter_cluster_focus,
+    separate_skipped,
+    stamp_plan_sort_keys,
+    stamp_positions,
+)
+from desloppify.engine._work_queue.plan_order import (
+    new_item_ids as _new_item_ids,
 )
 from desloppify.engine._work_queue.ranking import (
     build_issue_items,
@@ -30,14 +33,13 @@ from desloppify.engine._work_queue.ranking import (
     item_explain,
     item_sort_key,
 )
-from desloppify.engine._work_queue.plan_order import (
-    collapse_clusters,
-    enrich_plan_metadata,
-    filter_cluster_focus,
-    new_item_ids as _new_item_ids,
-    separate_skipped,
-    stamp_plan_sort_keys,
-    stamp_positions,
+from desloppify.engine._work_queue.synthetic import (
+    build_communicate_score_item,
+    build_create_plan_item,
+    build_import_scores_item,
+    build_score_checkpoint_item,
+    build_subjective_items,
+    build_triage_stage_items,
 )
 from desloppify.state import StateModel
 

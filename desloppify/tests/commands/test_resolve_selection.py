@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from desloppify.app.commands.resolve.selection import (
-    validate_note_length,
-    show_note_length_requirement,
     _MIN_NOTE_LENGTH,
+    show_note_length_requirement,
+    validate_note_length,
 )
 
 

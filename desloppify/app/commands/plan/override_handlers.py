@@ -18,25 +18,9 @@ from desloppify.app.commands.resolve.selection import (
     validate_attestation,
     validate_note_length,
 )
+from desloppify.core.discovery_api import safe_write_text
 from desloppify.core.exception_sets import PLAN_LOAD_EXCEPTIONS
 from desloppify.core.output import colorize
-from desloppify.engine.plan import (
-    annotate_issue,
-    append_log_entry,
-    clear_focus,
-    describe_issue,
-    PLAN_FILE,
-    load_plan,
-    plan_path_for_state,
-    purge_ids,
-    purge_uncommitted_ids,
-    save_plan,
-    set_focus,
-    skip_items,
-    TRIAGE_IDS,
-    TRIAGE_STAGE_IDS,
-    unskip_items,
-)
 from desloppify.engine._plan.skip_policy import (
     SKIP_KIND_LABELS,
     skip_kind_from_flags,
@@ -45,7 +29,23 @@ from desloppify.engine._plan.skip_policy import (
     skip_kind_state_status,
 )
 from desloppify.engine._work_queue.core import ATTEST_EXAMPLE
-from desloppify.core.discovery_api import safe_write_text
+from desloppify.engine.plan import (
+    PLAN_FILE,
+    TRIAGE_IDS,
+    TRIAGE_STAGE_IDS,
+    annotate_issue,
+    append_log_entry,
+    clear_focus,
+    describe_issue,
+    load_plan,
+    plan_path_for_state,
+    purge_ids,
+    purge_uncommitted_ids,
+    save_plan,
+    set_focus,
+    skip_items,
+    unskip_items,
+)
 
 
 def _resolve_state_file(path: Path | None) -> Path:
@@ -373,7 +373,7 @@ def cmd_plan_reopen(args: argparse.Namespace) -> None:
 
     print(colorize(f"  Reopened {len(reopened)} issue(s).", "green"))
     if count:
-        print(colorize(f"  Plan updated: items moved back to queue.", "dim"))
+        print(colorize("  Plan updated: items moved back to queue.", "dim"))
 
 
 _CLUSTER_INDIVIDUAL_THRESHOLD = 10
@@ -419,11 +419,11 @@ def _print_cluster_guard(cluster_name: str, issue_ids: list[str], state: dict) -
         detector = f.get("detector", "?")
         print(f"    {fid}  [{detector}]  {summary}")
     print(colorize(
-        f"\n  Use: desloppify resolve <id> --status fixed --note '...' --attest '...'",
+        "\n  Use: desloppify resolve <id> --status fixed --note '...' --attest '...'",
         "dim",
     ))
     print(colorize(
-        f"  Or mark each resolved: desloppify plan resolve <id> --note '...' --confirm\n",
+        "  Or mark each resolved: desloppify plan resolve <id> --note '...' --confirm\n",
         "dim",
     ))
 
@@ -458,7 +458,7 @@ def _blocked_triage_stages(plan: dict) -> dict[str, list[str]]:
     stage_names = ("observe", "reflect", "organize", "commit")
 
     blocked: dict[str, list[str]] = {}
-    for sid, name in zip(TRIAGE_STAGE_IDS, stage_names):
+    for sid, name in zip(TRIAGE_STAGE_IDS, stage_names, strict=False):
         if sid not in present or name in confirmed:
             continue
         deps = TRIAGE_STAGE_DEPENDENCIES.get(name, set())

@@ -16,13 +16,13 @@ from desloppify.app.commands.scan.scan_reporting_subjective import (
     build_subjective_followup,
 )
 from desloppify.core.config import load_config
+from desloppify.core.output import colorize, log
+from desloppify.engine._scoring.results.core import compute_health_breakdown
 from desloppify.engine._work_queue.core import ATTEST_EXAMPLE
 from desloppify.intelligence.integrity import (
     is_holistic_subjective_issue,
     unassessed_subjective_dimensions,
 )
-from desloppify.core.output import colorize, log
-from desloppify.engine._scoring.results.core import compute_health_breakdown
 
 
 def render_uncommitted_reminder(plan: dict | None) -> None:

@@ -149,27 +149,9 @@ def run_tool_result(
     )
 
 
-def run_tool(
-    cmd: str,
-    path: Path,
-    parser: Callable[[str, Path], list[dict]],
-    *,
-    run_subprocess: SubprocessRun | None = None,
-) -> list[dict]:
-    """Backward-compatible list-only wrapper over ``run_tool_result``."""
-    result = run_tool_result(
-        cmd,
-        path,
-        parser,
-        run_subprocess=run_subprocess,
-    )
-    return list(result.entries)
-
-
 __all__ = [
     "SubprocessRun",
     "ToolRunResult",
     "resolve_command_argv",
-    "run_tool",
     "run_tool_result",
 ]

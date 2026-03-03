@@ -11,7 +11,11 @@ from desloppify.engine._plan.schema import PlanModel, ensure_plan_defaults
 from desloppify.engine._state.schema import StateModel
 
 from .epic_triage_apply import TriageMutationResult, apply_triage_to_plan
-from .epic_triage_parsing import ISSUE_ID_RE, extract_issue_citations, parse_triage_result
+from .epic_triage_parsing import (
+    ISSUE_ID_RE,
+    extract_issue_citations,
+    parse_triage_result,
+)
 from .epic_triage_prompt import (
     _TRIAGE_SYSTEM_PROMPT,
     ContradictionNote,

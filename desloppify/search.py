@@ -5,8 +5,8 @@ from __future__ import annotations
 import os
 import re
 
-from desloppify.core.text.text_api import get_project_root
 from desloppify.core.runtime_state import current_runtime_context
+from desloppify.core.text.text_api import get_project_root
 
 
 def read_file_text(filepath: str) -> str | None:

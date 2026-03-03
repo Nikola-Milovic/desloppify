@@ -7,8 +7,8 @@ import logging
 import re
 from pathlib import Path
 
-from desloppify.core.text.text_api import get_project_root
 from desloppify.core.discovery_api import find_py_files
+from desloppify.core.text.text_api import get_project_root
 
 logger = logging.getLogger(__name__)
 
@@ -52,18 +52,6 @@ def _is_upper_case(name: str) -> bool:
     return bool(re.match(r"^_?[A-Z][A-Z0-9_]+$", name))
 
 
-def _is_mutable_literal(node: ast.expr) -> bool:
-    """Check if an AST node is a mutable container literal or constructor."""
-    if isinstance(node, (ast.List, ast.Dict, ast.Set)):
-        return True
-    if isinstance(node, ast.Call):
-        func = node.func
-        if isinstance(func, ast.Name) and func.id in _MUTABLE_CALL_NAMES:
-            return True
-        if isinstance(func, ast.Attribute) and func.attr in _MUTABLE_CALL_NAMES:
-            return True
-    return False
-
 
 def _collect_module_level_mutables(tree: ast.Module) -> dict[str, int]:
     """Collect module-level names initialized to mutable values.
@@ -78,6 +66,8 @@ def _collect_module_level_mutables(tree: ast.Module) -> dict[str, int]:
         if isinstance(stmt, ast.Assign):
             for target in stmt.targets:
                 if isinstance(target, ast.Name) and _is_mutable_init(stmt.value):
+                    if _is_upper_case(target.id) and isinstance(stmt.value, ast.Constant):
+                        continue
                     mutables[target.id] = stmt.lineno
         elif (
             isinstance(stmt, ast.AnnAssign)
@@ -87,6 +77,8 @@ def _collect_module_level_mutables(tree: ast.Module) -> dict[str, int]:
             name = stmt.target.id
             # Mutable initializer → always include regardless of case.
             if stmt.value is not None and _is_mutable_init(stmt.value):
+                if _is_upper_case(name) and isinstance(stmt.value, ast.Constant):
+                    continue
                 mutables[name] = stmt.lineno
             elif _is_optional_annotation(stmt.annotation):
                 # Optional without mutable init — exempt UPPER_CASE

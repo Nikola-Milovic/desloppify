@@ -221,7 +221,7 @@ def render_commit_guidance(
         )
         msg = suggest_commit_message(plan, template)
         if msg:
-            print(f"\n  Suggested commit message:")
+            print("\n  Suggested commit message:")
             print(colorize(f'    "{msg}"', "cyan"))
 
         print(colorize("\n  After committing → `desloppify plan commit-log record`", "dim"))

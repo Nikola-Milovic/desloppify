@@ -5,12 +5,12 @@ from __future__ import annotations
 import argparse
 import logging
 
+from desloppify.core.output import colorize
 from desloppify.languages._framework import registry_state
 from desloppify.languages._framework.base.types import LangConfig
 from desloppify.languages._framework.discovery import load_all
 from desloppify.languages._framework.generic import SHARED_PHASE_LABELS
 from desloppify.languages._framework.resolution import make_lang_config
-from desloppify.core.output import colorize
 
 logger = logging.getLogger(__name__)
 

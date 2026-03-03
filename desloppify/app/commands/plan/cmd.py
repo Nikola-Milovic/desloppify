@@ -7,28 +7,28 @@ import argparse
 from desloppify.app.commands.helpers.rendering import print_agent_plan
 from desloppify.app.commands.helpers.runtime import command_runtime
 from desloppify.app.commands.helpers.state import require_completed_scan
-from desloppify.app.commands.plan.commit_log_handlers import cmd_commit_log_dispatch
 from desloppify.app.commands.plan.cluster_handlers import cmd_cluster_dispatch
-from desloppify.app.commands.plan.reorder_handlers import cmd_plan_reorder
-from desloppify.app.commands.plan.triage_handlers import cmd_plan_triage
+from desloppify.app.commands.plan.commit_log_handlers import cmd_commit_log_dispatch
 from desloppify.app.commands.plan.override_handlers import (
     cmd_plan_describe,
-    cmd_plan_resolve,
     cmd_plan_focus,
     cmd_plan_note,
     cmd_plan_reopen,
+    cmd_plan_resolve,
     cmd_plan_skip,
     cmd_plan_unskip,
 )
 from desloppify.app.commands.plan.queue_render import cmd_plan_queue
+from desloppify.app.commands.plan.reorder_handlers import cmd_plan_reorder
+from desloppify.app.commands.plan.triage_handlers import cmd_plan_triage
+from desloppify.core.config import load_config
 from desloppify.core.discovery_api import safe_write_text
 from desloppify.core.fallbacks import warn_best_effort
-from desloppify.core.config import load_config
 from desloppify.core.output import colorize
 from desloppify.core.tooling import check_config_staleness
+from desloppify.engine import planning as planning_mod
 from desloppify.engine._plan.annotations import annotation_counts
 from desloppify.engine._plan.skip_policy import USER_SKIP_KINDS
-from desloppify.engine import planning as planning_mod
 from desloppify.engine.plan import (
     WORKFLOW_CREATE_PLAN_ID,
     append_log_entry,
@@ -110,7 +110,7 @@ def _cmd_plan_show(args: argparse.Namespace) -> None:
     if total_skipped:
         print(f"  Skipped:          {total_skipped} (temp: {temp_count}, wontfix: {perm_count}, fp: {fp_count})")
     else:
-        print(f"  Skipped:          0")
+        print("  Skipped:          0")
     print(f"  Clusters:         {len(clusters)}")
     if clusters:
         for name, cluster in clusters.items():

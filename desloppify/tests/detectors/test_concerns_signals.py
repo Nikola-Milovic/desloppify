@@ -18,7 +18,6 @@ from desloppify.engine.detectors.base import (
     ELEVATED_PARAMS_THRESHOLD,
 )
 
-
 # ── _parse_complexity_signals ────────────────────────────
 
 
@@ -133,25 +132,6 @@ class TestExtractSignalsFlat:
         assert signals.get("max_params") == 12
         assert signals.get("max_nesting") == 6
 
-    def test_legacy_signals_subdict_still_works(self):
-        """Backward compat: nested signals dict still parsed."""
-        issues = [
-            {
-                "detector": "structural",
-                "detail": {
-                    "signals": {
-                        "loc": 300,
-                        "max_params": 10,
-                        "max_nesting": 5,
-                    }
-                },
-            }
-        ]
-        signals = _extract_signals(issues)
-        assert signals.get("loc") == 300
-        assert signals.get("max_params") == 10
-        assert signals.get("max_nesting") == 5
-
 
 # ── _has_elevated_signals with flat structural detail ──────
 
@@ -225,15 +205,6 @@ class TestHasElevatedSignalsFlat:
         ]
         assert _has_elevated_signals(issues) is True
 
-    def test_legacy_signals_subdict_still_triggers(self):
-        issues = [
-            {
-                "detector": "structural",
-                "detail": {"signals": {"loc": ELEVATED_LOC_THRESHOLD + 1}},
-            }
-        ]
-        assert _has_elevated_signals(issues) is True
-
     def test_empty_detail_not_elevated(self):
         issues = [
             {
@@ -251,8 +222,11 @@ class TestParseComplexitySignalsEdgeCases:
         detail = {"complexity_signals": ["function with params"]}
         assert _parse_complexity_signals(detail) == {}
 
-    def test_zero_params_parsed(self):
+    def test_zero_params_parsed_but_downstream_filters(self):
         detail = {"complexity_signals": ["function with 0 params"]}
         result = _parse_complexity_signals(detail)
-        # 0 is parsed but _update_max_signal filters value <= 0
-        assert result.get("max_params", 0) == 0
+        # _parse stores raw value; downstream _update_max_signal filters <= 0.
+        assert result["max_params"] == 0
+        # Verify that _has_elevated_signals correctly treats 0 params as not elevated.
+        issues = [{"detector": "structural", "detail": detail}]
+        assert _has_elevated_signals(issues) is False

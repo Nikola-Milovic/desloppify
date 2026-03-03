@@ -4,9 +4,7 @@ import logging
 from pathlib import Path
 
 from desloppify.core.fallbacks import log_best_effort_failure
-from desloppify.core.file_paths import count_lines
-from desloppify.core.file_paths import rel
-from desloppify.core.file_paths import resolve_scan_file
+from desloppify.core.file_paths import count_lines, rel, resolve_scan_file
 
 logger = logging.getLogger(__name__)
 _LANG_PLUGIN_ENTRYPOINTS = frozenset(

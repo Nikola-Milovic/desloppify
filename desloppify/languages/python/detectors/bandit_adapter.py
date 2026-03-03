@@ -26,9 +26,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
+from desloppify.core.discovery_api import rel
 from desloppify.core.text.text_api import get_project_root
 from desloppify.engine.policy.zones import FileZoneMap, Zone
-from desloppify.core.discovery_api import rel
 from desloppify.languages._framework.base.types import DetectorCoverageStatus
 
 logger = logging.getLogger(__name__)
@@ -135,14 +135,16 @@ def _to_security_entry(
     zone_map: FileZoneMap | None,
 ) -> dict | None:
     """Convert a single bandit result dict to a security entry, or None to skip."""
-    filepath = result.get("filename", "")
+    filepath = str(result.get("filename", "") or "")
     if not filepath:
         return None
 
+    rel_path = rel(filepath)
+
     # Apply zone filtering — only GENERATED and VENDOR are excluded for security.
     if zone_map is not None:
-        zone = zone_map.get(filepath)
-        if zone in (Zone.GENERATED, Zone.VENDOR):
+        zone = zone_map.get(rel_path)
+        if zone in (Zone.TEST, Zone.CONFIG, Zone.GENERATED, Zone.VENDOR):
             return None
 
     test_id = result.get("test_id", "")
@@ -162,10 +164,8 @@ def _to_security_entry(
     line = result.get("line_number", 0)
     summary = result.get("issue_text", "")
     test_name = result.get("test_name", test_id)
-    rel_path = rel(filepath)
-
     return {
-        "file": filepath,
+        "file": rel_path,
         "name": f"security::{test_id}::{rel_path}::{line}",
         "tier": tier,
         "confidence": confidence,
@@ -206,7 +206,7 @@ def detect_with_bandit(
     ]
     if exclude_dirs:
         cmd.extend(["--exclude", ",".join(exclude_dirs)])
-    cmd.append(str(path))
+    cmd.append(str(path.resolve()))
 
     try:
         result = subprocess.run(

@@ -47,7 +47,7 @@ class TestGatherMechanicalEvidence:
                     id="f1",
                     detector="structural",
                     file="a.py",
-                    detail={"signals": {"loc": 500}},
+                    detail={"loc": 500},
                     status="fixed",
                 ),
             }
@@ -61,13 +61,13 @@ class TestGatherMechanicalEvidence:
                     id="in_scope",
                     detector="structural",
                     file="source/worker.py",
-                    detail={"signals": {"loc": 420, "complexity_score": 9}},
+                    detail={"loc": 420, "complexity_score": 9},
                 ),
                 "out_scope": _issue(
                     id="out_scope",
                     detector="structural",
                     file="Wan2GP/wgp.py",
-                    detail={"signals": {"loc": 900, "complexity_score": 20}},
+                    detail={"loc": 900, "complexity_score": 20},
                 ),
             }
         }
@@ -88,14 +88,12 @@ class TestGatherMechanicalEvidence:
                     detector="structural",
                     file="big.py",
                     detail={
-                        "signals": {
-                            "loc": 1000,
-                            "complexity_score": 20,
-                            "component_count": 5,
-                            "function_count": 30,
-                            "max_params": 8,
-                            "max_nesting": 6,
-                        }
+                        "loc": 1000,
+                        "complexity_score": 20,
+                        "component_count": 5,
+                        "function_count": 30,
+                        "max_params": 8,
+                        "max_nesting": 6,
                     },
                 ),
             }
@@ -189,7 +187,7 @@ class TestGatherMechanicalEvidence:
                     id="f1",
                     detector="orphaned",
                     file="dead.py",
-                    detail={"signals": {"loc": 100}},
+                    detail={"loc": 100},
                 ),
                 "f2": _issue(
                     id="f2",
@@ -250,7 +248,7 @@ class TestGatherMechanicalEvidence:
                     id="f1",
                     detector="structural",
                     file="hot.py",
-                    detail={"signals": {"loc": 500}},
+                    detail={"loc": 500},
                 ),
                 "f2": _issue(
                     id="f2",
@@ -327,7 +325,7 @@ class TestGatherMechanicalEvidence:
                 id=f"f{i}",
                 detector="structural",
                 file=f"file{i}.py",
-                detail={"signals": {"loc": loc}},
+                detail={"loc": loc},
             )
         state = {"issues": issues}
         evidence = gather_mechanical_evidence(state)
@@ -405,7 +403,7 @@ class TestConcernsIntegration:
                     id="f1",
                     detector="structural",  # judgment detector
                     file="target.py",
-                    detail={"signals": {"loc": 100}},
+                    detail={"loc": 100},
                 ),
                 "f2": _issue(
                     id="f2",
@@ -457,7 +455,7 @@ class TestMechanicalStaleness:
         }
         new_issues = [
             _issue(id="s1", detector="structural", file="big.py",
-                     detail={"signals": {"loc": 500}}),
+                     detail={"loc": 500}),
         ]
         merge_scan(state, new_issues)
 
@@ -512,7 +510,7 @@ class TestMechanicalStaleness:
         }
         new_issues = [
             _issue(id="s1", detector="structural", file="big.py",
-                     detail={"signals": {"loc": 500}}),
+                     detail={"loc": 500}),
         ]
         merge_scan(state, new_issues)
 
@@ -553,7 +551,7 @@ class TestMechanicalStaleness:
             id="structural::big.py::large_file",
             detector="structural",
             file="big.py",
-            detail={"signals": {"loc": 500}},
+            detail={"loc": 500},
         )
         merge_scan(state, [structural])
         # Clear the stale flag set by the first scan
@@ -583,7 +581,7 @@ class TestMechanicalStaleness:
             id="structural::big.py::large_file",
             detector="structural",
             file="big.py",
-            detail={"signals": {"loc": 500}},
+            detail={"loc": 500},
         )
         merge_scan(state, [structural], MergeScanOptions(force_resolve=True))
         # Clear stale flag
@@ -600,7 +598,9 @@ class TestStaleReminderGating:
     """Verify that stale assessment reminders are suppressed while queue has open issues."""
 
     def test_stale_reminder_suppressed_when_queue_has_open_issues(self):
-        from desloppify.intelligence.narrative.reminders import _stale_assessment_reminder
+        from desloppify.intelligence.narrative.reminders import (
+            _stale_assessment_reminder,
+        )
 
         state = {
             "subjective_assessments": {
@@ -618,7 +618,9 @@ class TestStaleReminderGating:
         assert _stale_assessment_reminder(state) == []
 
     def test_stale_reminder_shown_when_queue_fully_cleared(self):
-        from desloppify.intelligence.narrative.reminders import _stale_assessment_reminder
+        from desloppify.intelligence.narrative.reminders import (
+            _stale_assessment_reminder,
+        )
 
         state = {
             "subjective_assessments": {

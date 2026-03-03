@@ -8,7 +8,6 @@ from desloppify.engine._plan.schema import VALID_EPIC_DIRECTIONS
 
 from .epic_triage_prompt import ContradictionNote, DismissedIssue, TriageResult
 
-
 ISSUE_ID_RE = re.compile(r"[a-z_]+::[a-f0-9]{8,}")
 
 def extract_issue_citations(text: str, valid_ids: set[str]) -> set[str]:

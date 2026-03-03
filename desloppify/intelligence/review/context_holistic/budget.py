@@ -14,7 +14,6 @@ from .budget_analysis import (
     _count_signature_params,
     _extract_type_names,
     _score_clamped,
-    _strip_docstring,
 )
 from .budget_patterns import (
     _census_type_strategies,
@@ -27,7 +26,6 @@ from .budget_patterns import (
     _find_python_passthrough_wrappers,
     _find_typed_dict_usage_violations,
 )
-
 
 _DEF_SIGNATURE_RE = re.compile(
     r"(?:^|\n)\s*(?:async\s+def|def|async\s+function|function)\s+\w+\s*\(([^)]*)\)",

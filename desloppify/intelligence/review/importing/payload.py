@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from desloppify.intelligence.review.importing.contracts import (
-    ReviewIssuePayload,
     ReviewImportPayload,
+    ReviewIssuePayload,
 )
 
 

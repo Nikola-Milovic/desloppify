@@ -2,19 +2,29 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from typing import Any
 
-from desloppify.app.commands.helpers.rendering import print_agent_plan, print_ranked_actions
+from desloppify.app.commands.helpers.rendering import (
+    print_agent_plan,
+    print_ranked_actions,
+)
 from desloppify.app.commands.helpers.subjective import print_subjective_followup
 from desloppify.app.commands.scan import (
     scan_reporting_dimensions as reporting_dimensions_mod,
 )
 from desloppify.app.commands.status_parts.render_dimensions import (
     find_lowest_dimension as _find_lowest_dimension,
+)
+from desloppify.app.commands.status_parts.render_dimensions import (
     open_review_issue_counts as _open_review_issue_counts,
+)
+from desloppify.app.commands.status_parts.render_dimensions import (
     render_objective_dimensions as _render_objective_dimensions,
+)
+from desloppify.app.commands.status_parts.render_dimensions import (
     render_subjective_dimensions as _render_subjective_dimensions,
+)
+from desloppify.app.commands.status_parts.render_dimensions import (
     scorecard_subjective_entries_for_status as _scorecard_subjective_entries,
 )
 from desloppify.app.commands.status_parts.render_io import (
@@ -24,7 +34,11 @@ from desloppify.app.commands.status_parts.render_io import (
 )
 from desloppify.app.commands.status_parts.render_structural import (
     build_area_rows as _build_area_rows,
+)
+from desloppify.app.commands.status_parts.render_structural import (
     collect_structural_areas as _collect_structural_areas,
+)
+from desloppify.app.commands.status_parts.render_structural import (
     render_area_workflow as _render_area_workflow,
 )
 from desloppify.app.commands.status_parts.summary import (
@@ -33,10 +47,12 @@ from desloppify.app.commands.status_parts.summary import (
     print_scan_metrics,
     score_summary_lines,
 )
+from desloppify.core.output import colorize, print_table
+from desloppify.engine._scoring.detection import merge_potentials
 from desloppify.engine._scoring.policy.core import DIMENSIONS
 from desloppify.engine._scoring.results.core import compute_score_impact
-from desloppify.engine._scoring.detection import merge_potentials
-from desloppify.core.output import colorize, print_table
+from desloppify.engine._state.schema import StateModel
+
 
 def _render_dimension_legend(
     scorecard_subjective: list[dict[str, Any]],

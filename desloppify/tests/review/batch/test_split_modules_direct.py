@@ -8,15 +8,13 @@ from desloppify.core.issues_render import issue_weight, render_issue_detail
 from desloppify.intelligence.review._prepare.remediation_engine import (
     render_empty_remediation_plan,
 )
+from desloppify.intelligence.review.importing.assessments import store_assessments
 from desloppify.intelligence.review.importing.holistic import (
     parse_holistic_import_payload,
 )
+from desloppify.intelligence.review.importing.payload import extract_reviewed_files
 from desloppify.intelligence.review.importing.per_file import (
     parse_per_file_import_payload,
-)
-from desloppify.intelligence.review.importing.helpers import (
-    extract_reviewed_files,
-    store_assessments,
 )
 
 

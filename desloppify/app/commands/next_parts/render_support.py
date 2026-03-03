@@ -6,10 +6,10 @@ from collections import Counter
 
 from desloppify.app.commands.helpers.queue_progress import format_plan_delta
 from desloppify.core.output import colorize
+from desloppify.engine._work_queue.core import group_queue_items
 from desloppify.engine.planning.scorecard_projection import (
     scorecard_subjective_entries,
 )
-from desloppify.engine._work_queue.core import group_queue_items
 from desloppify.intelligence.integrity import subjective_review_open_breakdown
 
 _ACTION_TYPE_LABELS = {
@@ -151,12 +151,6 @@ def render_cluster_item(item: dict) -> None:
     _render_required_cluster_commands(cluster_name)
 
 
-def render_gate_banner(gate_phase: str | None, *, item_count: int = 0) -> bool:
-    """No-op compatibility hook retained for previous queue gate semantics."""
-    del gate_phase, item_count
-    return False
-
-
 def render_queue_header(queue: dict, explain: bool) -> None:
     del explain
     total = queue.get("total", 0)
@@ -218,7 +212,6 @@ __all__ = [
     "is_auto_fix_command",
     "render_cluster_item",
     "render_compact_item",
-    "render_gate_banner",
     "render_grouped",
     "render_queue_header",
     "scorecard_subjective",

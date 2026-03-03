@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from desloppify.engine._state.filtering import _matches_pattern
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

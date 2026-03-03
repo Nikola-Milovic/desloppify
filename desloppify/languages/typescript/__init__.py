@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from desloppify.core.text.text_api import get_area
 from desloppify.core.source_discovery import find_ts_files
+from desloppify.core.text.text_api import get_area
 from desloppify.engine.detectors.base import FunctionInfo
 from desloppify.engine.policy.zones import COMMON_ZONE_RULES, Zone, ZoneRule
 from desloppify.hook_registry import register_lang_hooks

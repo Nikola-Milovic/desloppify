@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from typing import Any
 
 from desloppify.core.text.text_api import is_numeric
+from desloppify.engine._state.schema import StateModel
 from desloppify.intelligence.review.dimensions import normalize_dimension_name
 from desloppify.state import utc_now
 

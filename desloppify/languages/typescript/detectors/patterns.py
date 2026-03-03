@@ -20,11 +20,11 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
-from desloppify.core.text.text_api import get_area
-from desloppify.core.fallbacks import log_best_effort_failure
 from desloppify.core.discovery_api import find_ts_files, rel, resolve_path
-from desloppify.languages.typescript.detectors.contracts import DetectorResult
+from desloppify.core.fallbacks import log_best_effort_failure
 from desloppify.core.output import colorize, print_table
+from desloppify.core.text.text_api import get_area
+from desloppify.languages.typescript.detectors.contracts import DetectorResult
 
 # ── Pattern families ────────────────────────────────────────────
 #

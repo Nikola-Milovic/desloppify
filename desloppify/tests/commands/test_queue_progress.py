@@ -12,13 +12,11 @@ from desloppify.app.commands.helpers.queue_progress import (
     format_queue_headline,
     get_plan_start_strict,
     plan_aware_queue_breakdown,
-    plan_aware_queue_count,
     print_execution_or_reveal,
     print_frozen_score_with_queue_context,
     show_score_with_plan_context,
 )
 from desloppify.engine._work_queue.helpers import is_subjective_queue_item
-
 
 # ── is_subjective_queue_item ─────────────────────────────────────
 
@@ -73,21 +71,6 @@ def test_get_plan_start_strict_returns_none_when_no_plan():
 def test_get_plan_start_strict_returns_none_when_no_scores():
     plan = {"plan_start_scores": {}}
     assert get_plan_start_strict(plan) is None
-
-
-# ── plan_aware_queue_count ───────────────────────────────────
-
-
-def test_plan_aware_queue_count_delegates_to_build_work_queue():
-    mock_items = [{"id": f"f{i}", "kind": "issue"} for i in range(5)]
-    mock_result = {"total": 5, "items": mock_items}
-    with patch(
-        "desloppify.engine._work_queue.core.build_work_queue",
-        return_value=mock_result,
-    ) as mock_build:
-        count = plan_aware_queue_count({"issues": {}}, plan={"queue_order": []})
-        assert count == 5
-        mock_build.assert_called_once()
 
 
 # ── QueueBreakdown ───────────────────────────────────────────
@@ -323,7 +306,8 @@ def test_plan_aware_queue_breakdown_with_focus():
 
 def test_frozen_score_prints_score_and_queue(capsys):
     plan = {"plan_start_scores": {"strict": 74.4}}
-    print_frozen_score_with_queue_context(plan, queue_remaining=10)
+    breakdown = QueueBreakdown(queue_total=10)
+    print_frozen_score_with_queue_context(plan, queue_remaining=10, breakdown=breakdown)
     output = capsys.readouterr().out
     assert "74.4" in output
     assert "10" in output
@@ -331,7 +315,8 @@ def test_frozen_score_prints_score_and_queue(capsys):
 
 def test_frozen_score_skips_when_no_strict(capsys):
     plan = {"plan_start_scores": {}}
-    print_frozen_score_with_queue_context(plan, queue_remaining=5)
+    breakdown = QueueBreakdown(queue_total=5)
+    print_frozen_score_with_queue_context(plan, queue_remaining=5, breakdown=breakdown)
     output = capsys.readouterr().out
     assert output == ""
 

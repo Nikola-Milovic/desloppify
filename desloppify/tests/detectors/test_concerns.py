@@ -75,7 +75,7 @@ class TestElevatedSignals:
     def test_high_params_flags(self):
         f = _make_issue(
             "structural", "app/service.py", "struct",
-            detail={"signals": {"max_params": 12}},
+            detail={"complexity_signals": ["12 params"]},
         )
         concerns = generate_concerns(_state_with_issues(f))
         assert len(concerns) == 1
@@ -85,7 +85,7 @@ class TestElevatedSignals:
     def test_deep_nesting_flags(self):
         f = _make_issue(
             "structural", "app/nested.py", "struct",
-            detail={"signals": {"max_nesting": 8}},
+            detail={"complexity_signals": ["nesting depth 8"]},
         )
         concerns = generate_concerns(_state_with_issues(f))
         assert len(concerns) == 1
@@ -95,7 +95,7 @@ class TestElevatedSignals:
     def test_large_file_flags(self):
         f = _make_issue(
             "structural", "app/huge.py", "struct",
-            detail={"signals": {"loc": 500}},
+            detail={"loc": 500},
         )
         concerns = generate_concerns(_state_with_issues(f))
         assert len(concerns) == 1
@@ -136,7 +136,7 @@ class TestNonElevatedSkipped:
     def test_moderate_structural_not_flagged(self):
         f = _make_issue(
             "structural", "app/ok.py", "struct",
-            detail={"signals": {"loc": 150, "max_params": 5, "max_nesting": 3}},
+            detail={"loc": 150, "complexity_signals": ["5 params", "nesting depth 3"]},
         )
         assert generate_concerns(_state_with_issues(f)) == []
 
@@ -232,7 +232,7 @@ class TestEvidenceAndQuestions:
     def test_evidence_includes_signals(self):
         f = _make_issue(
             "structural", "app/f.py", "struct",
-            detail={"signals": {"max_params": 15, "max_nesting": 9, "loc": 400}},
+            detail={"loc": 400, "complexity_signals": ["15 params", "nesting depth 9"]},
         )
         concerns = generate_concerns(_state_with_issues(f))
         evidence = concerns[0].evidence
@@ -251,7 +251,7 @@ class TestEvidenceAndQuestions:
     def test_question_mentions_params(self):
         f = _make_issue(
             "structural", "app/f.py", "s",
-            detail={"signals": {"max_params": 10}},
+            detail={"complexity_signals": ["10 params"]},
         )
         concerns = generate_concerns(_state_with_issues(f))
         assert "parameter" in concerns[0].question.lower()
@@ -259,7 +259,7 @@ class TestEvidenceAndQuestions:
     def test_question_mentions_nesting(self):
         f = _make_issue(
             "structural", "app/f.py", "s",
-            detail={"signals": {"max_nesting": 7}},
+            detail={"complexity_signals": ["nesting depth 7"]},
         )
         concerns = generate_concerns(_state_with_issues(f))
         assert "nesting" in concerns[0].question.lower()
@@ -559,24 +559,23 @@ class TestExtractSignals:
         issues = [
             _make_issue(
                 "structural", "f.py", "s",
-                detail={"signals": {"max_params": 10, "max_nesting": 5, "loc": 200, "function_count": 15}},
+                detail={"loc": 200, "complexity_signals": ["10 params", "nesting depth 5"]},
             ),
         ]
         signals = _extract_signals(issues)
         assert signals["max_params"] == 10
         assert signals["max_nesting"] == 5
         assert signals["loc"] == 200
-        assert signals["function_count"] == 15
 
     def test_structural_signals_take_max_across_issues(self):
         issues = [
             _make_issue(
                 "structural", "f.py", "s1",
-                detail={"signals": {"max_params": 5, "loc": 100}},
+                detail={"loc": 100, "complexity_signals": ["5 params"]},
             ),
             _make_issue(
                 "structural", "f.py", "s2",
-                detail={"signals": {"max_params": 12, "loc": 80}},
+                detail={"loc": 80, "complexity_signals": ["12 params"]},
             ),
         ]
         signals = _extract_signals(issues)
@@ -587,29 +586,28 @@ class TestExtractSignals:
         issues = [
             _make_issue(
                 "structural", "f.py", "s",
-                detail={"signals": {"max_params": 0, "max_nesting": -1, "loc": 0}},
+                detail={"loc": 0, "complexity_signals": ["0 params"]},
             ),
         ]
         signals = _extract_signals(issues)
         assert "max_params" not in signals
-        assert "max_nesting" not in signals
         assert "loc" not in signals
 
-    def test_non_numeric_signal_values_ignored(self):
+    def test_empty_detail_ignored(self):
         issues = [
             _make_issue(
                 "structural", "f.py", "s",
-                detail={"signals": {"max_params": "high", "loc": None}},
+                detail={},
             ),
         ]
         signals = _extract_signals(issues)
         assert signals == {}
 
-    def test_signals_not_a_dict_ignored(self):
+    def test_detail_not_a_dict_ignored(self):
         issues = [
             _make_issue(
                 "structural", "f.py", "s",
-                detail={"signals": "not_a_dict"},
+                detail={"complexity_signals": "not_a_list"},
             ),
         ]
         signals = _extract_signals(issues)
@@ -686,7 +684,7 @@ class TestExtractSignals:
         issues = [
             _make_issue(
                 "structural", "f.py", "s",
-                detail={"signals": {"max_params": 9, "loc": 350}},
+                detail={"loc": 350, "complexity_signals": ["9 params"]},
             ),
             _make_issue(
                 "smells", "f.py", "m",
@@ -710,7 +708,7 @@ class TestHasElevatedSignals:
         issues = [
             _make_issue(
                 "structural", "f.py", "s",
-                detail={"signals": {"max_params": 7}},
+                detail={"complexity_signals": ["7 params"]},
             ),
         ]
         assert _has_elevated_signals(issues) is False
@@ -719,7 +717,7 @@ class TestHasElevatedSignals:
         issues = [
             _make_issue(
                 "structural", "f.py", "s",
-                detail={"signals": {"max_params": 8}},
+                detail={"complexity_signals": ["8 params"]},
             ),
         ]
         assert _has_elevated_signals(issues) is True
@@ -728,7 +726,7 @@ class TestHasElevatedSignals:
         issues = [
             _make_issue(
                 "structural", "f.py", "s",
-                detail={"signals": {"max_nesting": 5}},
+                detail={"complexity_signals": ["nesting depth 5"]},
             ),
         ]
         assert _has_elevated_signals(issues) is False
@@ -737,7 +735,7 @@ class TestHasElevatedSignals:
         issues = [
             _make_issue(
                 "structural", "f.py", "s",
-                detail={"signals": {"max_nesting": 6}},
+                detail={"complexity_signals": ["nesting depth 6"]},
             ),
         ]
         assert _has_elevated_signals(issues) is True
@@ -746,7 +744,7 @@ class TestHasElevatedSignals:
         issues = [
             _make_issue(
                 "structural", "f.py", "s",
-                detail={"signals": {"loc": 299}},
+                detail={"loc": 299},
             ),
         ]
         assert _has_elevated_signals(issues) is False
@@ -755,7 +753,7 @@ class TestHasElevatedSignals:
         issues = [
             _make_issue(
                 "structural", "f.py", "s",
-                detail={"signals": {"loc": 300}},
+                detail={"loc": 300},
             ),
         ]
         assert _has_elevated_signals(issues) is True

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from typing import Any
 
+from desloppify.core.registry import DETECTORS
 from desloppify.engine._scoring.results.health import compute_health_breakdown
 from desloppify.engine._scoring.results.impact import get_dimension_for_detector
+from desloppify.engine._state.schema import StateModel
 from desloppify.engine._work_queue.helpers import (
     ACTION_TYPE_PRIORITY,
     detail_dict,
@@ -20,7 +21,6 @@ from desloppify.engine._work_queue.helpers import (
     supported_fixers_for_item,
 )
 from desloppify.engine._work_queue.synthetic import subjective_strict_scores
-from desloppify.core.registry import DETECTORS
 from desloppify.engine.planning.helpers import CONFIDENCE_ORDER
 from desloppify.state import path_scoped_issues
 

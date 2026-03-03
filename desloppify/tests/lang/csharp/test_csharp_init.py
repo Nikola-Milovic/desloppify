@@ -2,22 +2,21 @@
 
 import pytest
 
-import desloppify.core._internal.text_utils as utils_text_mod
 import desloppify.core.discovery_api as discovery_api_mod
-import desloppify.core.paths_api as paths_api_mod
 from desloppify.languages.csharp import CSharpConfig
 
 
 @pytest.fixture
 def patch_project_root(monkeypatch):
-    """Patch PROJECT_ROOT via RuntimeContext so all consumers see the override."""
+    """Patch project root via RuntimeContext so all consumers see the override."""
     from desloppify.core.runtime_state import current_runtime_context
+
     ctx = current_runtime_context()
+
     def _patch(tmp_path):
         monkeypatch.setattr(ctx, "project_root", tmp_path)
-        monkeypatch.setattr(paths_api_mod, "PROJECT_ROOT", tmp_path)
-        monkeypatch.setattr(utils_text_mod, "PROJECT_ROOT", tmp_path)
         discovery_api_mod.clear_source_file_cache_for_tests()
+
     return _patch
 
 

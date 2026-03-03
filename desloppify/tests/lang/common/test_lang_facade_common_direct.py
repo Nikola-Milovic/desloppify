@@ -1,7 +1,7 @@
 """Direct tests for shared facade detector helpers.
 
-Phase 2A: Facade detector reports all pure re-export facades regardless
-of importer count. Tier/confidence are based on removal difficulty.
+Phase 2A: Facade detector defaults to a practical importer ceiling while
+still allowing explicit overrides for broader scans.
 """
 
 from __future__ import annotations
@@ -10,7 +10,6 @@ from desloppify.languages._framework.facade_common import (
     _facade_tier_confidence,
     detect_reexport_facades_common,
 )
-
 
 # ── _facade_tier_confidence ──────────────────────────────
 
@@ -78,7 +77,7 @@ class TestDetectReexportFacadesCommon:
             return {"loc": 10, "imports_from": ["pkg"]}
 
         entries, _ = detect_reexport_facades_common(
-            graph, is_facade_fn=always_facade
+            graph, is_facade_fn=always_facade, max_importers=100
         )
         by_file = {e["file"]: e for e in entries}
 
@@ -86,8 +85,8 @@ class TestDetectReexportFacadesCommon:
         assert by_file["mid.py"]["tier"] == 3
         assert by_file["high.py"]["tier"] == 4
 
-    def test_high_importer_count_still_reported(self):
-        """Facades with many importers are still included (no ceiling)."""
+    def test_high_importer_count_filtered_by_default_ceiling(self):
+        """Default max_importers ceiling suppresses very high-importer facades."""
         graph = {
             "big.py": {"importer_count": 500},
         }
@@ -99,8 +98,7 @@ class TestDetectReexportFacadesCommon:
             graph, is_facade_fn=always_facade
         )
         assert total == 1
-        assert len(entries) == 1
-        assert entries[0]["importers"] == 500
+        assert entries == []
 
     def test_non_facades_excluded(self):
         graph = {
@@ -119,25 +117,6 @@ class TestDetectReexportFacadesCommon:
         assert total == 2
         assert len(entries) == 1
         assert entries[0]["file"] == "a.py"
-
-    def test_max_importers_still_filters_when_explicit(self):
-        """Explicit max_importers still works as a ceiling."""
-        graph = {
-            "a.py": {"importer_count": 0},
-            "b.py": {"importer_count": 3},
-            "c.py": {"importer_count": 1},
-        }
-
-        def always_facade(path: str) -> dict | None:
-            return {"loc": 10, "imports_from": ["pkg"]}
-
-        entries, total = detect_reexport_facades_common(
-            graph, is_facade_fn=always_facade, max_importers=2
-        )
-        assert total == 3
-        # b.py (importer_count=3) excluded by max_importers=2
-        files = {e["file"] for e in entries}
-        assert files == {"a.py", "c.py"}
 
     def test_empty_graph(self):
         entries, total = detect_reexport_facades_common(

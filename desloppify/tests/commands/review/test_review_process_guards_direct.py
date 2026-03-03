@@ -10,17 +10,17 @@ from unittest.mock import patch
 
 import pytest
 
-from desloppify.core.exception_sets import CommandError
 from desloppify.app.commands.review.batches_scope import require_batches
 from desloppify.app.commands.review.import_helpers import (
     ImportPayloadLoadError,
     assessment_mode_label,
     load_import_issues_data,
-    print_import_load_errors,
     print_assessment_mode_banner,
+    print_import_load_errors,
 )
 from desloppify.app.commands.review.prepare import do_prepare
 from desloppify.app.commands.review.runner_packets import write_packet_snapshot
+from desloppify.core.exception_sets import CommandError
 
 
 def _colorize(text: str, _style: str) -> str:

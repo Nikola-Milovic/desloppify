@@ -91,6 +91,37 @@ class TestDetectUnusedEnums:
         assert entries == []
         assert total == 1
 
+    def test_aliased_import_counts_as_used(self, tmp_path: Path):
+        """``from enums import Status as S`` still references the name 'Status'."""
+        entries, _ = _run(tmp_path, {
+            "enums.py": (
+                "from enum import StrEnum\n"
+                "class Status(StrEnum):\n"
+                '    ACTIVE = "active"\n'
+            ),
+            "main.py": "from enums import Status as S\n",
+        })
+        assert len(entries) == 0
+
+    def test_same_name_enums_conservatively_marked_used(self, tmp_path: Path):
+        """When same enum name exists in multiple files, importing it marks
+        all definitions as used (conservative — avoids false positives)."""
+        entries, _ = _run(tmp_path, {
+            "v1/enums.py": (
+                "from enum import StrEnum\n"
+                "class Status(StrEnum):\n"
+                '    ACTIVE = "active"\n'
+            ),
+            "v2/enums.py": (
+                "from enum import StrEnum\n"
+                "class Status(StrEnum):\n"
+                '    ACTIVE = "active"\n'
+            ),
+            "main.py": "from v2.enums import Status\n",
+        })
+        # Both are conservatively excluded — no false positives.
+        assert len(entries) == 0
+
     def test_star_import_does_not_count(self, tmp_path: Path):
         """Wildcard import doesn't explicitly name the enum — still 'unused'."""
         entries, _ = _run(tmp_path, {

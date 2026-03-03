@@ -16,8 +16,7 @@ from desloppify.engine._plan.schema import (
     ensure_plan_defaults,
     validate_plan,
 )
-from desloppify.engine._state.schema import STATE_DIR, json_default
-from desloppify.engine._state.schema import utc_now
+from desloppify.engine._state.schema import STATE_DIR, json_default, utc_now
 
 logger = logging.getLogger(__name__)
 

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 import re
 from fnmatch import fnmatch
 from typing import Any
 
 from desloppify.core.enums import issue_status_tokens
 from desloppify.core.registry import DETECTORS
+from desloppify.engine._state.schema import StateModel
 
 ALL_STATUSES = set(issue_status_tokens(include_all=True))
 ACTION_TYPE_PRIORITY = {"auto_fix": 0, "refactor": 1, "manual_fix": 2, "reorganize": 3}

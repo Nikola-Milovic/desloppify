@@ -4,20 +4,20 @@ from __future__ import annotations
 
 import argparse
 
+from desloppify.app.commands.helpers.guardrails import print_triage_guardrail_info
 from desloppify.app.commands.helpers.queue_progress import (
     QueueBreakdown,
     format_queue_headline,
 )
-from desloppify.app.commands.helpers.guardrails import print_triage_guardrail_info
 from desloppify.app.commands.helpers.runtime import command_runtime
 from desloppify.app.commands.helpers.state import require_completed_scan
 from desloppify.core.output import colorize, print_table
-from desloppify.engine.plan import compute_new_issue_ids, load_plan
-from desloppify.engine._work_queue.plan_order import collapse_clusters
 from desloppify.engine._work_queue.core import (
     QueueBuildOptions,
     build_work_queue,
 )
+from desloppify.engine._work_queue.plan_order import collapse_clusters
+from desloppify.engine.plan import compute_new_issue_ids, load_plan
 
 
 def _truncate(text: str, width: int) -> str:

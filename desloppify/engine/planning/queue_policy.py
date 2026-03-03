@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from dataclasses import dataclass
-from typing import Any
 
+from desloppify.engine._state.schema import StateModel
 from desloppify.engine._work_queue.core import (
     QueueBuildOptions,
     WorkQueueResult,

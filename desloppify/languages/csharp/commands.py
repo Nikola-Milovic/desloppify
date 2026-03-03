@@ -6,16 +6,17 @@ import argparse
 import json
 from pathlib import Path
 
+from desloppify.core.discovery_api import rel
+from desloppify.core.output import colorize, print_table
 from desloppify.engine.detectors.dupes import detect_duplicates
 from desloppify.engine.detectors.orphaned import (
     OrphanedDetectionOptions,
     detect_orphaned_files,
 )
-from desloppify.core.discovery_api import rel
 from desloppify.languages._framework.commands_base import (
-    make_standard_detect_registry_getter,
     make_cmd_complexity,
     make_cmd_large,
+    make_standard_detect_registry_getter,
 )
 from desloppify.languages.csharp.detectors.deps import (
     build_dep_graph,
@@ -28,7 +29,6 @@ from desloppify.languages.csharp.extractors import (
     find_csharp_files,
 )
 from desloppify.languages.csharp.phases import CSHARP_COMPLEXITY_SIGNALS
-from desloppify.core.output import colorize, print_table
 
 _cmd_large_impl = make_cmd_large(find_csharp_files, default_threshold=500)
 _cmd_complexity_impl = make_cmd_complexity(

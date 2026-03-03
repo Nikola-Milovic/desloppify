@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+import fnmatch
 import os
 import tempfile
-import fnmatch
 from pathlib import Path
 
 from desloppify.core.text.text_api import get_project_root

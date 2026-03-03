@@ -6,10 +6,20 @@ from typing import Any, Required, TypedDict
 
 from desloppify.engine._plan.schema_migrations import (
     ensure_container_types as _ensure_container_types,
+)
+from desloppify.engine._plan.schema_migrations import (
     migrate_deferred_to_skipped as _migrate_deferred_to_skipped,
+)
+from desloppify.engine._plan.schema_migrations import (
     migrate_epics_to_clusters as _migrate_epics_to_clusters,
+)
+from desloppify.engine._plan.schema_migrations import (
     migrate_synthesis_to_triage as _migrate_synthesis_to_triage,
+)
+from desloppify.engine._plan.schema_migrations import (
     migrate_v5_to_v6 as _migrate_v5_to_v6,
+)
+from desloppify.engine._plan.schema_migrations import (
     normalize_cluster_defaults as _normalize_cluster_defaults,
 )
 from desloppify.engine._plan.skip_policy import VALID_SKIP_KINDS

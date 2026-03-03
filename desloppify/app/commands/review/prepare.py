@@ -5,13 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from desloppify.app.commands.helpers.query import write_query
-from . import runtime as review_runtime_mod
 from desloppify.core.coercions_api import coerce_positive_int
 from desloppify.core.exception_sets import CommandError
+from desloppify.core.output import colorize
 from desloppify.intelligence import narrative as narrative_mod
 from desloppify.intelligence import review as review_mod
-from desloppify.core.output import colorize
 
+from . import runtime as review_runtime_mod
 from .helpers import parse_dimensions
 from .packet_policy import coerce_review_batch_file_limit, redacted_review_config
 

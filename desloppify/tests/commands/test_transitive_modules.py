@@ -16,8 +16,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from desloppify.core.exception_sets import CommandError
-
 # ── 1. resolve/render.py ────────────────────────────────────────────────────
 from desloppify.app.commands.resolve.render import (
     _delta_suffix,
@@ -27,6 +25,7 @@ from desloppify.app.commands.resolve.render import (
     _print_subjective_reset_hint,
     _print_wontfix_batch_warning,
 )
+from desloppify.core.exception_sets import CommandError
 
 
 class TestDeltaSuffix:

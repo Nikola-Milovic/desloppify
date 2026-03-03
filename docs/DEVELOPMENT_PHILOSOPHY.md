@@ -8,7 +8,14 @@ The primary user is an AI coding agent, not a human. The CLI output, the scoring
 
 ## No compatibility promise
 
-Agents don't care about API stability the way human integrations do. We change things when we find a better way to do them. If you need a fixed contract, pin a version or fork. Migration shims are fine but they get a short removal window — we don't carry dead weight.
+Agents don't care about API stability the way human integrations do. We change things when we find a better way to do them. If you need a fixed contract, pin a version or fork.
+
+Compatibility policy in this repo:
+
+- Data compatibility shims are allowed at input boundaries (for example: accepting old payload keys while normalizing to one internal shape).
+- Functionality compatibility shims are not allowed (no legacy wrapper functions, alias exports, facade modules, or test monkeypatch seams that preserve old call paths).
+- If behavior changes, update call sites directly in-repo instead of adding transitional function shims.
+- Any temporary migration shim must have a concrete removal date/issue and be removed quickly.
 
 ## The score is the point
 

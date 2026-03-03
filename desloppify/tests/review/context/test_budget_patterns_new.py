@@ -14,8 +14,8 @@ from desloppify.intelligence.review.context_holistic.budget_patterns import (
     _collect_enum_defs,
     _find_dict_any_annotations,
     _find_enum_bypass,
-    _is_dict_str_any,
     _guess_alternative,
+    _is_dict_str_any,
 )
 
 
@@ -150,6 +150,17 @@ class TestFindDictAnyAnnotations:
         assert len(results) == 1
         assert results[0]["known_alternative"] is None
 
+    def test_vararg_kwarg_detected(self):
+        content = (
+            "from typing import Any\n"
+            "def f(*args: dict[str, Any], **kwargs: dict[str, Any]) -> None:\n"
+            "    pass\n"
+        )
+        trees = {"/fake/mod.py": _parse(content)}
+        results = _find_dict_any_annotations(trees, set())
+        params = {r["param"] for r in results}
+        assert params == {"args", "kwargs"}
+
     def test_empty_trees(self):
         assert _find_dict_any_annotations({}, set()) == []
 
@@ -168,9 +179,10 @@ class TestCollectEnumDefs:
         )
         trees = {"/fake/enums.py": _parse(content)}
         defs = _collect_enum_defs(trees)
-        assert "Status" in defs
-        assert defs["Status"]["members"]["ACTIVE"] == "active"
-        assert defs["Status"]["members"]["INACTIVE"] == "inactive"
+        # Keyed by (file, name) tuple
+        key = next(k for k in defs if k[1] == "Status")
+        assert defs[key]["members"]["ACTIVE"] == "active"
+        assert defs[key]["members"]["INACTIVE"] == "inactive"
 
     def test_int_enum_collected(self):
         content = (
@@ -181,8 +193,8 @@ class TestCollectEnumDefs:
         )
         trees = {"/fake/enums.py": _parse(content)}
         defs = _collect_enum_defs(trees)
-        assert "Priority" in defs
-        assert defs["Priority"]["members"]["LOW"] == 1
+        key = next(k for k in defs if k[1] == "Priority")
+        assert defs[key]["members"]["LOW"] == 1
 
     def test_plain_enum_collected(self):
         content = (
@@ -192,7 +204,7 @@ class TestCollectEnumDefs:
         )
         trees = {"/fake/enums.py": _parse(content)}
         defs = _collect_enum_defs(trees)
-        assert "Color" in defs
+        assert any(k[1] == "Color" for k in defs)
 
     def test_non_enum_class_ignored(self):
         content = "class Foo:\n    BAR = 1\n"
@@ -209,6 +221,25 @@ class TestCollectEnumDefs:
         trees = {"/fake/mod.py": _parse(content)}
         defs = _collect_enum_defs(trees)
         assert defs == {}
+
+    def test_same_name_enums_from_different_files_preserved(self):
+        content_a = (
+            "from enum import StrEnum\n"
+            "class Status(StrEnum):\n"
+            '    ON = "on"\n'
+        )
+        content_b = (
+            "from enum import StrEnum\n"
+            "class Status(StrEnum):\n"
+            '    READY = "ready"\n'
+        )
+        trees = {
+            "/fake/a.py": _parse(content_a),
+            "/fake/b.py": _parse(content_b),
+        }
+        defs = _collect_enum_defs(trees)
+        status_keys = [k for k in defs if k[1] == "Status"]
+        assert len(status_keys) == 2
 
 
 # ── _find_enum_bypass ────────────────────────────────────
@@ -240,9 +271,9 @@ class TestFindEnumBypass:
         enum_content = (
             "from enum import IntEnum\n"
             "class Priority(IntEnum):\n"
-            "    HIGH = 1\n"
+            "    HIGH = 200\n"
         )
-        usage_content = "if priority == 1:\n    pass\n"
+        usage_content = "if priority == 200:\n    pass\n"
         trees = {
             "/fake/enums.py": _parse(enum_content),
             "/fake/usage.py": _parse(usage_content),
@@ -289,6 +320,55 @@ class TestFindEnumBypass:
         results = _find_enum_bypass(trees, defs)
         usage_hits = [r for r in results if "usage" in r["file"]]
         assert len(usage_hits) >= 1
+
+    def test_gt_operator_not_flagged(self):
+        """Only == and != should be flagged, not >, <, >=, <=."""
+        enum_content = (
+            "from enum import StrEnum\n"
+            "class Status(StrEnum):\n"
+            '    ACTIVE = "active"\n'
+        )
+        usage_content = 'if x > "active":\n    pass\n'
+        trees = {
+            "/fake/enums.py": _parse(enum_content),
+            "/fake/usage.py": _parse(usage_content),
+        }
+        defs = _collect_enum_defs(trees)
+        results = _find_enum_bypass(trees, defs)
+        usage_hits = [r for r in results if "usage" in r["file"]]
+        assert usage_hits == []
+
+    def test_enum_own_file_not_flagged(self):
+        """Comparisons in the file where the enum is defined should be skipped."""
+        content = (
+            "from enum import StrEnum\n"
+            "class Status(StrEnum):\n"
+            '    ACTIVE = "active"\n'
+            '\n'
+            'def check(x):\n'
+            '    return x == "active"\n'
+        )
+        trees = {"/fake/enums.py": _parse(content)}
+        defs = _collect_enum_defs(trees)
+        results = _find_enum_bypass(trees, defs)
+        assert results == []
+
+    def test_generic_int_value_not_flagged(self):
+        """IntEnum member with value 1 should not flag x == 1."""
+        enum_content = (
+            "from enum import IntEnum\n"
+            "class Priority(IntEnum):\n"
+            "    HIGH = 1\n"
+        )
+        usage_content = "if x == 1:\n    pass\n"
+        trees = {
+            "/fake/enums.py": _parse(enum_content),
+            "/fake/usage.py": _parse(usage_content),
+        }
+        defs = _collect_enum_defs(trees)
+        results = _find_enum_bypass(trees, defs)
+        usage_hits = [r for r in results if "usage" in r["file"]]
+        assert usage_hits == []
 
 
 # ── _census_type_strategies ──────────────────────────────

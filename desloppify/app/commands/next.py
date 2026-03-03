@@ -4,15 +4,11 @@ from __future__ import annotations
 
 import argparse
 
-from desloppify import state as state_mod
 import desloppify.app.commands.next_parts.output as next_output_mod
 import desloppify.app.commands.next_parts.render as next_render_mod
 import desloppify.app.commands.next_parts.render_nudges as next_nudges_mod
-from desloppify.app.commands.next_parts.render_support import (
-    render_queue_header as _render_queue_header,
-    scorecard_subjective as _scorecard_subjective_impl,
-    show_empty_queue as _show_empty_queue,
-)
+from desloppify import state as state_mod
+from desloppify.app.commands.helpers.guardrails import print_triage_guardrail_info
 from desloppify.app.commands.helpers.lang import resolve_lang
 from desloppify.app.commands.helpers.query import write_query
 from desloppify.app.commands.helpers.queue_progress import (
@@ -20,26 +16,34 @@ from desloppify.app.commands.helpers.queue_progress import (
     get_plan_start_strict,
     plan_aware_queue_breakdown,
 )
-from desloppify.app.commands.helpers.guardrails import print_triage_guardrail_info
 from desloppify.app.commands.helpers.runtime import command_runtime
 from desloppify.app.commands.helpers.score import target_strict_score_from_config
 from desloppify.app.commands.helpers.state import require_completed_scan
-from desloppify.engine.planning.scorecard_projection import (
-    scorecard_dimensions_payload,
+from desloppify.app.commands.next_parts.render_support import (
+    render_queue_header as _render_queue_header,
 )
-from desloppify.engine.plan import load_plan
-from desloppify.engine._work_queue.core import (
-    QueueBuildOptions,
-    build_work_queue,
+from desloppify.app.commands.next_parts.render_support import (
+    scorecard_subjective as _scorecard_subjective_impl,
 )
-from desloppify.engine._work_queue.context import queue_context
+from desloppify.app.commands.next_parts.render_support import (
+    show_empty_queue as _show_empty_queue,
+)
+from desloppify.core.discovery_api import safe_write_text
 from desloppify.core.exception_sets import PLAN_LOAD_EXCEPTIONS
 from desloppify.core.output import colorize
 from desloppify.core.skill_docs import check_skill_version
 from desloppify.core.tooling import check_config_staleness
-from desloppify.core.discovery_api import safe_write_text
-from desloppify.intelligence.narrative import NarrativeContext, compute_narrative
 from desloppify.engine._scoring.detection import merge_potentials
+from desloppify.engine._work_queue.context import queue_context
+from desloppify.engine._work_queue.core import (
+    QueueBuildOptions,
+    build_work_queue,
+)
+from desloppify.engine.plan import load_plan
+from desloppify.engine.planning.scorecard_projection import (
+    scorecard_dimensions_payload,
+)
+from desloppify.intelligence.narrative import NarrativeContext, compute_narrative
 
 
 def _scorecard_subjective(

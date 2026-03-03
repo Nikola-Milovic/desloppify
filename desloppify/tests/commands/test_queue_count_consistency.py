@@ -12,9 +12,8 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from desloppify.engine._state.merge_issues import auto_resolve_disappeared
 from desloppify.engine._plan.subjective_policy import compute_subjective_visibility
-
+from desloppify.engine._state.merge_issues import auto_resolve_disappeared
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -448,7 +447,9 @@ class TestWorkflowRunScanItem:
 
 class TestRenderQueueHeaderWorkflow:
     def test_header_shows_cleared_for_run_scan(self, capsys):
-        from desloppify.app.commands.next_parts.render_support import render_queue_header
+        from desloppify.app.commands.next_parts.render_support import (
+            render_queue_header,
+        )
         queue = {
             "total": 1,
             "items": [{"id": "workflow::run-scan", "kind": "workflow_action"}],
@@ -459,7 +460,9 @@ class TestRenderQueueHeaderWorkflow:
         assert "workflow step" in output
 
     def test_header_shows_count_for_real_items(self, capsys):
-        from desloppify.app.commands.next_parts.render_support import render_queue_header
+        from desloppify.app.commands.next_parts.render_support import (
+            render_queue_header,
+        )
         queue = {
             "total": 5,
             "items": [{"id": "f1", "kind": "issue"}],

@@ -9,8 +9,8 @@ from collections import deque
 from pathlib import Path
 
 from desloppify.core.text.text_api import get_project_root
-from desloppify.hook_registry import get_lang_hook
 from desloppify.engine.detectors.test_coverage.io import read_coverage_file
+from desloppify.hook_registry import get_lang_hook
 
 logger = logging.getLogger(__name__)
 

@@ -10,9 +10,9 @@ from desloppify.core.file_paths import (
     safe_write_text,
 )
 from desloppify.core.source_discovery import (
+    DEFAULT_EXCLUSIONS,
     clear_source_file_cache_for_tests,
     collect_exclude_dirs,
-    DEFAULT_EXCLUSIONS,
     disable_file_cache,
     enable_file_cache,
     find_py_files,

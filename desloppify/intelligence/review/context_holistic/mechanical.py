@@ -6,9 +6,10 @@ review context enrichment.
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from collections import Counter, defaultdict
 from typing import Any
+
+from desloppify.engine._state.schema import StateModel
 
 from ._clusters_complexity import _build_complexity_hotspots
 from ._clusters_consistency import _build_duplicate_clusters, _build_naming_drift
@@ -19,7 +20,10 @@ from ._clusters_dependency import (
     _build_private_crossings,
 )
 from ._clusters_error_state import _build_error_hotspots, _build_mutable_globals
-from ._clusters_organization import _build_flat_dir_issues, _build_large_file_distribution
+from ._clusters_organization import (
+    _build_flat_dir_issues,
+    _build_large_file_distribution,
+)
 from ._clusters_security import (
     _build_security_hotspots,
     _build_signal_density,
@@ -163,7 +167,7 @@ def _build_package_size_census(
                 detail = issue.get("detail", {})
                 if isinstance(detail, dict):
                     loc_val = detail.get("loc", 0)
-                    if isinstance(loc_val, (int, float)) and loc_val > file_loc:
+                    if isinstance(loc_val, int | float) and loc_val > file_loc:
                         file_loc = int(loc_val)
         if file_loc == 0:
             file_loc = 1  # Count the file at minimum

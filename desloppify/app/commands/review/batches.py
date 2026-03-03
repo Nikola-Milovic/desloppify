@@ -10,11 +10,14 @@ from pathlib import Path
 from typing import Any
 
 from desloppify.core.exception_sets import CommandError
+
 from .batches_runtime import (
     BatchRunSummaryConfig,
     build_batch_tasks,
     make_run_log_writer,
     resolve_run_log_path,
+)
+from .batches_runtime import (
     write_run_summary as _write_run_summary_impl,
 )
 from .batches_scope import (
@@ -27,8 +30,8 @@ from .batches_scope import (
     scored_dimensions_for_lang,
     validate_runner,
 )
+from .runner_parallel import BatchExecutionOptions
 from .runtime.policy import resolve_batch_run_policy
-
 
 _build_batch_tasks = build_batch_tasks
 
@@ -39,8 +42,6 @@ def _record_execution_issue(append_run_log_fn, batch_index: int, exc: Exception)
         append_run_log_fn(f"execution-error heartbeat error={exc}")
         return
     append_run_log_fn(f"execution-error batch={batch_index + 1} error={exc}")
-
-
 
 def do_run_batches(
     args,
@@ -357,11 +358,13 @@ def do_run_batches(
     try:
         execution_failures = execute_batches_fn(
             tasks=tasks,
-            run_parallel=run_parallel,
+            options=BatchExecutionOptions(
+                run_parallel=run_parallel,
+                max_parallel_workers=max_parallel_batches,
+                heartbeat_seconds=heartbeat_seconds,
+            ),
             progress_fn=_report_progress,
             error_log_fn=record_execution_issue,
-            max_parallel_workers=max_parallel_batches,
-            heartbeat_seconds=heartbeat_seconds,
         )
     except KeyboardInterrupt:
         for idx in selected_indexes:

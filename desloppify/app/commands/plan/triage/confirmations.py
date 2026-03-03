@@ -24,7 +24,6 @@ from .helpers import (
     _triage_coverage,
 )
 
-
 _MIN_ATTESTATION_LEN = 80
 
 

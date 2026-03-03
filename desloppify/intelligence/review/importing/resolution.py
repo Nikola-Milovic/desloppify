@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from collections.abc import Callable
 from typing import Any
 
+from desloppify.engine._state.schema import StateModel
 from desloppify.state import utc_now
 
 

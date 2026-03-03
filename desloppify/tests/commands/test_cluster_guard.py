@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from desloppify.app.commands.plan.override_handlers import (
-    _check_cluster_guard,
     _CLUSTER_INDIVIDUAL_THRESHOLD,
+    _check_cluster_guard,
 )
 from desloppify.engine._plan.schema import empty_plan, ensure_plan_defaults
-
 
 # ---------------------------------------------------------------------------
 # Helpers

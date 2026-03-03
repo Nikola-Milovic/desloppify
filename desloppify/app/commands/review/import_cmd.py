@@ -11,17 +11,19 @@ if TYPE_CHECKING:
     from desloppify.engine.plan import ReviewImportSyncResult
 
 from desloppify import state as state_mod
+from desloppify.app.commands.helpers.display import short_issue_id
 from desloppify.app.commands.helpers.query import write_query
-from desloppify.app.commands.helpers.score import target_strict_score_from_config
 from desloppify.app.commands.helpers.queue_progress import show_score_with_plan_context
+from desloppify.app.commands.helpers.score import target_strict_score_from_config
 from desloppify.app.commands.scan import (
     scan_reporting_dimensions as reporting_dimensions_mod,
 )
-from .assessment_integrity import (
-    bind_scorecard_subjective_at_target,
-    subjective_at_target_dimensions,
+from desloppify.core.exception_sets import (
+    PLAN_LOAD_EXCEPTIONS,
+    CommandError,
+    PacketValidationError,
 )
-from . import import_helpers as import_helpers_mod
+from desloppify.core.output import colorize
 from desloppify.intelligence import integrity as subjective_integrity_mod
 from desloppify.intelligence import narrative as narrative_mod
 from desloppify.intelligence import review as review_mod
@@ -31,13 +33,12 @@ from desloppify.intelligence.review.importing.contracts import (
     AssessmentImportPolicyModel,
     ReviewImportPayload,
 )
-from desloppify.app.commands.helpers.display import short_issue_id
-from desloppify.core.exception_sets import (
-    PLAN_LOAD_EXCEPTIONS,
-    CommandError,
-    PacketValidationError,
+
+from . import import_helpers as import_helpers_mod
+from .assessment_integrity import (
+    bind_scorecard_subjective_at_target,
+    subjective_at_target_dimensions,
 )
-from desloppify.core.output import colorize
 
 _SCORECARD_SUBJECTIVE_AT_TARGET = bind_scorecard_subjective_at_target(
     reporting_dimensions_mod=reporting_dimensions_mod,
@@ -60,8 +61,6 @@ class ReviewImportConfig:
     attested_external: bool = False
     manual_override: bool = False
     manual_attest: str | None = None
-    assessment_override: bool = False
-    assessment_note: str | None = None
 
 
 def _build_import_load_config(
@@ -79,8 +78,6 @@ def _build_import_load_config(
         attested_external=import_config.attested_external,
         manual_override=override_enabled,
         manual_attest=override_attest,
-        assessment_override=import_config.assessment_override,
-        assessment_note=import_config.assessment_note,
     )
 
 
@@ -210,6 +207,10 @@ def _sync_plan_after_import(state: dict, diff: dict, assessment_mode: str) -> No
     import-scores, and communicate-score workflow items as needed.
     """
     try:
+        from desloppify.engine._plan.stale_dimensions import (
+            sync_communicate_score_needed,
+            sync_import_scores_needed,
+        )
         from desloppify.engine.plan import (
             append_log_entry,
             current_unscored_ids,
@@ -220,10 +221,6 @@ def _sync_plan_after_import(state: dict, diff: dict, assessment_mode: str) -> No
             sync_create_plan_needed,
             sync_plan_after_review_import,
             sync_score_checkpoint_needed,
-        )
-        from desloppify.engine._plan.stale_dimensions import (
-            sync_communicate_score_needed,
-            sync_import_scores_needed,
         )
 
         if not has_living_plan():
@@ -333,8 +330,6 @@ def do_import(
     attested_external: bool = False,
     manual_override: bool = False,
     manual_attest: str | None = None,
-    assessment_override: bool = False,
-    assessment_note: str | None = None,
 ) -> None:
     """Import mode: ingest agent-produced issues."""
     import_config = ReviewImportConfig(
@@ -345,14 +340,10 @@ def do_import(
         attested_external=attested_external,
         manual_override=manual_override,
         manual_attest=manual_attest,
-        assessment_override=assessment_override,
-        assessment_note=assessment_note,
     )
     override_enabled, override_attest = import_helpers_mod.resolve_override_context(
         manual_override=import_config.manual_override,
         manual_attest=import_config.manual_attest,
-        assessment_override=import_config.assessment_override,
-        assessment_note=import_config.assessment_note,
     )
     try:
         _validate_import_flag_combos(
@@ -553,8 +544,6 @@ def do_validate_import(
     attested_external: bool = False,
     manual_override: bool = False,
     manual_attest: str | None = None,
-    assessment_override: bool = False,
-    assessment_note: str | None = None,
 ) -> None:
     """Validate import payload/policy and print mode without mutating state."""
     import_config = ReviewImportConfig(
@@ -562,14 +551,10 @@ def do_validate_import(
         attested_external=attested_external,
         manual_override=manual_override,
         manual_attest=manual_attest,
-        assessment_override=assessment_override,
-        assessment_note=assessment_note,
     )
     override_enabled, override_attest = import_helpers_mod.resolve_override_context(
         manual_override=import_config.manual_override,
         manual_attest=import_config.manual_attest,
-        assessment_override=import_config.assessment_override,
-        assessment_note=import_config.assessment_note,
     )
     try:
         _validate_import_flag_combos(

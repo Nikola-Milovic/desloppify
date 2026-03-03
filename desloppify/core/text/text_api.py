@@ -6,8 +6,6 @@ from pathlib import Path
 
 from desloppify.core._internal import text_utils as text_utils_mod
 
-PROJECT_ROOT = text_utils_mod.PROJECT_ROOT
-
 
 def get_project_root() -> Path:
     """Return the active project root as an absolute resolved path."""

@@ -7,7 +7,6 @@ import argparse
 import desloppify.app.commands.plan.cluster_handlers as cluster_mod
 from desloppify.engine._plan.schema import empty_plan
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

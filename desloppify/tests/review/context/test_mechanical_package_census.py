@@ -52,15 +52,17 @@ class TestBuildPackageSizeCensus:
         assert result[1]["package"] == "small"
 
     def test_disproportionate_flag(self):
-        # 80% / 20% split — "big" is >15%, "small" may also be >15%
+        # 80% / 20% split — both are >15%
         by_file = {
             "big/a.py": [_issue(file="big/a.py", detail={"loc": 800})],
             "small/b.py": [_issue(file="small/b.py", detail={"loc": 200})],
         }
         result = _build_package_size_census(by_file)
         by_pkg = {r["package"]: r for r in result}
-        assert by_pkg["big"]["disproportionate"] is True
         assert by_pkg["big"]["pct_of_total"] == 80.0
+        assert by_pkg["big"]["disproportionate"] is True
+        assert by_pkg["small"]["pct_of_total"] == 20.0
+        assert by_pkg["small"]["disproportionate"] is True
 
     def test_balanced_packages_not_disproportionate(self):
         # 7 equal packages → each ~14.3% → none >15%

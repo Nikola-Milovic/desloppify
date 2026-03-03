@@ -5,8 +5,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from desloppify.engine.detectors.base import ComplexitySignal, GodRule
 from desloppify.core.discovery_api import rel
+from desloppify.core.output import log
+from desloppify.engine.detectors.base import ComplexitySignal, GodRule
 from desloppify.languages._framework.base.shared_phases import (
     run_coupling_phase,
     run_structural_phase,
@@ -14,7 +15,6 @@ from desloppify.languages._framework.base.shared_phases import (
 from desloppify.languages._framework.base.types import LangRuntimeContract
 from desloppify.languages.csharp.detectors.deps import build_dep_graph
 from desloppify.languages.csharp.extractors import extract_csharp_classes
-from desloppify.core.output import log
 
 
 def _compute_max_nesting(content: str, _lines: list[str]):

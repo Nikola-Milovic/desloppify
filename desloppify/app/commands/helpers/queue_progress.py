@@ -10,10 +10,10 @@ from typing import TYPE_CHECKING
 from desloppify import state as state_mod
 from desloppify.core.exception_sets import PLAN_LOAD_EXCEPTIONS
 from desloppify.core.output import colorize
+from desloppify.engine import plan as plan_mod
 from desloppify.engine._work_queue import core as work_queue_core_mod
 from desloppify.engine._work_queue.helpers import is_subjective_queue_item
 from desloppify.engine._work_queue.plan_order import collapse_clusters
-from desloppify.engine import plan as plan_mod
 
 _logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ def plan_aware_queue_breakdown(
     state: dict,
     plan: dict | None = None,
     *,
-    context: "QueueContext | None" = None,
+    context: QueueContext | None = None,
 ) -> QueueBreakdown:
     """Build a full :class:`QueueBreakdown` from a single ``build_work_queue`` call.
 
@@ -232,21 +232,6 @@ def format_queue_block(
     return lines
 
 
-# ---------------------------------------------------------------------------
-# Legacy / backward-compatible helpers
-# ---------------------------------------------------------------------------
-
-def plan_aware_queue_count(state: dict, plan: dict | None = None) -> int:
-    """Count remaining plan-aware queue items (skips excluded, clusters collapsed).
-
-    .. deprecated::
-        Returns ``queue_total`` which **includes** workflow navigation items.
-        Prefer ``plan_aware_queue_breakdown(state, plan).actionable`` for
-        gate/preflight checks where workflow items should not count.
-    """
-    return plan_aware_queue_breakdown(state, plan).queue_total
-
-
 def get_plan_start_strict(plan: dict | None) -> float | None:
     """Extract the frozen plan-start strict score, or None if unset."""
     if not plan:
@@ -258,45 +243,24 @@ def print_frozen_score_with_queue_context(
     plan: dict,
     queue_remaining: int,
     *,
-    breakdown: QueueBreakdown | None = None,
+    breakdown: QueueBreakdown,
     live_score: float | None = None,
 ) -> None:
-    """Show frozen plan-start score + queue progress.
-
-    When *breakdown* is provided, uses the standardized queue block.
-    Otherwise falls back to the legacy two-line format.
-    """
+    """Show frozen plan-start score + queue progress."""
     scores = plan.get("plan_start_scores", {})
     strict = scores.get("strict")
     if strict is None:
         return
 
-    if breakdown is not None:
-        block = format_queue_block(breakdown, frozen_score=strict, live_score=live_score)
-        print()
-        for text, style in block:
-            print(colorize(text, style))
-        if queue_remaining > 0:
-            print(colorize(
-                "  Score will not update until the queue is clear and you run `desloppify scan`.",
-                "dim",
-            ))
-        return
-
-    # Legacy fallback
-    print(
-        colorize(
-            f"\n  Score (frozen at plan start): strict {strict:.1f}/100",
-            "cyan",
-        )
-    )
-    print(
-        colorize(
-            f"  Queue: {queue_remaining} item{'s' if queue_remaining != 1 else ''}"
-            " remaining. Score will not update until the queue is clear and you run `desloppify scan`.",
+    block = format_queue_block(breakdown, frozen_score=strict, live_score=live_score)
+    print()
+    for text, style in block:
+        print(colorize(text, style))
+    if queue_remaining > 0:
+        print(colorize(
+            "  Score will not update until the queue is clear and you run `desloppify scan`.",
             "dim",
-        )
-    )
+        ))
 
 
 def _print_objective_drained_banner(
@@ -391,7 +355,6 @@ __all__ = [
     "format_queue_headline",
     "get_plan_start_strict",
     "plan_aware_queue_breakdown",
-    "plan_aware_queue_count",
     "print_execution_or_reveal",
     "print_frozen_score_with_queue_context",
     "show_score_with_plan_context",

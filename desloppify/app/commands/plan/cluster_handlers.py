@@ -8,8 +8,8 @@ import re
 from desloppify.app.commands.helpers.runtime import command_runtime
 from desloppify.app.commands.helpers.state import require_completed_scan
 from desloppify.app.commands.plan._resolve import resolve_ids_from_patterns
-from desloppify.core.output import colorize
 from desloppify.app.commands.plan.reorder_handlers import resolve_target
+from desloppify.core.output import colorize
 from desloppify.engine.plan import (
     add_to_cluster,
     append_log_entry,
@@ -22,7 +22,6 @@ from desloppify.engine.plan import (
     save_plan,
 )
 from desloppify.state import utc_now
-
 
 _LEADING_NUM_RE = re.compile(r'^\d+\.\s*')
 

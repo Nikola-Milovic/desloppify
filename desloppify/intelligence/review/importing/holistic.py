@@ -2,35 +2,36 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 import hashlib
 from pathlib import Path
 from typing import Any
 
+from desloppify.engine._scoring.policy.core import HOLISTIC_POTENTIAL
+from desloppify.engine._state.schema import StateModel
 from desloppify.intelligence.review.dimensions import normalize_dimension_name
 from desloppify.intelligence.review.dimensions.data import load_dimensions_for_lang
+from desloppify.intelligence.review.importing.assessments import store_assessments
+from desloppify.intelligence.review.importing.cache import refresh_review_file_cache
 from desloppify.intelligence.review.importing.contracts import (
-    ReviewIssuePayload,
     ReviewImportPayload,
+    ReviewIssuePayload,
     ReviewScopePayload,
     validate_review_issue_payload,
 )
-from desloppify.intelligence.review.importing.helpers import (
-    _lang_potentials,
-    auto_resolve_review_issues,
+from desloppify.intelligence.review.importing.payload import (
+    ReviewImportEnvelope,
     normalize_review_confidence,
     parse_review_import_payload,
-    refresh_review_file_cache,
     review_tier,
-    ReviewImportEnvelope,
-    store_assessments,
+)
+from desloppify.intelligence.review.importing.resolution import (
+    auto_resolve_review_issues,
+)
+from desloppify.intelligence.review.importing.state_helpers import (
+    _lang_potentials,
 )
 from desloppify.intelligence.review.selection import hash_file
-from desloppify.engine._scoring.policy.core import HOLISTIC_POTENTIAL
 from desloppify.state import MergeScanOptions, make_issue, merge_scan, utc_now
-
-# Backward-compatible test patch hook (runtime root now resolves lazily).
-PROJECT_ROOT: Path | None = None
 
 
 def parse_holistic_import_payload(

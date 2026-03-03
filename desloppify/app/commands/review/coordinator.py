@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 import json
 import subprocess  # nosec
+from collections.abc import Mapping
 from hashlib import sha256
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
+from desloppify.engine._state.schema import StateModel
+
+from . import runner_packets as runner_packets_mod
 from .packet_build import (
     ReviewPacketContext,
     build_holistic_packet,
@@ -21,7 +24,6 @@ from .runtime_paths import (
     review_packet_dir,
     runtime_project_root,
 )
-from . import runner_packets as runner_packets_mod
 
 
 def _stable_json_sha256(payload: Any) -> str:

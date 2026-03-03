@@ -6,7 +6,6 @@ import argparse
 
 from desloppify.app.commands.helpers.display import short_issue_id
 from desloppify.app.commands.helpers.runtime import command_runtime
-from desloppify.app.commands.plan.triage.shared import _unenriched_clusters
 from desloppify.app.commands.plan.triage_playbook import (
     TRIAGE_CMD_ORGANIZE,
 )
@@ -26,7 +25,6 @@ from .display import _print_organize_result, _print_reflect_result, _show_plan_s
 from .helpers import (
     _apply_completion,
     _cascade_clear_later_confirmations,
-    _count_log_activity_since,
     _has_triage_in_queue,
     _inject_triage_stages,
     _manual_clusters_with_issues,
@@ -35,6 +33,7 @@ from .helpers import (
     _print_cascade_clear_feedback,
     _triage_coverage,
 )
+from .stage_helpers import _unenriched_clusters
 
 
 def _resolve_reusable_report(

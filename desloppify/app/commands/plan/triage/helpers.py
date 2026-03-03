@@ -16,7 +16,6 @@ from desloppify.engine.plan import (
 )
 from desloppify.state import utc_now
 
-
 _STAGE_ORDER = ["observe", "reflect", "organize"]
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 from desloppify.languages.gdscript.detectors.deps import build_dep_graph
 
 

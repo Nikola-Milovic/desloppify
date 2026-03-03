@@ -5,10 +5,10 @@ from __future__ import annotations
 from desloppify.app.commands.scan.scan_reporting_presentation import dimension_bar
 from desloppify.core.output import colorize
 from desloppify.core.registry import dimension_action_type
+from desloppify.engine._scoring.policy.core import DIMENSIONS
 from desloppify.engine.planning.scorecard_projection import (
     scorecard_subjective_entries,
 )
-from desloppify.engine._scoring.policy.core import DIMENSIONS
 
 
 def scorecard_subjective_entries_for_status(state: dict, dim_scores: dict) -> list[dict]:

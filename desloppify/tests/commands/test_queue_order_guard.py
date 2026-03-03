@@ -5,9 +5,8 @@ from __future__ import annotations
 import importlib
 from unittest.mock import MagicMock
 
-from desloppify.engine._plan.schema import empty_plan, ensure_plan_defaults
 from desloppify.engine._plan.persistence import save_plan
-
+from desloppify.engine._plan.schema import empty_plan, ensure_plan_defaults
 
 # ---------------------------------------------------------------------------
 # Lazy import helper — avoids the circular import in resolve/render

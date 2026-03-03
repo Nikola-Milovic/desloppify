@@ -4,13 +4,13 @@ import re
 import sys
 
 from desloppify.core.discovery_api import rel
+from desloppify.core.output import colorize
 from desloppify.languages.typescript.fixers.fixer_io import apply_fixer
 from desloppify.languages.typescript.fixers.syntax_scan import (
     collapse_blank_lines,
     extract_body_between_braces,
     find_balanced_end,
 )
-from desloppify.core.output import colorize
 
 _LOGGER_WRAPPER_NAMES = frozenset(
     {

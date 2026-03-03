@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from desloppify.engine.plan import save_plan
 from desloppify.engine.planning.triage import review_issue_snapshot_hash
 from desloppify.state import utc_now
-from desloppify.engine.plan import save_plan
 
 
 def refresh_stage_snapshot(plan: dict, state: dict) -> None:

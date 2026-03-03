@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import ScanDiff, StateModel
 from desloppify.core.tooling import compute_tool_hash
+from desloppify.engine._state.schema import ScanDiff, StateModel
 
 
 def _record_scan_metadata(

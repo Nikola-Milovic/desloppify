@@ -11,13 +11,13 @@ from typing import TYPE_CHECKING
 from desloppify import state as state_mod
 from desloppify.app.commands.helpers.lang import resolve_lang
 from desloppify.app.commands.helpers.query import write_query
-from desloppify.app.commands.helpers.runtime import command_runtime
 from desloppify.app.commands.helpers.queue_progress import show_score_with_plan_context
+from desloppify.app.commands.helpers.runtime import command_runtime
 from desloppify.app.commands.helpers.state import state_path
 from desloppify.core.discovery_api import rel
+from desloppify.core.output import colorize
 from desloppify.intelligence import narrative as narrative_mod
 from desloppify.languages._framework.base.types import FixResult
-from desloppify.core.output import colorize
 
 from .options import _COMMAND_POST_FIX
 

@@ -3,18 +3,17 @@
 from __future__ import annotations
 
 from desloppify.app.commands.helpers.display import short_issue_id
-from desloppify.app.commands.plan.triage_playbook import (
-    TRIAGE_STAGE_DEPENDENCIES,
-    TRIAGE_STAGE_LABELS,
-    TRIAGE_CMD_CLUSTER_ENRICH_COMPACT,
-)
-from desloppify.core.output import colorize
-
 from desloppify.app.commands.plan.triage.stage_helpers import (
     _manual_clusters_with_issues,
     _triage_coverage,
     _unenriched_clusters,
 )
+from desloppify.app.commands.plan.triage_playbook import (
+    TRIAGE_CMD_CLUSTER_ENRICH_COMPACT,
+    TRIAGE_STAGE_DEPENDENCIES,
+    TRIAGE_STAGE_LABELS,
+)
+from desloppify.core.output import colorize
 
 
 def _print_stage_progress(stages: dict, plan: dict | None = None) -> None:

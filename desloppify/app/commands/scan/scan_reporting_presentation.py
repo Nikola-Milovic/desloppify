@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from collections.abc import Callable
 from typing import Any, Protocol
+
+from desloppify.engine._state.schema import StateModel
 
 # ---------------------------------------------------------------------------
 # Protocol stubs for dependency-injected modules

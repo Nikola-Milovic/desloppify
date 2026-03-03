@@ -8,7 +8,6 @@ from desloppify.app.commands.review.packet_policy import (
     redacted_review_config,
 )
 
-
 # ── redacted_review_config ──────────────────────────────────
 
 

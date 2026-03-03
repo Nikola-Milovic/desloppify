@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any
 
 from desloppify.core.coercions_api import coerce_confidence
+from desloppify.core.file_paths import rel
+from desloppify.core.output import log
 from desloppify.core.text.text_api import get_project_root
 from desloppify.engine.detectors.base import ComplexitySignal
 from desloppify.engine.detectors.complexity import detect_complexity
@@ -36,7 +38,6 @@ from desloppify.engine.policy.zones import (
     filter_entries,
     should_skip_issue,
 )
-from desloppify.core.file_paths import rel
 from desloppify.languages._framework.base.structural import (
     add_structural_signal,
     merge_structural_signals,
@@ -52,7 +53,6 @@ from desloppify.languages._framework.issue_factories import (
     make_single_use_issues,
 )
 from desloppify.state import Issue, make_issue
-from desloppify.core.output import log
 
 
 def phase_dupes(path: Path, lang: LangRuntimeContract) -> tuple[list[Issue], dict[str, int]]:

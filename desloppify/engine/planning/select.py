@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from desloppify.engine.planning.types import PlanItem, PlanState
 from desloppify.engine._work_queue.core import (
     QueueBuildOptions,
     build_work_queue,
 )
+from desloppify.engine.planning.types import PlanItem, PlanState
 
 
 def get_next_items(
     state: PlanState,
-    tier: int | None = None,
     count: int = 1,
     scan_path: str | None = None,
 ) -> list[PlanItem]:
@@ -19,7 +18,6 @@ def get_next_items(
 
     Legacy plan API intentionally returns only issue items (not synthetic
     subjective queue items) so existing planner consumers stay stable.
-    The *tier* parameter is accepted for backward compatibility but ignored.
     """
     result = build_work_queue(
         state,
@@ -35,9 +33,8 @@ def get_next_items(
 
 def get_next_item(
     state: PlanState,
-    tier: int | None = None,
     scan_path: str | None = None,
 ) -> PlanItem | None:
     """Get the highest-priority open issue."""
-    items = get_next_items(state, tier=tier, count=1, scan_path=scan_path)
+    items = get_next_items(state, count=1, scan_path=scan_path)
     return items[0] if items else None

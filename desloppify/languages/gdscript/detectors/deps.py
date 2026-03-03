@@ -5,8 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from desloppify.engine.detectors.graph import finalize_graph
 from desloppify.core.discovery_api import resolve_path
+from desloppify.engine.detectors.graph import finalize_graph
 from desloppify.languages.gdscript.extractors import find_gdscript_files
 from desloppify.languages.gdscript.patterns import EXTENDS_RE, LOAD_PATH_RE
 

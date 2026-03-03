@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import desloppify.app.commands.helpers.guardrails as guardrails_mod
 import desloppify.app.commands.plan.triage.organize as plan_organize_mod
+import desloppify.app.commands.plan.triage.progress_render as plan_progress_render_mod
 import desloppify.app.commands.plan.triage.reflect as plan_reflect_mod
-import desloppify.app.commands.plan.triage.shared as plan_shared_mod
+import desloppify.app.commands.plan.triage.stages as plan_stages_mod
 import desloppify.app.commands.plan.triage_handlers as triage_handlers_mod
 import desloppify.app.commands.review.batch_merge as batch_merge_mod
 import desloppify.app.commands.review.batches_runtime as batches_runtime_mod
@@ -28,12 +29,12 @@ import desloppify.intelligence.review.issue_merge as issue_merge_mod
 def test_direct_coverage_split_queue_batch_modules_smoke():
     assert callable(plan_organize_mod.cmd_stage_organize)
     assert callable(plan_reflect_mod.cmd_stage_reflect)
-    assert callable(triage_handlers_mod.cmd_stage_observe)
+    assert callable(plan_stages_mod._cmd_stage_observe)
     assert callable(triage_handlers_mod.cmd_plan_triage)
     assert callable(import_modes_mod.apply_review_import_mode)
     assert callable(queue_policy_mod.build_open_plan_queue)
     assert callable(guardrails_mod.print_triage_guardrail_info)
-    assert callable(plan_shared_mod._print_progress)
+    assert callable(plan_progress_render_mod._print_progress)
     assert callable(batch_merge_mod.merge_batch_results)
     assert callable(batches_runtime_mod.build_batch_tasks)
     assert callable(batches_scope_mod.validate_runner)

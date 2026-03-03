@@ -30,21 +30,6 @@ def coerce_confidence(value: object, *, default: float = 1.0) -> float:
     return coercions_mod.coerce_confidence(value, default=default)
 
 
-def option_value(
-    *,
-    options: object | None,
-    legacy_options: dict[str, object],
-    name: str,
-    default: object,
-) -> object:
-    return coercions_mod.option_value(
-        options=options,
-        legacy_options=legacy_options,
-        name=name,
-        default=default,
-    )
-
-
 def coerce_optional_str(value: object) -> str | None:
     return coercions_mod.coerce_optional_str(value)
 
@@ -56,5 +41,4 @@ __all__ = [
     "coerce_non_negative_int",
     "coerce_positive_float",
     "coerce_positive_int",
-    "option_value",
 ]

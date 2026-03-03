@@ -8,9 +8,9 @@ from desloppify.engine._plan.operations import (
     create_cluster,
     move_items,
     purge_ids,
+    resurface_stale_skips,
     skip_items,
     unskip_items,
-    resurface_stale_skips,
 )
 from desloppify.engine._plan.reconcile import reconcile_plan_after_scan
 from desloppify.engine._plan.schema import (
@@ -18,7 +18,6 @@ from desloppify.engine._plan.schema import (
     ensure_plan_defaults,
     validate_plan,
 )
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -234,7 +233,7 @@ def test_validate_no_overlap_queue_skipped():
     plan["skipped"] = {"a": {"issue_id": "a", "kind": "temporary"}}
     try:
         validate_plan(plan)
-        assert False, "Should have raised ValueError"
+        raise AssertionError("Should have raised ValueError")
     except ValueError as exc:
         assert "queue_order and skipped" in str(exc)
 
@@ -244,7 +243,7 @@ def test_validate_invalid_skip_kind():
     plan["skipped"] = {"a": {"issue_id": "a", "kind": "invalid_kind"}}
     try:
         validate_plan(plan)
-        assert False, "Should have raised ValueError"
+        raise AssertionError("Should have raised ValueError")
     except ValueError as exc:
         assert "invalid_kind" in str(exc)
 
@@ -344,10 +343,10 @@ def test_append_log_entry_basic():
 
 
 def test_append_log_entry_caps_at_default(monkeypatch):
-    import desloppify.engine._plan.operations as ops_mod
+    import desloppify.engine._plan.operations_meta as ops_meta_mod
 
     cap = 500
-    monkeypatch.setattr(ops_mod, "_get_log_cap", lambda: cap)
+    monkeypatch.setattr(ops_meta_mod, "_get_log_cap", lambda: cap)
 
     plan = empty_plan()
     for i in range(cap + 10):
@@ -361,9 +360,9 @@ def test_append_log_entry_caps_at_default(monkeypatch):
 
 
 def test_append_log_entry_uncapped(monkeypatch):
-    import desloppify.engine._plan.operations as ops_mod
+    import desloppify.engine._plan.operations_meta as ops_meta_mod
 
-    monkeypatch.setattr(ops_mod, "_get_log_cap", lambda: 0)
+    monkeypatch.setattr(ops_meta_mod, "_get_log_cap", lambda: 0)
 
     plan = empty_plan()
     total = 600
@@ -374,9 +373,9 @@ def test_append_log_entry_uncapped(monkeypatch):
 
 
 def test_append_log_entry_custom_cap(monkeypatch):
-    import desloppify.engine._plan.operations as ops_mod
+    import desloppify.engine._plan.operations_meta as ops_meta_mod
 
-    monkeypatch.setattr(ops_mod, "_get_log_cap", lambda: 50)
+    monkeypatch.setattr(ops_meta_mod, "_get_log_cap", lambda: 50)
 
     plan = empty_plan()
     for i in range(60):
@@ -400,5 +399,3 @@ def test_append_log_entry_with_cluster_and_detail():
     assert entry["cluster_name"] == "auto/unused"
     assert entry["detail"] == {"method": "bulk"}
     assert entry["actor"] == "agent"
-
-

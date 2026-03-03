@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from desloppify import state as state_mod
+from desloppify.core.output import log
 from desloppify.engine.policy.zones import adjust_potential, filter_entries
 from desloppify.languages._framework.issue_factories import make_smell_issues
 from desloppify.languages._framework.runtime import LangRun
@@ -18,7 +19,6 @@ from desloppify.languages.python.detectors import (
 from desloppify.languages.python.detectors import smells as smells_detector_mod
 from desloppify.languages.python.detectors.ruff_smells import detect_with_ruff_smells
 from desloppify.state import Issue
-from desloppify.core.output import log
 
 
 def phase_smells(path: Path, lang: LangRun) -> tuple[list[Issue], dict[str, int]]:

@@ -10,7 +10,6 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-
 # Public package roots intended for runtime imports across the codebase.
 PUBLIC_RUNTIME_ROOTS: tuple[str, ...] = (
     "desloppify.app",

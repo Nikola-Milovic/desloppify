@@ -8,25 +8,14 @@ import re
 from pathlib import Path
 from typing import Any
 
+from desloppify.core.discovery_api import find_ts_files, rel, resolve_path
 from desloppify.core.fallbacks import log_best_effort_failure
 from desloppify.core.grep import grep_count_files, grep_files
 from desloppify.core.output import colorize, print_table
 from desloppify.core.signal_patterns import DEPRECATION_MARKER_RE
-from desloppify.core.discovery_api import find_ts_files, rel, resolve_path
 from desloppify.languages.typescript.detectors.contracts import DetectorResult
 
 logger = logging.getLogger(__name__)
-
-
-def detect_deprecated(path: Path) -> tuple[list[dict[str, Any]], int]:
-    """Legacy tuple adapter for deprecated detection.
-
-    Prefer ``detect_deprecated_result`` for new call sites. This wrapper
-    remains for compatibility and will be removed after migration.
-    """
-    return detect_deprecated_result(path).as_tuple()
-
-
 def detect_deprecated_result(path: Path) -> DetectorResult[dict[str, Any]]:
     """Find deprecated symbols with explicit population semantics."""
     ts_files = find_ts_files(path)

@@ -7,18 +7,18 @@ import json
 import subprocess
 import sys
 import time
-from types import SimpleNamespace
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from desloppify import state as state_mod
-from desloppify.app.commands.review import batches_scope as review_scope_mod
 import desloppify.app.commands.review.runner_failures as runner_failures_mod
 import desloppify.app.commands.review.runner_packets as runner_packets_mod
 import desloppify.app.commands.review.runner_parallel as runner_parallel_mod
 import desloppify.app.commands.review.runner_process as runner_process_mod
+from desloppify import state as state_mod
+from desloppify.app.commands.review import batches_scope as review_scope_mod
 from desloppify.app.commands.review.batch import (
     _do_run_batches,
 )
@@ -26,9 +26,9 @@ from desloppify.app.commands.review.import_cmd import do_import as _do_import
 from desloppify.app.commands.review.import_cmd import (
     do_validate_import as _do_validate_import,
 )
-from desloppify.core.exception_sets import CommandError
 from desloppify.app.commands.review.prepare import do_prepare as _do_prepare
 from desloppify.app.commands.review.runtime import setup_lang_concrete as _setup_lang
+from desloppify.core.exception_sets import CommandError
 from desloppify.engine.policy.zones import Zone, ZoneRule
 from desloppify.intelligence.review import (
     import_holistic_issues,
@@ -42,6 +42,7 @@ from desloppify.tests.review.shared_review_fixtures import (
 )
 
 runner_helpers_mod = SimpleNamespace(
+    BatchExecutionOptions=runner_parallel_mod.BatchExecutionOptions,
     BatchResult=runner_parallel_mod.BatchResult,
     CodexBatchRunnerDeps=runner_process_mod.CodexBatchRunnerDeps,
     FollowupScanDeps=runner_process_mod.FollowupScanDeps,
@@ -323,8 +324,8 @@ class TestCmdReviewPrepare:
                 empty_state,
                 lang,
                 "fake_sp",
-                assessment_override=True,
-                assessment_note="Manual calibration approved",
+                manual_override=True,
+                manual_attest="Manual calibration approved",
             )
 
         assert saved["sp"] == "fake_sp"
@@ -1251,7 +1252,9 @@ class TestCmdReviewPrepare:
 
         assert "tasks" in captured_execute_kwargs
         assert "selected_indexes" not in captured_execute_kwargs
-        assert captured_execute_kwargs.get("run_parallel") is False
+        options = captured_execute_kwargs.get("options")
+        assert isinstance(options, runner_helpers_mod.BatchExecutionOptions)
+        assert options.run_parallel is False
 
     def test_do_run_batches_recovers_missing_raw_output_from_log(
         self, empty_state, tmp_path
@@ -1977,11 +1980,13 @@ class TestCmdReviewPrepare:
 
         failures = runner_helpers_mod.execute_batches(
             tasks={0: lambda: 0},
-            run_parallel=True,
+            options=runner_helpers_mod.BatchExecutionOptions(
+                run_parallel=True,
+                max_parallel_workers=1,
+                heartbeat_seconds=0.05,
+            ),
             progress_fn=_broken_progress,
             error_log_fn=lambda idx, exc: captured.append((idx, str(exc))),
-            max_parallel_workers=1,
-            heartbeat_seconds=0.05,
         )
 
         assert failures == [0]
@@ -1989,14 +1994,14 @@ class TestCmdReviewPrepare:
 
     def test_execute_batches_does_not_mask_internal_progress_typeerror(self):
 
-        def _broken_typeerror_progress(batch_index, event, code, **details):
-            _ = batch_index, event, code, details
+        def _broken_typeerror_progress(event):
+            _ = event
             raise TypeError("internal progress bug")
 
         captured: list[tuple[int, str]] = []
         failures = runner_helpers_mod.execute_batches(
             tasks={0: lambda: 0},
-            run_parallel=False,
+            options=runner_helpers_mod.BatchExecutionOptions(run_parallel=False),
             progress_fn=_broken_typeerror_progress,
             error_log_fn=lambda idx, exc: captured.append((idx, str(exc))),
         )
@@ -2016,12 +2021,14 @@ class TestCmdReviewPrepare:
 
         failures = runner_helpers_mod.execute_batches(
             tasks={0: _slow_success},
-            run_parallel=True,
+            options=runner_helpers_mod.BatchExecutionOptions(
+                run_parallel=True,
+                max_parallel_workers=1,
+                heartbeat_seconds=0.02,
+            ),
             progress_fn=_heartbeat_only_failure,
             # Intentionally fragile callback: idx=-1 used by heartbeat is unsupported.
             error_log_fn=lambda idx, exc: {0: []}[idx].append(str(exc)),
-            max_parallel_workers=1,
-            heartbeat_seconds=0.02,
         )
 
         assert failures == []
@@ -2111,11 +2118,11 @@ class TestCmdReviewPrepare:
         logs_dir = tmp_path / "logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
         (logs_dir / "batch-1.log").write_text(
-            (
+            
                 "$ codex ...\nSTDERR:\n"
                 "You\u2019ve hit your usage limit. To get more access now, "
                 "send a request to your admin or try again at 8:49 PM.\n"
-            )
+            
         )
 
         runner_helpers_mod.print_failures(

@@ -5,8 +5,8 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from desloppify.core.text.text_api import get_project_root
 from desloppify.core.discovery_api import find_py_files
+from desloppify.core.text.text_api import get_project_root
 
 
 def _extract_top_level_functions(tree: ast.Module) -> list[ast.FunctionDef | ast.AsyncFunctionDef]:

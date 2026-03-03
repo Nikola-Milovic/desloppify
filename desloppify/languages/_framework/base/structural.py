@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from desloppify.core.text.text_api import get_project_root
 from desloppify.core.discovery_api import resolve_path
 from desloppify.core.file_paths import count_lines
+from desloppify.core.text.text_api import get_project_root
 from desloppify.state import Issue, make_issue
 
 

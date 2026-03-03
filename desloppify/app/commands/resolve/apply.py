@@ -6,9 +6,10 @@ import argparse
 import logging
 
 from desloppify import state as state_mod
-from desloppify.app.commands.helpers.query import write_query_best_effort as _write_query_best_effort
+from desloppify.app.commands.helpers.query import (
+    write_query_best_effort as _write_query_best_effort,
+)
 from desloppify.core.exception_sets import PLAN_LOAD_EXCEPTIONS
-from desloppify.core.output_contract import OutputResult
 from desloppify.engine.plan import has_living_plan, load_plan
 
 from .selection import ResolveQueryContext
@@ -62,18 +63,9 @@ def _resolve_all_patterns(
         all_resolved.extend(resolved)
     return all_resolved
 
-
-def write_query(payload: dict) -> OutputResult:
-    """Backward-compatible resolve query writer seam."""
-    return _write_query_best_effort(
-        payload,
-        context="resolve query payload update",
-    )
-
-
 def _write_resolve_query_entry(context: ResolveQueryContext) -> None:
     scores = state_mod.score_snapshot(context.state)
-    write_query(
+    _write_query_best_effort(
         {
             "command": "resolve",
             "patterns": context.patterns,
@@ -91,5 +83,6 @@ def _write_resolve_query_entry(context: ResolveQueryContext) -> None:
             "prev_verified_strict_score": context.prev_verified,
             "attestation": context.attestation,
             "narrative": context.narrative,
-        }
+        },
+        context="resolve query payload update",
     )

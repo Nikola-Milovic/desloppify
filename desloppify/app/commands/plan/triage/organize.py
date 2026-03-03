@@ -5,9 +5,16 @@ from __future__ import annotations
 import argparse
 
 from desloppify.app.commands.helpers.runtime import command_runtime
-from desloppify.app.commands.plan.triage import shared as triage_shared_mod
 from desloppify.core.output import colorize
 from desloppify.engine.plan import load_plan
+
+from .stage_helpers import (
+    _manual_clusters_with_issues,
+    _require_triage_pending,
+    _unenriched_clusters,
+    _validate_stage_report,
+)
+from .stage_persistence import record_triage_stage
 
 
 def cmd_stage_organize(args: argparse.Namespace) -> None:
@@ -15,7 +22,7 @@ def cmd_stage_organize(args: argparse.Namespace) -> None:
     plan = load_plan()
     state = command_runtime(args).state
 
-    if not triage_shared_mod._require_triage_pending(plan, action="organize"):
+    if not _require_triage_pending(plan, action="organize"):
         return
 
     meta = plan.get("epic_triage_meta", {})
@@ -29,7 +36,7 @@ def cmd_stage_organize(args: argparse.Namespace) -> None:
             print(colorize('  Run: desloppify plan triage --stage reflect --report "..."', "dim"))
         return
 
-    manual_clusters = triage_shared_mod._manual_clusters_with_issues(plan)
+    manual_clusters = _manual_clusters_with_issues(plan)
     if not manual_clusters:
         any_clusters = [
             name for name, cluster in plan.get("clusters", {}).items() if cluster.get("issue_ids")
@@ -43,7 +50,7 @@ def cmd_stage_organize(args: argparse.Namespace) -> None:
         print(colorize("    desloppify plan cluster add <name> <issue-patterns>", "dim"))
         return
 
-    gaps = triage_shared_mod._unenriched_clusters(plan)
+    gaps = _unenriched_clusters(plan)
     if gaps:
         print(colorize(f"  Cannot organize: {len(gaps)} cluster(s) need enrichment.", "red"))
         for name, missing in gaps:
@@ -60,7 +67,7 @@ def cmd_stage_organize(args: argparse.Namespace) -> None:
         return
 
     report: str | None = getattr(args, "report", None)
-    validated_report = triage_shared_mod._validate_stage_report(
+    validated_report = _validate_stage_report(
         report,
         stage="organize",
         min_chars=100,
@@ -78,7 +85,7 @@ def cmd_stage_organize(args: argparse.Namespace) -> None:
     if validated_report is None:
         return
 
-    triage_shared_mod.record_triage_stage(
+    record_triage_stage(
         plan,
         state,
         stage="organize",

@@ -11,6 +11,17 @@ from desloppify.app.commands.helpers.runtime_options import (
     print_lang_runtime_options_error,
 )
 from desloppify.app.commands.helpers.score import target_strict_score_from_config
+from desloppify.app.commands.scan import scan_preflight as scan_preflight_mod
+from desloppify.app.commands.scan.plan_nudge import (
+    print_plan_workflow_nudge as _print_plan_workflow_nudge_impl,
+)
+from desloppify.app.commands.scan.reporting.agent_context import (
+    auto_update_skill,
+    print_llm_summary,
+)
+from desloppify.app.commands.scan.reporting.integrity_report import (
+    show_post_scan_analysis,
+)
 from desloppify.app.commands.scan.scan_artifacts import (
     build_scan_query_payload,
     emit_scorecard_badge,
@@ -19,32 +30,21 @@ from desloppify.app.commands.scan.scan_helpers import (  # noqa: F401 (re-export
     _audit_excluded_dirs,
     _collect_codebase_metrics,
     _effective_include_slow,
-    format_delta,
     _resolve_scan_profile,
     _warn_explicit_lang_with_no_files,
+    format_delta,
 )
-from desloppify.app.commands.scan.reporting.integrity_report import (
-    show_post_scan_analysis,
-)
-from desloppify.app.commands.scan.plan_nudge import (
-    print_plan_workflow_nudge as _print_plan_workflow_nudge_impl,
-)
-from desloppify.app.commands.scan import scan_preflight as scan_preflight_mod
+from desloppify.app.commands.scan.scan_orchestrator import ScanOrchestrator
 from desloppify.app.commands.scan.scan_reporting_dimensions import (
     show_dimension_deltas,
     show_score_model_breakdown,
     show_scorecard_subjective_measures,
-)
-from desloppify.app.commands.scan.reporting.agent_context import (
-    print_llm_summary,
-    auto_update_skill,
 )
 from desloppify.app.commands.scan.scan_reporting_summary import (  # noqa: F401
     show_diff_summary,
     show_score_delta,
     show_strict_target_progress,
 )
-from desloppify.app.commands.scan.scan_orchestrator import ScanOrchestrator
 from desloppify.app.commands.scan.scan_workflow import (
     ScanStateContractError,
     merge_scan_results,
@@ -53,8 +53,8 @@ from desloppify.app.commands.scan.scan_workflow import (
     resolve_noise_snapshot,
     run_scan_generation,
 )
-from desloppify.core.search.search_query import write_query
 from desloppify.core.output import colorize
+from desloppify.core.search.search_query import write_query
 
 
 def _print_scan_header(lang_label: str) -> None:
@@ -207,11 +207,7 @@ def cmd_scan(args: argparse.Namespace) -> None:
         query_file=query_file_path(),
     )
 
-    badge_emit = emit_scorecard_badge(args, runtime.config, runtime.state)
-    if isinstance(badge_emit, tuple):
-        badge_path, _badge_result = badge_emit
-    else:  # Backward-compatible shape for monkeypatched tests.
-        badge_path = badge_emit
+    badge_path, _badge_result = emit_scorecard_badge(args, runtime.config, runtime.state)
     print_llm_summary(runtime.state, badge_path, narrative, merge.diff)
     auto_update_skill()
 

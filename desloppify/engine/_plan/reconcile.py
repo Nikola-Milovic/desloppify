@@ -8,7 +8,12 @@ from datetime import UTC, datetime, timedelta
 from desloppify.engine._plan.annotations import get_issue_note
 from desloppify.engine._plan.operations import append_log_entry, resurface_stale_skips
 from desloppify.engine._plan.promoted_ids import prune_promoted_ids
-from desloppify.engine._plan.schema import EPIC_PREFIX, PlanModel, SupersededEntry, ensure_plan_defaults
+from desloppify.engine._plan.schema import (
+    EPIC_PREFIX,
+    PlanModel,
+    SupersededEntry,
+    ensure_plan_defaults,
+)
 from desloppify.engine._plan.stale_dimensions import (
     SYNTHETIC_PREFIXES,
     compute_new_issue_ids,

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from typing import Any
 
 from desloppify import state as state_mod
+from desloppify.core.output import colorize
+from desloppify.engine._state.schema import StateModel
 from desloppify.engine.plan import has_living_plan, load_plan
 from desloppify.intelligence import narrative as narrative_mod
-from desloppify.core.output import colorize
 
 
 def _coerce_coverage_confidence(value: object, *, default: float = 1.0) -> float:

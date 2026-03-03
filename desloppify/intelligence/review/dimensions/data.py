@@ -7,10 +7,10 @@ import json
 from functools import lru_cache
 from pathlib import Path
 
-from desloppify.intelligence.review.feedback_contract import ensure_prompt_contract
 from desloppify.intelligence.review.dimensions.validation import (
     parse_dimensions_payload,
 )
+from desloppify.intelligence.review.feedback_contract import ensure_prompt_contract
 
 _LANG_DIR = Path(__file__).resolve().parents[3] / "languages"
 _LANG_DATA_SUBDIR = "review_data"

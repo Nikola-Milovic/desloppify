@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from typing import Any, NotRequired, Required, TypedDict
 
-from desloppify.core.text.text_api import get_project_root
 from desloppify.core.enums import Status, canonical_issue_status, issue_status_tokens
+from desloppify.core.text.text_api import get_project_root
 from desloppify.engine._state.schema_scores import (
     json_default,
 )
@@ -14,7 +14,6 @@ from desloppify.languages._framework.base.types import ScanCoverageRecord
 
 __all__ = [
     "ConcernDismissal",
-    "IssueStatus",
     "Issue",
     "TierStats",
     "StateStats",
@@ -35,7 +34,6 @@ __all__ = [
     "migrate_state_keys",
 ]
 
-IssueStatus = Status  # Backward-compat alias for migrated status typing.
 _ALLOWED_ISSUE_STATUSES: set[str] = {
     *issue_status_tokens(),
 }
@@ -51,7 +49,7 @@ class Issue(TypedDict):
     confidence: str
     summary: str
     detail: dict[str, Any]
-    status: IssueStatus
+    status: Status
     note: str | None
     first_seen: str
     last_seen: str

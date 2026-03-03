@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import inspect
 import json
 import logging
 import subprocess  # nosec
@@ -11,14 +10,15 @@ import time
 from collections.abc import Callable
 from concurrent.futures import (
     ThreadPoolExecutor,
-    TimeoutError as FuturesTimeoutError,
     as_completed,
+)
+from concurrent.futures import (
+    TimeoutError as FuturesTimeoutError,
 )
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from desloppify.core.coercions_api import option_value
 from desloppify.core.fallbacks import log_best_effort_failure
 from desloppify.core.path_io_api import safe_write_text
 
@@ -89,51 +89,25 @@ class BatchResult:
 
 def _coerce_batch_execution_options(
     options: BatchExecutionOptions | None = None,
-    **legacy_options: object,
 ) -> BatchExecutionOptions:
-    """Resolve execution options from dataclass and legacy keyword args."""
+    """Resolve execution options from the typed dataclass contract."""
     base = options or BatchExecutionOptions(run_parallel=False)
-
-    run_parallel = bool(
-        option_value(
-            options=options,
-            legacy_options=legacy_options,
-            name="run_parallel",
-            default=base.run_parallel,
-        )
-    )
-    max_parallel_raw = option_value(
-        options=options,
-        legacy_options=legacy_options,
-        name="max_parallel_workers",
-        default=base.max_parallel_workers,
-    )
     max_parallel_workers = (
-        int(max_parallel_raw)
-        if isinstance(max_parallel_raw, int) and not isinstance(max_parallel_raw, bool)
+        int(base.max_parallel_workers)
+        if isinstance(base.max_parallel_workers, int)
+        and not isinstance(base.max_parallel_workers, bool)
         else None
-    )
-    heartbeat_raw = option_value(
-        options=options,
-        legacy_options=legacy_options,
-        name="heartbeat_seconds",
-        default=base.heartbeat_seconds,
     )
     heartbeat_seconds = (
-        float(heartbeat_raw)
-        if isinstance(heartbeat_raw, int | float) and not isinstance(heartbeat_raw, bool)
+        float(base.heartbeat_seconds)
+        if isinstance(base.heartbeat_seconds, int | float)
+        and not isinstance(base.heartbeat_seconds, bool)
         else None
     )
-    clock_fn_raw = option_value(
-        options=options,
-        legacy_options=legacy_options,
-        name="clock_fn",
-        default=base.clock_fn,
-    )
-    clock_fn = clock_fn_raw if callable(clock_fn_raw) else time.monotonic
+    clock_fn = base.clock_fn if callable(base.clock_fn) else time.monotonic
 
     return BatchExecutionOptions(
-        run_parallel=run_parallel,
+        run_parallel=bool(base.run_parallel),
         max_parallel_workers=max_parallel_workers,
         heartbeat_seconds=heartbeat_seconds,
         clock_fn=clock_fn,
@@ -145,7 +119,7 @@ def _progress_contract(
     *,
     contract_cache: dict[int, str] | None = None,
 ) -> str:
-    """Resolve callback contract once: ``event`` or ``legacy``."""
+    """Resolve callback contract once: event callback or none."""
     if not callable(progress_fn):
         return "none"
     fn_id = id(progress_fn)
@@ -153,22 +127,7 @@ def _progress_contract(
     cached = cache.get(fn_id)
     if cached:
         return cached
-    try:
-        signature = inspect.signature(progress_fn)
-    except (TypeError, ValueError):
-        contract = "event"
-    else:
-        required_positional = 0
-        for param in signature.parameters.values():
-            if param.kind not in (
-                inspect.Parameter.POSITIONAL_ONLY,
-                inspect.Parameter.POSITIONAL_OR_KEYWORD,
-            ):
-                continue
-            if param.default is inspect.Signature.empty:
-                required_positional += 1
-        # Legacy callbacks require at least (batch_index, event).
-        contract = "legacy" if required_positional >= 2 else "event"
+    contract = "event"
     cache[fn_id] = contract
     return contract
 
@@ -194,10 +153,7 @@ def _emit_progress(
         details=payload,
     )
     try:
-        if contract == "legacy":
-            progress_fn(batch_index, event, code, **payload)
-        else:
-            progress_fn(progress_event)
+        progress_fn(progress_event)
         return None
     except _RUNNER_CALLBACK_EXCEPTIONS as exc:
         return RuntimeError(
@@ -231,14 +187,13 @@ def execute_batches(
     options: BatchExecutionOptions | None = None,
     progress_fn=None,
     error_log_fn=None,
-    **legacy_options: object,
 ) -> list[int]:
     """Run indexed tasks and return failed index list.
 
     Each value in *tasks* is a zero-arg callable returning an int exit code.
     All domain knowledge (files, prompts, etc.) is pre-bound by the caller.
     """
-    resolved_options = _coerce_batch_execution_options(options, **legacy_options)
+    resolved_options = _coerce_batch_execution_options(options)
     contract_cache: dict[int, str] = {}
     indexes = sorted(tasks)
     if resolved_options.run_parallel:

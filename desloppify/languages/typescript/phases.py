@@ -8,6 +8,9 @@ import re
 from collections import defaultdict
 from pathlib import Path
 
+from desloppify.core.discovery_api import rel
+from desloppify.core.output import log
+from desloppify.core.paths_api import get_src_path
 from desloppify.engine.detectors import complexity as complexity_detector_mod
 from desloppify.engine.detectors import coupling as coupling_detector_mod
 from desloppify.engine.detectors import flat_dirs as flat_dirs_detector_mod
@@ -19,7 +22,6 @@ from desloppify.engine.detectors import orphaned as orphaned_detector_mod
 from desloppify.engine.detectors import single_use as single_use_detector_mod
 from desloppify.engine.detectors.base import ComplexitySignal, GodRule
 from desloppify.engine.policy.zones import adjust_potential, filter_entries
-from desloppify.core.discovery_api import rel
 from desloppify.languages._framework.base.structural import (
     add_structural_signal,
     merge_structural_signals,
@@ -51,8 +53,6 @@ from desloppify.languages.typescript.extractors_components import (
     extract_ts_components,
 )
 from desloppify.state import Issue, make_issue
-from desloppify.core.output import log
-from desloppify.core.paths_api import get_src_path
 
 # ── Helper computations for complexity signals ─────────────
 
@@ -668,13 +668,3 @@ def phase_smells(path: Path, lang: LangRun) -> tuple[list[Issue], dict[str, int]
         "smells": adjust_potential(lang.zone_map, total_smell_files),
         "react": total_effects,
     }
-
-
-# Backward-compatible aliases for internal callers/tests.
-_phase_logs = phase_logs
-_phase_unused = phase_unused
-_phase_exports = phase_exports
-_phase_deprecated = phase_deprecated
-_phase_structural = phase_structural
-_phase_coupling = phase_coupling
-_phase_smells = phase_smells

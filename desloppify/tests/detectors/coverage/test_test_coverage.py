@@ -8,16 +8,16 @@ import pytest
 
 import desloppify.languages.typescript.test_coverage as ts_cov
 from desloppify.engine.detectors.coverage.mapping import (
-    analyze_test_quality,
-    get_test_files_for_prod,
-    import_based_mapping,
     _infer_lang_name,
     _map_test_to_source,
-    naming_based_mapping,
     _parse_test_imports,
     _resolve_barrel_reexports,
     _resolve_import,
     _strip_test_markers,
+    analyze_test_quality,
+    get_test_files_for_prod,
+    import_based_mapping,
+    naming_based_mapping,
     transitive_coverage,
 )
 from desloppify.engine.detectors.test_coverage import detect_test_coverage

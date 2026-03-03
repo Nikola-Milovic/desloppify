@@ -7,11 +7,6 @@ import textwrap
 
 from desloppify.languages.typescript.fixers import __all__
 from desloppify.languages.typescript.fixers.fixer_io import apply_fixer
-from desloppify.languages.typescript.fixers.syntax_scan import (
-    collapse_blank_lines,
-    extract_body_between_braces,
-    find_balanced_end,
-)
 from desloppify.languages.typescript.fixers.if_chain import (
     _find_if_chain_end,
     fix_empty_if_chain,
@@ -21,6 +16,11 @@ from desloppify.languages.typescript.fixers.logs import fix_debug_logs
 from desloppify.languages.typescript.fixers.params import (
     _is_param_context,
     fix_unused_params,
+)
+from desloppify.languages.typescript.fixers.syntax_scan import (
+    collapse_blank_lines,
+    extract_body_between_braces,
+    find_balanced_end,
 )
 from desloppify.languages.typescript.fixers.useeffect import fix_dead_useeffect
 from desloppify.languages.typescript.fixers.vars import fix_unused_vars

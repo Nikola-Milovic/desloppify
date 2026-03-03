@@ -9,10 +9,6 @@ from desloppify.core.runtime_state import current_runtime_context
 
 _DEFAULT_PROJECT_ROOT = Path(os.environ.get("DESLOPPIFY_ROOT", Path.cwd())).resolve()
 
-# Legacy module-level constant — kept for backwards compat, but prefer
-# get_project_root() which respects RuntimeContext overrides.
-PROJECT_ROOT = _DEFAULT_PROJECT_ROOT
-
 
 def get_project_root() -> Path:
     """Return the active project root, checking RuntimeContext first.

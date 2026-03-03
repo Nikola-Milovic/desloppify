@@ -4,14 +4,12 @@ from pathlib import Path
 
 import pytest
 
-import desloppify.languages.typescript.detectors.smells as smells_detector_mod
 from desloppify.languages.typescript.detectors.smells import detect_smells
 
 
 @pytest.fixture(autouse=True)
-def _root(tmp_path, set_project_root, monkeypatch):
+def _root(tmp_path, set_project_root):
     """Point PROJECT_ROOT at the tmp directory via RuntimeContext."""
-    monkeypatch.setattr(smells_detector_mod, "PROJECT_ROOT", tmp_path)
 
 
 def _write(tmp_path: Path, name: str, content: str) -> Path:

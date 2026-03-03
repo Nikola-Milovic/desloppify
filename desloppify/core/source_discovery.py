@@ -6,7 +6,6 @@ import os
 from contextlib import contextmanager
 from pathlib import Path
 
-from desloppify.core.text.text_api import get_project_root
 from desloppify.core.file_paths import matches_exclusion
 from desloppify.core.file_paths import (
     normalize_path_separators as _normalize_path_separators,
@@ -15,6 +14,7 @@ from desloppify.core.file_paths import (
     safe_relpath as _safe_relpath,
 )
 from desloppify.core.runtime_state import current_runtime_context
+from desloppify.core.text.text_api import get_project_root
 
 # Directories that are never useful to scan — always pruned during traversal.
 DEFAULT_EXCLUSIONS = frozenset(

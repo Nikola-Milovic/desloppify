@@ -7,7 +7,6 @@ import pytest
 from desloppify.engine._plan.operations import merge_clusters
 from desloppify.engine._plan.schema import empty_plan, ensure_plan_defaults
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

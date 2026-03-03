@@ -22,16 +22,15 @@ from desloppify.languages._framework.generic import (
     parse_json,
     parse_rubocop,
 )
+from desloppify.languages._framework.generic_parts.parsers import ToolParserError
 from desloppify.languages._framework.generic_parts.tool_factories import (
     make_generic_fixer,
 )
-from desloppify.languages._framework.generic_parts.parsers import ToolParserError
+from desloppify.languages._framework.generic_parts.tool_runner import (
+    run_tool_result,
+)
 from desloppify.languages._framework.generic_parts.tool_spec import (
     normalize_tool_specs,
-)
-from desloppify.languages._framework.generic_parts.tool_runner import (
-    run_tool,
-    run_tool_result,
 )
 
 
@@ -289,7 +288,7 @@ class TestMakeToolPhase:
         assert issues == []
         assert signals == {}
 
-    def test_run_tool_parser_exception_returns_empty(self, tmp_path):
+    def test_run_tool_parser_exception_returns_error(self, tmp_path):
         mock_result = subprocess.CompletedProcess(
             args="fake",
             returncode=1,
@@ -300,13 +299,15 @@ class TestMakeToolPhase:
         def _raising_parser(_output: str, _scan_path: Path) -> list[dict]:
             raise ValueError("bad parser row")
 
-        entries = run_tool(
+        result = run_tool_result(
             "fake",
             tmp_path,
             _raising_parser,
             run_subprocess=lambda *_a, **_k: mock_result,
         )
-        assert entries == []
+        assert result.status == "error"
+        assert result.error_kind == "parser_exception"
+        assert result.entries == []
 
     def test_run_tool_result_distinguishes_empty_vs_error(self, tmp_path):
         clean = subprocess.CompletedProcess(args="fake", returncode=0, stdout="", stderr="")

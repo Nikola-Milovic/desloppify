@@ -7,7 +7,6 @@ import desloppify.app.commands.show.scope as show_scope_mod
 import desloppify.state as state_mod
 from desloppify.app.commands.helpers.runtime import CommandRuntime
 from desloppify.app.commands.show.cmd import cmd_show
-from desloppify.app.commands.show.scope import resolve_entity
 from desloppify.app.commands.show.formatting import (
     DETAIL_DISPLAY,
     format_detail,
@@ -15,6 +14,7 @@ from desloppify.app.commands.show.formatting import (
 )
 from desloppify.app.commands.show.payload import ShowPayloadMeta, build_show_payload
 from desloppify.app.commands.show.render import show_subjective_followup
+from desloppify.app.commands.show.scope import resolve_entity
 
 # ---------------------------------------------------------------------------
 # format_detail

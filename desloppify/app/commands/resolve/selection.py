@@ -9,8 +9,8 @@ from dataclasses import dataclass
 
 from desloppify import state as state_mod
 from desloppify.core.exception_sets import CommandError
-from desloppify.engine._work_queue.core import ATTEST_EXAMPLE
 from desloppify.core.output import colorize
+from desloppify.engine._work_queue.core import ATTEST_EXAMPLE
 
 _REQUIRED_ATTESTATION_PHRASES = ("i have actually", "not gaming")
 _ATTESTATION_KEYWORD_HINT = ("I have actually", "not gaming")

@@ -4,6 +4,10 @@ from __future__ import annotations
 
 import pytest
 
+from desloppify.engine._scoring.detection import (
+    detector_pass_rate,
+    merge_potentials,
+)
 from desloppify.engine._scoring.policy.core import (
     CONFIDENCE_WEIGHTS,
     DIMENSIONS,
@@ -12,7 +16,6 @@ from desloppify.engine._scoring.policy.core import (
     TIER_WEIGHTS,
     Dimension,
 )
-from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
 from desloppify.engine._scoring.results.core import (
     compute_dimension_scores,
     compute_health_breakdown,
@@ -21,10 +24,8 @@ from desloppify.engine._scoring.results.core import (
     compute_score_impact,
     get_dimension_for_detector,
 )
-from desloppify.engine._scoring.detection import (
-    detector_pass_rate,
-    merge_potentials,
-)
+from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -965,6 +966,7 @@ class TestSubjectiveScoring:
         # Verify scoring.py references load_dimensions_for_lang, not
         # HOLISTIC_DIMENSIONS_BY_LANG (regression guard)
         import inspect
+
         import desloppify.engine._state.scoring as state_scoring_mod
 
         src = inspect.getsource(state_scoring_mod._update_objective_health)

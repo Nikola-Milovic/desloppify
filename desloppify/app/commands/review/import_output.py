@@ -2,18 +2,19 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 import shlex
 import sys
 from typing import Any
 
-from .import_policy import (
-    ATTESTED_EXTERNAL_ATTEST_EXAMPLE,
-    assessment_mode_label,
-)
+from desloppify.engine._state.schema import StateModel
 from desloppify.intelligence.review.importing.contracts import (
     AssessmentImportPolicy,
     AssessmentImportPolicyModel,
+)
+
+from .import_policy import (
+    ATTESTED_EXTERNAL_ATTEST_EXAMPLE,
+    assessment_mode_label,
 )
 
 

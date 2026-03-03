@@ -3,14 +3,14 @@
 from __future__ import annotations
 
 from desloppify.engine._plan.auto_cluster import (
-    auto_cluster_issues,
     _cluster_name_from_key,
     _grouping_key,
     _repair_ghost_cluster_refs,
+    auto_cluster_issues,
 )
 from desloppify.engine._plan.operations import (
-    create_cluster,
     add_to_cluster,
+    create_cluster,
     remove_from_cluster,
 )
 from desloppify.engine._plan.schema import empty_plan, ensure_plan_defaults
@@ -18,9 +18,10 @@ from desloppify.engine._work_queue.core import (
     QueueBuildOptions,
     build_work_queue,
 )
-from desloppify.engine._work_queue.plan_order import collapse_clusters as _collapse_clusters
+from desloppify.engine._work_queue.plan_order import (
+    collapse_clusters as _collapse_clusters,
+)
 from desloppify.engine._work_queue.ranking import item_sort_key
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -344,7 +345,7 @@ def test_create_cluster_rejects_auto_prefix():
     ensure_plan_defaults(plan)
     try:
         create_cluster(plan, "auto/my-cluster")
-        assert False, "Should have raised ValueError"
+        raise AssertionError("Should have raised ValueError")
     except ValueError as e:
         assert "auto/" in str(e)
 

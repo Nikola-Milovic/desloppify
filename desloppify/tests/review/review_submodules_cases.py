@@ -16,18 +16,16 @@ import pytest
 from desloppify.intelligence.review._prepare.remediation_engine import (
     render_empty_remediation_plan as _empty_plan,
 )
+from desloppify.intelligence.review.importing.assessments import store_assessments
 from desloppify.intelligence.review.importing.holistic import (
     import_holistic_issues,
     update_holistic_review_cache,
 )
+from desloppify.intelligence.review.importing.payload import extract_reviewed_files
 from desloppify.intelligence.review.importing.per_file import (
     import_review_issues,
     parse_per_file_import_payload,
     update_review_cache,
-)
-from desloppify.intelligence.review.importing.helpers import (
-    extract_reviewed_files,
-    store_assessments,
 )
 from desloppify.intelligence.review.prepare import (
     HolisticReviewPrepareOptions,

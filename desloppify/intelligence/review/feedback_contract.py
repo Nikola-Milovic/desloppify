@@ -13,9 +13,6 @@ DEFAULT_MAX_BATCH_ISSUES = 10
 _PROMPT_CONTRACT_HEADER = "GLOBAL REVIEW CONTRACT (applies to every dimension):"
 TRUSTED_IMPORT_COVERAGE_OVERRIDE_FLAG = "--allow-partial"
 
-# Backward compatibility alias for older imports.
-HIGH_SCORE_UNREPORTED_RISK_THRESHOLD = HIGH_SCORE_ISSUES_NOTE_THRESHOLD
-
 
 def max_batch_issues_for_dimension_count(dimension_count: int) -> int:
     """Return the normalized max issues budget for one batch payload."""
@@ -77,7 +74,6 @@ __all__ = [
     "DIMENSION_NOTE_ISSUES_KEY",
     "DEFAULT_MAX_BATCH_ISSUES",
     "HIGH_SCORE_ISSUES_NOTE_THRESHOLD",
-    "HIGH_SCORE_UNREPORTED_RISK_THRESHOLD",
     "LEGACY_DIMENSION_NOTE_ISSUES_KEY",
     "LEGACY_REVIEW_QUALITY_HIGH_SCORE_MISSING_ISSUES_KEY",
     "REVIEW_QUALITY_HIGH_SCORE_MISSING_ISSUES_KEY",

@@ -20,6 +20,7 @@ import pytest
 
 # ── Module 3: parser_groups_admin ─────────────────────────────────────
 import desloppify.app.cli_support.parser_groups_admin as parser_admin_mod
+import desloppify.app.cli_support.parser_groups as parser_groups_mod
 
 # ── Module 4: move_apply ──────────────────────────────────────────────
 import desloppify.app.commands.move.move_apply as move_apply_mod
@@ -563,7 +564,7 @@ class TestPlanAndVizParsers:
     def test_plan_parser(self):
         parser = argparse.ArgumentParser()
         sub = parser.add_subparsers(dest="command")
-        parser_admin_mod._add_plan_parser(sub)
+        parser_groups_mod._add_plan_parser(sub)
 
         args = parser.parse_args(["plan", "--output", "plan.md"])
         assert args.output == "plan.md"

@@ -14,12 +14,12 @@ try:
 except ImportError:
     setuptools = None  # type: ignore[assignment]
 
-from desloppify.core.text.text_api import get_project_root
-from desloppify.engine.policy.zones import FileZoneMap, Zone
 from desloppify.core.discovery_api import rel
+from desloppify.core.text.text_api import get_project_root
+from desloppify.core.tooling import compute_tool_hash
+from desloppify.engine.policy.zones import FileZoneMap, Zone
 from desloppify.languages import available_langs, get_lang
 from desloppify.languages._framework.structure_validation import validate_lang_structure
-from desloppify.core.tooling import compute_tool_hash
 
 
 def _full_langs() -> list[str]:

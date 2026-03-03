@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.filtering import matched_ignore_pattern
 from desloppify.core.discovery_api import matches_exclusion
+from desloppify.engine._state.filtering import matched_ignore_pattern
 
 
 def find_suspect_detectors(

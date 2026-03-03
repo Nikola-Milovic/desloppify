@@ -9,7 +9,7 @@ from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
-from desloppify.core.exception_sets import CommandError, PacketValidationError
+from desloppify.core.exception_sets import PacketValidationError
 
 _BLIND_PACKET_DROP_KEYS = {
     "narrative",

@@ -7,25 +7,26 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from desloppify.core.coercions_api import coerce_optional_str, option_value
-from .import_policy import (
-    ASSESSMENT_POLICY_KEY,
-    apply_assessment_import_policy,
-)
+from desloppify.core.coercions_api import coerce_optional_str
+from desloppify.intelligence.review.dimensions.data import load_dimensions_for_lang
 from desloppify.intelligence.review.feedback_contract import (
     ASSESSMENT_FEEDBACK_THRESHOLD,
     LOW_SCORE_ISSUE_THRESHOLD,
     score_requires_dimension_issue,
     score_requires_explicit_feedback,
 )
-from desloppify.intelligence.review.dimensions.data import load_dimensions_for_lang
 from desloppify.intelligence.review.importing.contracts import (
     AssessmentImportPolicyModel,
-    ReviewIssuePayload,
     ReviewImportPayload,
+    ReviewIssuePayload,
     validate_review_issue_payload,
 )
 from desloppify.state import coerce_assessment_score
+
+from .import_policy import (
+    ASSESSMENT_POLICY_KEY,
+    apply_assessment_import_policy,
+)
 
 
 class ImportPayloadLoadError(ValueError):
@@ -49,88 +50,21 @@ class ImportParseOptions:
     attested_external: bool = False
     manual_override: bool = False
     manual_attest: str | None = None
-    assessment_override: bool = False
-    assessment_note: str | None = None
 
 
 def _coerce_import_parse_options(
     options: ImportParseOptions | None = None,
-    **legacy_options: object,
 ) -> ImportParseOptions:
-    """Resolve import-parse options from dataclass and legacy keyword args."""
+    """Resolve import-parse options from the typed dataclass contract."""
+    base = options or ImportParseOptions()
     return ImportParseOptions(
-        lang_name=coerce_optional_str(
-            option_value(
-                options=options,
-                legacy_options=legacy_options,
-                name="lang_name",
-                default=None,
-            )
-        ),
-        allow_partial=bool(
-            option_value(
-                options=options,
-                legacy_options=legacy_options,
-                name="allow_partial",
-                default=False,
-            )
-        ),
-        trusted_assessment_source=bool(
-            option_value(
-                options=options,
-                legacy_options=legacy_options,
-                name="trusted_assessment_source",
-                default=False,
-            )
-        ),
-        trusted_assessment_label=coerce_optional_str(
-            option_value(
-                options=options,
-                legacy_options=legacy_options,
-                name="trusted_assessment_label",
-                default=None,
-            )
-        ),
-        attested_external=bool(
-            option_value(
-                options=options,
-                legacy_options=legacy_options,
-                name="attested_external",
-                default=False,
-            )
-        ),
-        manual_override=bool(
-            option_value(
-                options=options,
-                legacy_options=legacy_options,
-                name="manual_override",
-                default=False,
-            )
-        ),
-        manual_attest=coerce_optional_str(
-            option_value(
-                options=options,
-                legacy_options=legacy_options,
-                name="manual_attest",
-                default=None,
-            )
-        ),
-        assessment_override=bool(
-            option_value(
-                options=options,
-                legacy_options=legacy_options,
-                name="assessment_override",
-                default=False,
-            )
-        ),
-        assessment_note=coerce_optional_str(
-            option_value(
-                options=options,
-                legacy_options=legacy_options,
-                name="assessment_note",
-                default=None,
-            )
-        ),
+        lang_name=coerce_optional_str(base.lang_name),
+        allow_partial=bool(base.allow_partial),
+        trusted_assessment_source=bool(base.trusted_assessment_source),
+        trusted_assessment_label=coerce_optional_str(base.trusted_assessment_label),
+        attested_external=bool(base.attested_external),
+        manual_override=bool(base.manual_override),
+        manual_attest=coerce_optional_str(base.manual_attest),
     )
 
 
@@ -205,16 +139,10 @@ def resolve_override_context(
     *,
     manual_override: bool,
     manual_attest: str | None,
-    assessment_override: bool,
-    assessment_note: str | None,
 ) -> tuple[bool, str | None]:
-    """Support legacy assessment_* flags while preferring manual_* naming."""
-    override = bool(manual_override or assessment_override)
-    attest = (
-        manual_attest
-        if isinstance(manual_attest, str) and manual_attest.strip()
-        else assessment_note
-    )
+    """Normalize manual override settings into one explicit decision."""
+    override = bool(manual_override)
+    attest = manual_attest
     if isinstance(attest, str):
         attest = attest.strip()
     return override, attest
@@ -427,10 +355,9 @@ def _parse_and_validate_import(
     import_file: str,
     *,
     options: ImportParseOptions | None = None,
-    **legacy_options: object,
 ) -> tuple[ReviewImportPayload | None, list[str]]:
     """Parse and validate a review import file (pure function)."""
-    resolved_options = _coerce_import_parse_options(options, **legacy_options)
+    resolved_options = _coerce_import_parse_options(options)
 
     raw_payload, load_errors = _load_import_json(import_file)
     if load_errors:
@@ -450,8 +377,6 @@ def _parse_and_validate_import(
     override_enabled, override_attest = resolve_override_context(
         manual_override=resolved_options.manual_override,
         manual_attest=resolved_options.manual_attest,
-        assessment_override=resolved_options.assessment_override,
-        assessment_note=resolved_options.assessment_note,
     )
     conflict_errors = _validate_override_option_conflicts(
         resolved_options,
@@ -499,13 +424,12 @@ def load_import_issues_data(
     *,
     colorize_fn=None,
     options: ImportParseOptions | None = None,
-    **legacy_options: object,
 ) -> ReviewImportPayload:
     """Load and normalize review import payload to object format.
 
     Raises ``ImportPayloadLoadError`` when validation fails.
     """
-    resolved_options = _coerce_import_parse_options(options, **legacy_options)
+    resolved_options = _coerce_import_parse_options(options)
     data, errors = _parse_and_validate_import(
         import_file,
         options=resolved_options,

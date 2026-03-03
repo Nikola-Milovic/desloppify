@@ -26,7 +26,6 @@ from desloppify.engine._plan.stale_dimensions import (
 )
 from desloppify.engine._work_queue.synthetic import build_triage_stage_items
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -318,7 +317,6 @@ class TestIsTriageStale:
     def test_not_stale_when_only_resolutions(self):
         """Resolving triaged issues should not trigger staleness."""
         state = _state_with_review_issues("r1")
-        h = review_issue_snapshot_hash(state)
         # Add r2 to triaged_ids but r2 has been resolved (not in current state)
         plan = empty_plan()
         plan["epic_triage_meta"] = {
@@ -707,7 +705,7 @@ class TestOperationsCompat:
         plan = empty_plan()
         try:
             create_cluster(plan, "epic/test")
-            assert False, "Should have raised ValueError"
+            raise AssertionError("Should have raised ValueError")
         except ValueError as e:
             assert "epic/" in str(e)
 

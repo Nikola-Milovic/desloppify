@@ -6,8 +6,8 @@ import desloppify.app.commands.exclude as exclude_cmd_mod
 import desloppify.app.commands.plan._resolve as plan_resolve_mod
 import desloppify.app.commands.plan.cluster_handlers as plan_cluster_handlers_mod
 import desloppify.app.commands.plan.cmd as plan_cmd_mod
-import desloppify.app.commands.plan.reorder_handlers as plan_reorder_handlers_mod
 import desloppify.app.commands.plan.queue_render as plan_queue_render_mod
+import desloppify.app.commands.plan.reorder_handlers as plan_reorder_handlers_mod
 import desloppify.app.commands.resolve.apply as resolve_apply_mod
 import desloppify.app.commands.resolve.cmd as resolve_cmd_mod
 import desloppify.app.commands.resolve.selection as resolve_selection_mod

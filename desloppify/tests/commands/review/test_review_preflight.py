@@ -7,13 +7,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from desloppify.core.exception_sets import CommandError
 from desloppify.app.commands.review.helpers import parse_dimensions
 from desloppify.app.commands.review.preflight import (
     _scored_dimensions,
     clear_stale_subjective_entries,
     review_rerun_preflight,
 )
+from desloppify.core.exception_sets import CommandError
 
 
 def _make_args(**overrides) -> SimpleNamespace:

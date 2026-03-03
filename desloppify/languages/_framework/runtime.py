@@ -117,7 +117,6 @@ _FORWARDED_CONFIG_ATTRS = frozenset(
 
 
 # LangRuntimeContract is defined in base.types to avoid an import cycle.
-# Re-exported here for backward compatibility.
 
 
 @dataclass

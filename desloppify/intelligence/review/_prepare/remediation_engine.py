@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from desloppify.engine._state.schema import StateModel
 from pathlib import Path
 from typing import Any
 
@@ -11,8 +10,11 @@ from desloppify.engine._scoring.policy.core import (
     CONFIDENCE_WEIGHTS,
     HOLISTIC_MULTIPLIER,
 )
+from desloppify.engine._state.schema import StateModel
 from desloppify.state import (
     score_snapshot as state_score_snapshot,
+)
+from desloppify.state import (
     utc_now,
 )
 

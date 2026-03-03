@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import sys
 
-from desloppify.app.cli_support.parser_groups_plan import _add_plan_parser
 from desloppify.languages import get_lang
 
 

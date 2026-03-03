@@ -8,8 +8,8 @@ import desloppify.engine._scoring.detection as scoring_detection
 import desloppify.engine._scoring.policy.core as scoring_policy
 import desloppify.engine._scoring.results.core as scoring_results
 import desloppify.engine._scoring.subjective.core as scoring_subjective
-import desloppify.engine._state.merge_issues as merge_issues
 import desloppify.engine._state.merge_history as merge_history
+import desloppify.engine._state.merge_issues as merge_issues
 import desloppify.engine._work_queue.ranking as work_queue_ranking
 import desloppify.engine._work_queue.synthetic as work_queue_synthetic
 import desloppify.intelligence.review.prepare_batches as review_prepare_batches

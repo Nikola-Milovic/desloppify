@@ -416,7 +416,7 @@ def _run_via_subprocess(
     ctx: _AttemptContext,
     interval: float,
 ) -> _ExecutionResult:
-    """Execute batch via subprocess.run (compatibility path for tests)."""
+    """Execute batch via subprocess.run."""
     writer_thread = _start_live_writer(state, ctx, interval)
     try:
         result = deps.subprocess_run(

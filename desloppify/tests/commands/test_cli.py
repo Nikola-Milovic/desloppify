@@ -510,8 +510,8 @@ class TestDetectorNames:
 
     def test_runtime_detector_registration_invalidates_cached_detector_names(self):
         from desloppify.core.registry import (
-            DETECTORS,
             _DISPLAY_ORDER,
+            DETECTORS,
             DetectorMeta,
             register_detector,
         )
@@ -655,7 +655,7 @@ class TestResolveDefaultPath:
         (project_root / "server.ts").write_text("export {}")
         saved_state = {"scan_path": "."}  # scan was run with --path .
 
-        monkeypatch.setattr(cli_mod, "PROJECT_ROOT", project_root)
+        monkeypatch.setattr(cli_mod, "get_project_root", lambda: project_root)
         monkeypatch.setattr(
             "desloppify.app.commands.helpers.state.get_project_root",
             lambda: project_root,

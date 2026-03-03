@@ -4,10 +4,10 @@ from types import SimpleNamespace
 
 import desloppify.app.commands.scan.scan_workflow as scan_workflow_mod
 from desloppify.app.commands.scan.scan_workflow import (
-    ScanStateContractError,
     ScanRuntime,
-    _expire_provisional_manual_override_assessments,
+    ScanStateContractError,
     _augment_with_stale_wontfix_issues,
+    _expire_provisional_manual_override_assessments,
     _reset_subjective_assessments_for_scan_reset,
 )
 

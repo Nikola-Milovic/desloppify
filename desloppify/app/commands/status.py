@@ -6,9 +6,8 @@ import argparse
 import json
 import logging
 
-_logger = logging.getLogger(__name__)
-
 from desloppify import state as state_mod
+from desloppify.app.commands.helpers.guardrails import print_triage_guardrail_info
 from desloppify.app.commands.helpers.lang import resolve_lang
 from desloppify.app.commands.helpers.queue_progress import (
     format_queue_block,
@@ -19,13 +18,11 @@ from desloppify.app.commands.helpers.queue_progress import (
 from desloppify.app.commands.helpers.runtime import command_runtime
 from desloppify.app.commands.helpers.score import target_strict_score_from_config
 from desloppify.app.commands.helpers.state import require_completed_scan
-from desloppify.app.commands.helpers.guardrails import print_triage_guardrail_info
-from desloppify.core.exception_sets import PLAN_LOAD_EXCEPTIONS
-from desloppify.app.commands.scan import (
-    scan_reporting_dimensions as reporting_dimensions_mod,
-)
 from desloppify.app.commands.next_parts.render_nudges import (
     render_uncommitted_reminder,
+)
+from desloppify.app.commands.scan import (
+    scan_reporting_dimensions as reporting_dimensions_mod,
 )
 from desloppify.app.commands.status_parts.render import (
     print_open_scope_breakdown,
@@ -42,16 +39,19 @@ from desloppify.app.commands.status_parts.render import (
     show_tier_progress_table,
     write_status_query,
 )
-from desloppify.engine.plan import load_plan
-from desloppify.engine._work_queue.context import queue_context
-from desloppify.engine.planning.scorecard_projection import (
-    scorecard_dimensions_payload,
-)
+from desloppify.core.exception_sets import PLAN_LOAD_EXCEPTIONS
 from desloppify.core.output import colorize
 from desloppify.core.skill_docs import check_skill_version
 from desloppify.core.tooling import check_config_staleness
-from desloppify.intelligence.narrative import NarrativeContext, compute_narrative
 from desloppify.engine._scoring.results.core import compute_health_breakdown
+from desloppify.engine._work_queue.context import queue_context
+from desloppify.engine.plan import load_plan
+from desloppify.engine.planning.scorecard_projection import (
+    scorecard_dimensions_payload,
+)
+from desloppify.intelligence.narrative import NarrativeContext, compute_narrative
+
+_logger = logging.getLogger(__name__)
 
 
 def cmd_status(args: argparse.Namespace) -> None:

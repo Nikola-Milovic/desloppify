@@ -6,13 +6,13 @@ import logging
 
 from desloppify.core.exception_sets import PLAN_LOAD_EXCEPTIONS
 from desloppify.core.output import colorize
-from desloppify.engine.plan import has_living_plan, load_plan
-from desloppify.engine._work_queue.plan_order import collapse_clusters
+from desloppify.engine._work_queue.context import queue_context
 from desloppify.engine._work_queue.core import (
     QueueBuildOptions,
     build_work_queue,
 )
-from desloppify.engine._work_queue.context import queue_context
+from desloppify.engine._work_queue.plan_order import collapse_clusters
+from desloppify.engine.plan import has_living_plan, load_plan
 
 _logger = logging.getLogger(__name__)
 

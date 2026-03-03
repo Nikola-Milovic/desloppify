@@ -17,10 +17,12 @@ def test_execute_batches_parallel_emits_heartbeat_event() -> None:
 
     failures = runner_helpers_mod.execute_batches(
         tasks={0: lambda: (time.sleep(0.08), 0)[1]},
-        run_parallel=True,
+        options=runner_helpers_mod.BatchExecutionOptions(
+            run_parallel=True,
+            max_parallel_workers=1,
+            heartbeat_seconds=0.01,
+        ),
         progress_fn=_progress,
-        max_parallel_workers=1,
-        heartbeat_seconds=0.01,
     )
 
     assert failures == []
@@ -38,10 +40,12 @@ def test_execute_batches_parallel_task_exception_marks_failure() -> None:
 
     failures = runner_helpers_mod.execute_batches(
         tasks={0: _boom},
-        run_parallel=True,
+        options=runner_helpers_mod.BatchExecutionOptions(
+            run_parallel=True,
+            max_parallel_workers=1,
+            heartbeat_seconds=0.01,
+        ),
         error_log_fn=lambda idx, exc: captured.append((idx, str(exc))),
-        max_parallel_workers=1,
-        heartbeat_seconds=0.01,
     )
 
     assert failures == [0]

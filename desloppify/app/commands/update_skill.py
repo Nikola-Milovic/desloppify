@@ -6,6 +6,7 @@ import argparse
 import urllib.error
 import urllib.request
 
+from desloppify.core.output import colorize
 from desloppify.core.path_io_api import safe_write_text
 from desloppify.core.paths_api import get_project_root
 from desloppify.core.skill_docs import (
@@ -17,7 +18,6 @@ from desloppify.core.skill_docs import (
     SkillInstall,
     find_installed_skill,
 )
-from desloppify.core.output import colorize
 
 _RAW_BASE = (
     "https://raw.githubusercontent.com/peteromallet/desloppify/main/docs"

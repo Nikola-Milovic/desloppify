@@ -54,12 +54,12 @@ class TestAnnotatedAssignments:
             _parse("HANDLERS: list[str]\n")
         )
 
-    def test_optional_none_is_mutable_init(self):
-        """None passes _is_mutable_init, so even UPPER_CASE is included."""
+    def test_optional_none_upper_case_is_treated_as_constant_sentinel(self):
+        """UPPER_CASE Optional[dict] = None is exempt (constant-style sentinel)."""
         mutables = _collect_module_level_mutables(
             _parse("from typing import Optional\nCACHE: Optional[dict] = None\n")
         )
-        assert "CACHE" in mutables
+        assert "CACHE" not in mutables
 
     def test_optional_lower_case_included(self):
         mutables = _collect_module_level_mutables(

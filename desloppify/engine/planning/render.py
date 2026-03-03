@@ -6,23 +6,31 @@ from collections import defaultdict
 from datetime import date
 
 from desloppify.core.exception_sets import PLAN_LOAD_EXCEPTIONS
+from desloppify.core.output import LOC_COMPACT_THRESHOLD
 from desloppify.core.registry import dimension_action_type
-from desloppify.engine.planning.types import PlanState
+from desloppify.engine._scoring.policy.core import DIMENSIONS
+from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
 from desloppify.engine._work_queue.core import (
     QueueBuildOptions,
     build_work_queue,
 )
 from desloppify.engine.planning.render_sections import (
     addressed_section as _addressed_section,
+)
+from desloppify.engine.planning.render_sections import (
     plan_skipped_section as _plan_skipped_section,
+)
+from desloppify.engine.planning.render_sections import (
     plan_superseded_section as _plan_superseded_section,
+)
+from desloppify.engine.planning.render_sections import (
     plan_user_ordered_section as _plan_user_ordered_section,
+)
+from desloppify.engine.planning.render_sections import (
     summary_lines as _summary_lines,
 )
-from desloppify.engine._scoring.policy.core import DIMENSIONS
-from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
+from desloppify.engine.planning.types import PlanState
 from desloppify.state import score_snapshot
-from desloppify.core.output import LOC_COMPACT_THRESHOLD
 
 
 def _plan_header(state: PlanState, stats: dict) -> list[str]:

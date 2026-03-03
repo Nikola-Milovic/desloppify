@@ -5,9 +5,9 @@ from __future__ import annotations
 import os
 import re
 
+from desloppify.core.source_discovery import read_file_text as _read_file_text
 from desloppify.core.text.text_api import get_project_root
 from desloppify.search import grep_files_containing as _search_grep_files_containing
-from desloppify.core.source_discovery import read_file_text as _read_file_text
 
 
 def grep_files(

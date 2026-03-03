@@ -6,8 +6,8 @@ import pytest
 
 from desloppify.intelligence.review._context.models import (
     HolisticContext,
-    ReviewContextSchemaError,
     ReviewContext,
+    ReviewContextSchemaError,
 )
 
 
