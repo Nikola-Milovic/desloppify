@@ -11,13 +11,13 @@ import desloppify.app.commands.scan.helpers as scan_helpers_mod
 def test_profile_and_slow_resolution():
     lang = SimpleNamespace(default_scan_profile="objective")
 
-    assert scan_helpers_mod._resolve_scan_profile(None, lang) == "objective"
-    assert scan_helpers_mod._resolve_scan_profile("full", lang) == "full"
-    assert scan_helpers_mod._resolve_scan_profile("invalid", lang) == "objective"
+    assert scan_helpers_mod.resolve_scan_profile(None, lang) == "objective"
+    assert scan_helpers_mod.resolve_scan_profile("full", lang) == "full"
+    assert scan_helpers_mod.resolve_scan_profile("invalid", lang) == "objective"
 
-    assert scan_helpers_mod._effective_include_slow(True, "full") is True
-    assert scan_helpers_mod._effective_include_slow(True, "ci") is False
-    assert scan_helpers_mod._effective_include_slow(False, "full") is False
+    assert scan_helpers_mod.effective_include_slow(True, "full") is True
+    assert scan_helpers_mod.effective_include_slow(True, "ci") is False
+    assert scan_helpers_mod.effective_include_slow(False, "full") is False
 
 
 def test_formatting_helpers():
@@ -42,7 +42,7 @@ def test_warn_explicit_lang_with_no_files(monkeypatch, capsys, tmp_path):
 
     monkeypatch.setattr(lang_mod, "auto_detect_lang", lambda _root: "typescript")
 
-    scan_helpers_mod._warn_explicit_lang_with_no_files(
+    scan_helpers_mod.warn_explicit_lang_with_no_files(
         args,
         lang,
         Path(tmp_path),
@@ -68,7 +68,7 @@ def test_audit_excluded_dirs_reads_each_file_once(monkeypatch, tmp_path):
 
     monkeypatch.setattr(scan_helpers_mod, "read_file_text", _fake_read)
 
-    issues = scan_helpers_mod._audit_excluded_dirs(
+    issues = scan_helpers_mod.audit_excluded_dirs(
         ("used", "unused"),
         ["a.py", "b.py"],
         Path(tmp_path),
@@ -93,7 +93,7 @@ def test_audit_excluded_dirs_breaks_when_all_matched(monkeypatch, tmp_path):
 
     monkeypatch.setattr(scan_helpers_mod, "read_file_text", _fake_read)
 
-    issues = scan_helpers_mod._audit_excluded_dirs(
+    issues = scan_helpers_mod.audit_excluded_dirs(
         ("alpha", "beta"),
         ["a.py", "b.py", "c.py"],
         Path(tmp_path),

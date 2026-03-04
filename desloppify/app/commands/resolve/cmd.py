@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from typing import NamedTuple
 
 from desloppify import state as state_mod
 from desloppify.app.commands.helpers.guardrails import require_triage_current_or_exit
@@ -26,7 +27,7 @@ from desloppify.engine.plan import (
 import desloppify.intelligence.narrative.core as narrative_mod
 from desloppify.state import coerce_assessment_score
 
-from desloppify.app.commands.helpers.persist import _save_state_or_exit
+from desloppify.app.commands.helpers.persist import save_state_or_exit
 
 from .apply import _resolve_all_patterns, _write_resolve_query_entry
 from .queue_guard import _check_queue_order_guard
@@ -52,6 +53,37 @@ from .selection import (
 _logger = logging.getLogger(__name__)
 
 
+class ClusterContext(NamedTuple):
+    cluster_name: str | None
+    cluster_completed: bool
+    cluster_remaining: int
+
+
+def _capture_cluster_context(
+    plan: dict, resolved_ids: list[str],
+) -> ClusterContext:
+    """Determine cluster membership for resolved issues, pre-purge."""
+    clusters = plan.get("clusters") or {}
+    overrides = plan.get("overrides") or {}
+    # Find the cluster the first resolved issue belongs to
+    cluster_name: str | None = None
+    for rid in resolved_ids:
+        ov = overrides.get(rid)
+        if ov and ov.get("cluster"):
+            cluster_name = ov["cluster"]
+            break
+    if not cluster_name or cluster_name not in clusters:
+        return ClusterContext(cluster_name=None, cluster_completed=False, cluster_remaining=0)
+    # Count how many will remain after these ids are removed
+    current_ids = set(clusters[cluster_name].get("issue_ids") or [])
+    remaining = current_ids - set(resolved_ids)
+    return ClusterContext(
+        cluster_name=cluster_name,
+        cluster_completed=len(remaining) == 0,
+        cluster_remaining=len(remaining),
+    )
+
+
 def _validate_fixed_note(args: argparse.Namespace) -> bool:
     if args.status != "fixed":
         return True
@@ -67,12 +99,14 @@ def _update_living_plan_after_resolve(
     args: argparse.Namespace,
     all_resolved: list[str],
     attestation: str | None,
-) -> dict | None:
+) -> tuple[dict | None, ClusterContext]:
     plan = None
+    ctx = ClusterContext(cluster_name=None, cluster_completed=False, cluster_remaining=0)
     try:
         if not has_living_plan():
-            return None
+            return None, ctx
         plan = load_plan()
+        ctx = _capture_cluster_context(plan, all_resolved)
         purged = purge_ids(plan, all_resolved)
         append_log_entry(
             plan,
@@ -82,6 +116,14 @@ def _update_living_plan_after_resolve(
             note=getattr(args, "note", None),
             detail={"status": args.status, "attestation": attestation},
         )
+        if ctx.cluster_completed and ctx.cluster_name:
+            append_log_entry(
+                plan,
+                "cluster_done",
+                issue_ids=all_resolved,
+                cluster_name=ctx.cluster_name,
+                actor="user",
+            )
         # Commit tracking: add to uncommitted on fix, remove on reopen
         if args.status == "fixed":
             add_uncommitted_issues(plan, all_resolved)
@@ -93,7 +135,7 @@ def _update_living_plan_after_resolve(
     except PLAN_LOAD_EXCEPTIONS:
         _logger.debug("plan update failed after resolve", exc_info=True)
         print(colorize("  Warning: could not update living plan.", "yellow"), file=sys.stderr)
-    return plan
+    return plan, ctx
 
 
 def cmd_resolve(args: argparse.Namespace) -> None:
@@ -135,12 +177,15 @@ def cmd_resolve(args: argparse.Namespace) -> None:
         print(colorize(f"No {status_label} issues matching: {' '.join(args.patterns)}", "yellow"))
         return
 
-    _save_state_or_exit(state, state_file)
+    save_state_or_exit(state, state_file)
 
-    plan = _update_living_plan_after_resolve(
+    plan, cluster_ctx = _update_living_plan_after_resolve(
         args=args,
         all_resolved=all_resolved,
         attestation=attestation,
+    )
+    mid_cluster = (
+        cluster_ctx.cluster_name is not None and not cluster_ctx.cluster_completed
     )
 
     _print_resolve_summary(status=args.status, all_resolved=all_resolved)
@@ -150,7 +195,8 @@ def cmd_resolve(args: argparse.Namespace) -> None:
         resolved_count=len(all_resolved),
     )
     show_score_with_plan_context(state, prev)
-    render_commit_guidance(state, plan, all_resolved, args.status)
+    if not mid_cluster:
+        render_commit_guidance(state, plan, all_resolved, args.status)
     _print_subjective_reset_hint(
         args=args,
         state=state,
@@ -185,14 +231,28 @@ def cmd_resolve(args: argparse.Namespace) -> None:
     )
 
     if args.status == "fixed" and plan is not None and next_command == "desloppify next":
-        print_user_message(
-            "Hey — nice, on to the next one. Run `desloppify next`"
-            " to pick up your next task. If this doesn't seem like"
-            " the right thing to work on, run `desloppify plan show`"
-            " to see the full queue, or `desloppify plan --help`"
-            " for all plan tools. Please don't stop until you're"
-            " done — unless I've told you otherwise, just keep going."
-        )
+        if mid_cluster:
+            print_user_message(
+                f"Hey — task done, {cluster_ctx.cluster_remaining} left in"
+                f" cluster '{cluster_ctx.cluster_name}'. Run `desloppify next`"
+                " to pick up the next one. Keep going — don't stop until the"
+                " cluster is finished."
+            )
+        elif cluster_ctx.cluster_completed and cluster_ctx.cluster_name:
+            print_user_message(
+                f"Hey — nice, you just finished cluster '{cluster_ctx.cluster_name}'."
+                " Check the commit tracking above — this is a good time to"
+                " commit and push your work. Then run `desloppify next` to"
+                " pick up your next task."
+            )
+        else:
+            print_user_message(
+                "Hey — nice, on to the next one. Run `desloppify next`"
+                " to pick up your next task. Before moving on, glance at the"
+                " commit tracking above — if there's a decent chunk of"
+                " uncommitted work, consider whether now's a good time"
+                " to commit and push. Otherwise just keep going."
+            )
 
 
 __all__ = ["_check_queue_order_guard", "cmd_resolve"]

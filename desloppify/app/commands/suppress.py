@@ -11,8 +11,8 @@ from desloppify.app.commands.helpers.attestation import (
 )
 from desloppify.app.commands.helpers.lang import resolve_lang
 from desloppify.app.commands.helpers.persist import (
-    _save_config_or_exit,
-    _save_state_or_exit,
+    save_config_or_exit,
+    save_state_or_exit,
 )
 from desloppify.app.commands.helpers.query import write_query
 from desloppify.app.commands.helpers.queue_progress import show_score_with_plan_context
@@ -40,7 +40,7 @@ def cmd_suppress(args: argparse.Namespace) -> None:
     config = runtime.config
     config_mod.add_ignore_pattern(config, args.pattern)
     config["needs_rescan"] = True
-    _save_config_or_exit(config)
+    save_config_or_exit(config)
 
     removed = state_mod.remove_ignored_issues(state, args.pattern)
     state.setdefault("attestation_log", []).append(
@@ -52,7 +52,7 @@ def cmd_suppress(args: argparse.Namespace) -> None:
             "affected": removed,
         }
     )
-    _save_state_or_exit(state, state_file)
+    save_state_or_exit(state, state_file)
 
     print(colorize(f"Added suppress pattern: {args.pattern}", "green"))
     if removed:

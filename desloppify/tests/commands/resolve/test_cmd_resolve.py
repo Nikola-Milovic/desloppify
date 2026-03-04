@@ -377,7 +377,7 @@ class TestCmdSuppress:
         )
         monkeypatch.setattr(state_mod, "remove_ignored_issues", lambda state, pattern: 0)
         monkeypatch.setattr(
-            suppress_mod, "_save_config_or_exit", lambda _config: None
+            suppress_mod, "save_config_or_exit", lambda _config: None
         )
         monkeypatch.setattr(resolve_mod, "resolve_lang", lambda args: None)
 

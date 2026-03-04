@@ -77,12 +77,31 @@ def _normalize_runner_failure_text(log_text: str) -> str:
     return log_text.casefold().replace("’", "'").replace("`", "'")
 
 
+def _is_usage_limit_failure(text: str) -> bool:
+    """Return True when normalized failure text indicates account quota/usage limit.
+
+    Beyond the exact phrases in ``_USAGE_LIMIT_PHRASES``, this catches variant
+    wording that includes "usage limit" alongside retry/admin guidance.
+
+    Credit: Valeriy Pavlovich (@iqdoctor) — see PR #175.
+    """
+    if any(phrase in text for phrase in _USAGE_LIMIT_PHRASES):
+        return True
+    if "usage limit" not in text:
+        return False
+    return (
+        "try again at" in text
+        or "send a request to your admin" in text
+        or "more access now" in text
+    )
+
+
 def classify_runner_failure(log_text: str) -> str:
     """Classify batch failure type from log contents."""
     text = _normalize_runner_failure_text(log_text)
     if "timeout after" in text:
         return "timeout"
-    if any(phrase in text for phrase in _USAGE_LIMIT_PHRASES):
+    if _is_usage_limit_failure(text):
         return "usage_limit"
     if any(phrase in text for phrase in TRANSIENT_RUNNER_PHRASES):
         return "stream_disconnect"

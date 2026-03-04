@@ -25,11 +25,11 @@ from desloppify.app.commands.scan.coverage import (
     seed_runtime_coverage_warnings as _seed_runtime_coverage_warnings,
 )
 from desloppify.app.commands.scan.helpers import (
-    _audit_excluded_dirs,
-    _collect_codebase_metrics,
-    _effective_include_slow,
-    _resolve_scan_profile,
-    _warn_explicit_lang_with_no_files,
+    audit_excluded_dirs,
+    collect_codebase_metrics,
+    effective_include_slow,
+    resolve_scan_profile,
+    warn_explicit_lang_with_no_files,
 )
 from desloppify.app.commands.scan.plan_reconcile import (
     reconcile_plan_post_scan as _reconcile_plan_post_scan_impl,
@@ -290,8 +290,8 @@ def prepare_scan_runtime(args) -> ScanRuntime:
         )
 
     include_slow = not getattr(args, "skip_slow", False)
-    profile = _resolve_scan_profile(getattr(args, "profile", None), lang_config)
-    effective_include_slow = _effective_include_slow(include_slow, profile)
+    profile = resolve_scan_profile(getattr(args, "profile", None), lang_config)
+    include_slow_effective = effective_include_slow(include_slow, profile)
 
     lang = _configure_lang_runtime(args, config, state, lang_config)
     coverage_warnings = _seed_runtime_coverage_warnings(lang)
@@ -307,7 +307,7 @@ def prepare_scan_runtime(args) -> ScanRuntime:
         lang=lang,
         lang_label=f" ({lang.name})" if lang else "",
         profile=profile,
-        effective_include_slow=effective_include_slow,
+        effective_include_slow=include_slow_effective,
         zone_overrides=zone_overrides,
         reset_subjective_count=reset_subjective_count,
         expired_manual_override_count=expired_manual_override_count,
@@ -325,7 +325,7 @@ def _augment_with_stale_exclusion_issues(
         return issues
 
     scanned_files = runtime.lang.file_finder(runtime.path)
-    stale = _audit_excluded_dirs(
+    stale = audit_excluded_dirs(
         extra_exclusions, scanned_files, get_project_root()
     )
     if not stale:
@@ -374,8 +374,8 @@ def run_scan_generation(
         disable_parse_cache()
         disable_file_cache()
 
-    codebase_metrics = _collect_codebase_metrics(runtime.lang, runtime.path)
-    _warn_explicit_lang_with_no_files(
+    codebase_metrics = collect_codebase_metrics(runtime.lang, runtime.path)
+    warn_explicit_lang_with_no_files(
         runtime.args, runtime.lang, runtime.path, codebase_metrics
     )
     issues = _augment_with_stale_exclusion_issues(issues, runtime)

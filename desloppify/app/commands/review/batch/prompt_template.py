@@ -116,7 +116,7 @@ def _render_historical_focus(batch: dict[str, object]) -> str:
 
     lines: list[str] = []
     lines.append(
-        "Previously flagged issues (from past reviews of these dimensions):"
+        "Previously flagged issues — navigation aid, not scoring evidence:"
     )
     lines.append(
         "Check whether each issue still exists in the current code. Do not re-report"
@@ -145,12 +145,9 @@ def _render_mechanical_concern_signals(batch: dict[str, object]) -> str:
         return ""
 
     lines: list[str] = []
-    lines.append("Mechanical concern signals (detector synthesis hypotheses):")
+    lines.append("Mechanical concern signals — navigation aid, not scoring evidence:")
     lines.append(
-        "Treat each as a hypothesis: confirm or refute with direct code evidence. "
-        "These are investigative leads, NOT confirmed issues — do not let their "
-        "presence or quantity influence your scores. Score purely from your own "
-        "code reading."
+        "Confirm or refute each with your own code reading. Report only confirmed defects."
     )
 
     shown = 0
@@ -269,15 +266,26 @@ def _render_metadata_block(
     )
 
 
+def _render_scoring_frame() -> str:
+    return (
+        "YOUR TASK: Read the code for this batch's dimensions. For each dimension, judge "
+        "how well the codebase serves a developer from that perspective. The dimension "
+        "prompt in the blind packet defines what good looks like — that is your rubric. "
+        "Cite specific observations that explain your judgment.\n\n"
+        "WHAT WE GIVE YOU AND WHY: Below you will find automated scan evidence, historical "
+        "issues, and mechanical concern signals. These are navigation aids — starting points "
+        "for where to look. They are NOT evidence, NOT findings, and NOT inputs to your "
+        "scores. Only what you observe directly in the code informs your judgment.\n\n"
+    )
+
+
 def _render_scan_evidence_note() -> str:
     return (
-        "Mechanical scan evidence: The blind packet contains `holistic_context.scan_evidence` "
-        "with aggregated signals from all mechanical detectors — including complexity hotspots, "
-        "error hotspots, signal density index (files flagged by multiple detectors), boundary "
-        "violations, and systemic patterns. Consult this section for investigative leads beyond "
-        "the seed files. Important: these are potential areas to investigate, not confirmed "
-        "issues. Do not let their presence or volume bias your scoring — score based solely "
-        "on what you observe in the actual code.\n\n"
+        "Mechanical scan evidence — navigation aid, not scoring evidence:\n"
+        "The blind packet contains `holistic_context.scan_evidence` with aggregated signals "
+        "from all mechanical detectors — including complexity hotspots, error hotspots, signal "
+        "density index, boundary violations, and systemic patterns. Use these as starting "
+        "points for where to look beyond the seed files.\n\n"
     )
 
 
@@ -293,11 +301,8 @@ def _render_task_requirements(context: _PromptBatchContext) -> str:
         "    Verify whether each still applies to the current code. Do not re-report fixed or\n"
         "    wontfix issues. Use them as starting points to look deeper — inspect adjacent code\n"
         "    and related modules for defects the prior review may have missed.\n"
-        "1b. If mechanical concern signals are listed above, use them as investigative starting\n"
-        "    points — not as evidence of problems. Confirm or refute each with your own code\n"
-        "    reading. Report only confirmed defects. The mere presence of a signal must NOT\n"
-        "    lower any score; only issues you independently verify in the code should affect\n"
-        "    scoring. If refuting, include clear counter-evidence in `dimension_notes`.\n"
+        "1b. If mechanical concern signals are listed above, confirm or refute each with your\n"
+        "    own code reading. Report only confirmed defects.\n"
         "1c. Think structurally: when you spot multiple individual issues that share a common\n"
         "    root cause (missing abstraction, duplicated pattern, inconsistent convention),\n"
         "    explain the deeper structural issue in the issue, not just the surface symptom.\n"
@@ -396,6 +401,7 @@ def render_batch_prompt(
             batch_index=batch_index,
             context=context,
         ),
+        _render_scoring_frame(),
         _render_scan_evidence_note(),
         _render_seed_files_block(context),
         _render_historical_focus(batch),

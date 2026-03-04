@@ -16,33 +16,34 @@ def _rename_key(d: dict, old: str, new: str) -> bool:
     return True
 
 
+def _ensure_container(
+    plan: dict[str, Any],
+    key: str,
+    expected_type: type[list] | type[dict],
+    default_factory,
+) -> None:
+    if not isinstance(plan.get(key), expected_type):
+        plan[key] = default_factory()
+
+
 def ensure_container_types(plan: dict[str, Any]) -> None:
-    if not isinstance(plan.get("queue_order"), list):
-        plan["queue_order"] = []
-    if not isinstance(plan.get("deferred"), list):
-        plan["deferred"] = []
-    if not isinstance(plan.get("skipped"), dict):
-        plan["skipped"] = {}
-    if not isinstance(plan.get("overrides"), dict):
-        plan["overrides"] = {}
-    if not isinstance(plan.get("clusters"), dict):
-        plan["clusters"] = {}
-    if not isinstance(plan.get("superseded"), dict):
-        plan["superseded"] = {}
-    if not isinstance(plan.get("promoted_ids"), list):
-        plan["promoted_ids"] = []
-    if not isinstance(plan.get("plan_start_scores"), dict):
-        plan["plan_start_scores"] = {}
-    if not isinstance(plan.get("execution_log"), list):
-        plan["execution_log"] = []
-    if not isinstance(plan.get("epic_triage_meta"), dict):
-        plan["epic_triage_meta"] = {}
+    for key, expected_type, default_factory in (
+        ("queue_order", list, list),
+        ("deferred", list, list),
+        ("skipped", dict, dict),
+        ("overrides", dict, dict),
+        ("clusters", dict, dict),
+        ("superseded", dict, dict),
+        ("promoted_ids", list, list),
+        ("plan_start_scores", dict, dict),
+        ("execution_log", list, list),
+        ("epic_triage_meta", dict, dict),
+    ):
+        _ensure_container(plan, key, expected_type, default_factory)
     _rename_key(plan["epic_triage_meta"], "finding_snapshot_hash", "issue_snapshot_hash")
-    if not isinstance(plan.get("commit_log"), list):
-        plan["commit_log"] = []
+    _ensure_container(plan, "commit_log", list, list)
     _rename_key(plan, "uncommitted_findings", "uncommitted_issues")
-    if not isinstance(plan.get("uncommitted_issues"), list):
-        plan["uncommitted_issues"] = []
+    _ensure_container(plan, "uncommitted_issues", list, list)
     if "commit_tracking_branch" not in plan:
         plan["commit_tracking_branch"] = None
 
@@ -165,45 +166,83 @@ def migrate_synthesis_to_triage(plan: dict[str, Any]) -> None:
     - Renames ``synthesized_ids`` to ``triaged_ids`` inside that meta dict
     - Renames ``synthesis_version`` to ``triage_version`` in cluster dicts
     """
-    # Rename synthesis::* IDs in queue_order
     order: list[str] = plan.get("queue_order", [])
-    for i, fid in enumerate(order):
-        if fid.startswith("synthesis::"):
-            order[i] = "triage::" + fid[len("synthesis::"):]
+    for index, issue_id in enumerate(order):
+        if issue_id.startswith("synthesis::"):
+            order[index] = "triage::" + issue_id[len("synthesis::"):]
 
-    # Rename synthesis::* IDs in skipped
     skipped: dict = plan.get("skipped", {})
-    synth_keys = [k for k in skipped if k.startswith("synthesis::")]
-    for old_key in synth_keys:
+    for old_key in [key for key in skipped if key.startswith("synthesis::")]:
         new_key = "triage::" + old_key[len("synthesis::"):]
         entry = skipped.pop(old_key)
         if isinstance(entry, dict):
             entry["issue_id"] = new_key
         skipped[new_key] = entry
 
-    # Rename epic_synthesis_meta → epic_triage_meta
-    if "epic_synthesis_meta" in plan:
-        meta = plan.pop("epic_synthesis_meta")
+    meta = plan.pop("epic_synthesis_meta", None)
+    if meta is not None:
         if isinstance(meta, dict):
-            # Rename synthesis_stages → triage_stages
-            if "synthesis_stages" in meta:
-                meta["triage_stages"] = meta.pop("synthesis_stages")
-            # Rename synthesized_ids → triaged_ids
-            if "synthesized_ids" in meta:
-                meta["triaged_ids"] = meta.pop("synthesized_ids")
+            _rename_key(meta, "synthesis_stages", "triage_stages")
+            _rename_key(meta, "synthesized_ids", "triaged_ids")
         plan["epic_triage_meta"] = meta
 
-    # Rename synthesized_out → triaged_out skip kind
     for entry in skipped.values():
         if isinstance(entry, dict) and entry.get("kind") == "synthesized_out":
             entry["kind"] = "triaged_out"
 
-    # Rename synthesis_version → triage_version in clusters
     for cluster in plan.get("clusters", {}).values():
-        if not isinstance(cluster, dict):
-            continue
-        if "synthesis_version" in cluster:
-            cluster["triage_version"] = cluster.pop("synthesis_version")
+        if isinstance(cluster, dict):
+            _rename_key(cluster, "synthesis_version", "triage_version")
+
+
+def _has_synthesis_artifacts(
+    *,
+    queue_order: list[str],
+    skipped: dict[str, Any],
+    clusters: dict[str, Any],
+    meta: object,
+) -> bool:
+    has_synthesis_ids = any(
+        isinstance(item, str) and item.startswith("synthesis::")
+        for item in queue_order
+    )
+    has_synthesis_skips = any(
+        isinstance(item, str) and item.startswith("synthesis::")
+        for item in skipped.keys()
+    )
+    has_cluster_synthesis_versions = any(
+        isinstance(cluster, dict) and "synthesis_version" in cluster
+        for cluster in clusters.values()
+    )
+    has_meta_synthesis_keys = isinstance(meta, dict) and (
+        "synthesized_ids" in meta or "synthesis_stages" in meta
+    )
+    return (
+        has_synthesis_ids
+        or has_synthesis_skips
+        or has_cluster_synthesis_versions
+        or has_meta_synthesis_keys
+    )
+
+
+def _drop_legacy_plan_keys(plan: dict[str, Any], keys: tuple[str, ...]) -> bool:
+    changed = False
+    for legacy_key in keys:
+        if legacy_key in plan:
+            plan.pop(legacy_key, None)
+            changed = True
+    return changed
+
+
+def _cleanup_synthesis_meta(meta: object) -> bool:
+    if not isinstance(meta, dict):
+        return False
+    changed = False
+    for key in ("synthesis_stages", "synthesized_ids"):
+        if key in meta:
+            meta.pop(key, None)
+            changed = True
+    return changed
 
 
 def upgrade_plan_to_v7(plan: dict[str, Any]) -> bool:
@@ -221,21 +260,11 @@ def upgrade_plan_to_v7(plan: dict[str, Any]) -> bool:
     queue_order = plan.get("queue_order", [])
     skipped = plan.get("skipped", {})
     clusters = plan.get("clusters", {})
-
-    has_synthesis_ids = any(
-        isinstance(item, str) and item.startswith("synthesis::")
-        for item in queue_order
-    )
-    has_synthesis_skips = any(
-        isinstance(item, str) and item.startswith("synthesis::")
-        for item in skipped.keys()
-    )
-    has_cluster_synthesis_versions = any(
-        isinstance(cluster, dict) and "synthesis_version" in cluster
-        for cluster in clusters.values()
-    )
-    has_meta_synthesis_keys = isinstance(meta, dict) and (
-        "synthesized_ids" in meta or "synthesis_stages" in meta
+    has_synthesis_artifacts = _has_synthesis_artifacts(
+        queue_order=queue_order,
+        skipped=skipped,
+        clusters=clusters,
+        meta=meta,
     )
 
     needs_legacy_upgrade = (
@@ -245,10 +274,7 @@ def upgrade_plan_to_v7(plan: dict[str, Any]) -> bool:
         or "epic_synthesis_meta" in plan
         or "pending_plan_gate" in plan
         or "uncommitted_findings" in plan
-        or has_synthesis_ids
-        or has_synthesis_skips
-        or has_cluster_synthesis_versions
-        or has_meta_synthesis_keys
+        or has_synthesis_artifacts
     )
 
     if needs_legacy_upgrade:
@@ -261,25 +287,19 @@ def upgrade_plan_to_v7(plan: dict[str, Any]) -> bool:
     else:
         normalize_cluster_defaults(plan)
 
-    # Runtime plan contract is v7-only: drop legacy transport keys.
-    for legacy_key in (
-        "epics",
-        "epic_synthesis_meta",
-        "pending_plan_gate",
-        "uncommitted_findings",
-    ):
-        if legacy_key in plan:
-            plan.pop(legacy_key, None)
-            changed = True
+    changed = _drop_legacy_plan_keys(
+        plan,
+        (
+            "epics",
+            "epic_synthesis_meta",
+            "pending_plan_gate",
+            "uncommitted_findings",
+        ),
+    ) or changed
 
     meta = plan.get("epic_triage_meta")
-    if isinstance(meta, dict):
-        if "synthesis_stages" in meta:
-            meta.pop("synthesis_stages", None)
-            changed = True
-        if "synthesized_ids" in meta:
-            meta.pop("synthesized_ids", None)
-            changed = True
+    if _cleanup_synthesis_meta(meta):
+        changed = True
 
     if plan.get("version") != V7_SCHEMA_VERSION:
         plan["version"] = V7_SCHEMA_VERSION

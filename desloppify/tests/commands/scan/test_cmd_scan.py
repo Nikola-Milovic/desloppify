@@ -10,11 +10,11 @@ import desloppify.app.commands.scan.preflight as scan_preflight_mod
 import desloppify.intelligence.narrative.core as narrative_mod
 import desloppify.languages as lang_mod
 from desloppify.app.commands.scan.helpers import (
-    _audit_excluded_dirs,
-    _collect_codebase_metrics,
-    _effective_include_slow,
-    _resolve_scan_profile,
-    _warn_explicit_lang_with_no_files,
+    audit_excluded_dirs,
+    collect_codebase_metrics,
+    effective_include_slow,
+    resolve_scan_profile,
+    warn_explicit_lang_with_no_files,
     format_delta,
 )
 from desloppify.app.commands.scan.reporting.summary import (
@@ -41,11 +41,11 @@ class TestScanModuleSanity:
         assert callable(cmd_scan)
 
     def test_helper_functions_callable(self):
-        assert callable(_audit_excluded_dirs)
-        assert callable(_collect_codebase_metrics)
+        assert callable(audit_excluded_dirs)
+        assert callable(collect_codebase_metrics)
         assert callable(format_delta)
         assert callable(show_diff_summary)
-        assert callable(_warn_explicit_lang_with_no_files)
+        assert callable(warn_explicit_lang_with_no_files)
 
 
 class TestCmdScanExecution:
@@ -275,19 +275,19 @@ class TestScorecardBadgeContract:
 class TestScanProfiles:
     def test_csharp_defaults_to_objective(self):
         lang = SimpleNamespace(default_scan_profile="objective")
-        assert _resolve_scan_profile(None, lang) == "objective"
+        assert resolve_scan_profile(None, lang) == "objective"
 
     def test_non_csharp_defaults_to_full(self):
         lang = SimpleNamespace(default_scan_profile="full")
-        assert _resolve_scan_profile(None, lang) == "full"
+        assert resolve_scan_profile(None, lang) == "full"
 
     def test_explicit_profile_wins(self):
         lang = SimpleNamespace(default_scan_profile="objective")
-        assert _resolve_scan_profile("ci", lang) == "ci"
+        assert resolve_scan_profile("ci", lang) == "ci"
 
     def test_ci_forces_slow_off(self):
-        assert _effective_include_slow(True, "ci") is False
-        assert _effective_include_slow(False, "ci") is False
+        assert effective_include_slow(True, "ci") is False
+        assert effective_include_slow(False, "ci") is False
 
 
 # ---------------------------------------------------------------------------
@@ -449,25 +449,25 @@ class TestShowStrictTargetProgress:
 
 
 # ---------------------------------------------------------------------------
-# _audit_excluded_dirs
+# audit_excluded_dirs
 # ---------------------------------------------------------------------------
 
 
 class TestAuditExcludedDirs:
-    """_audit_excluded_dirs checks for stale --exclude directories."""
+    """audit_excluded_dirs checks for stale --exclude directories."""
 
     def test_empty_exclusions(self):
-        assert _audit_excluded_dirs((), [], "/fake") == []
+        assert audit_excluded_dirs((), [], "/fake") == []
 
     def test_default_exclusions_skipped(self, tmp_path):
         """Directories in DEFAULT_EXCLUSIONS should be skipped."""
         (tmp_path / "node_modules").mkdir()
-        result = _audit_excluded_dirs(("node_modules",), [], tmp_path)
+        result = audit_excluded_dirs(("node_modules",), [], tmp_path)
         assert result == []
 
     def test_nonexistent_dir_skipped(self, tmp_path):
         """If excluded dir does not exist, skip it."""
-        result = _audit_excluded_dirs(("nonexistent",), [], tmp_path)
+        result = audit_excluded_dirs(("nonexistent",), [], tmp_path)
         assert result == []
 
     def test_stale_dir_produces_issue(self, tmp_path):
@@ -478,7 +478,7 @@ class TestAuditExcludedDirs:
         src = tmp_path / "main.py"
         src.write_text("print('hello')\n")
 
-        result = _audit_excluded_dirs(("old_lib",), [str(src)], tmp_path)
+        result = audit_excluded_dirs(("old_lib",), [str(src)], tmp_path)
         assert len(result) == 1
         assert result[0]["detector"] == "stale_exclude"
         assert "old_lib" in result[0]["summary"]
@@ -490,26 +490,26 @@ class TestAuditExcludedDirs:
         src = tmp_path / "main.py"
         src.write_text("from utils import helper\n")
 
-        result = _audit_excluded_dirs(("utils",), [str(src)], tmp_path)
+        result = audit_excluded_dirs(("utils",), [str(src)], tmp_path)
         assert result == []
 
 
 # ---------------------------------------------------------------------------
-# _collect_codebase_metrics
+# collect_codebase_metrics
 # ---------------------------------------------------------------------------
 
 
 class TestCollectCodebaseMetrics:
-    """_collect_codebase_metrics computes LOC/file/dir counts."""
+    """collect_codebase_metrics computes LOC/file/dir counts."""
 
     def test_no_lang(self):
-        assert _collect_codebase_metrics(None, "/tmp") is None
+        assert collect_codebase_metrics(None, "/tmp") is None
 
     def test_no_file_finder(self):
         class FakeLang:
             file_finder = None
 
-        assert _collect_codebase_metrics(FakeLang(), "/tmp") is None
+        assert collect_codebase_metrics(FakeLang(), "/tmp") is None
 
     def test_counts_files(self, tmp_path):
         # Create some test files
@@ -527,7 +527,7 @@ class TestCollectCodebaseMetrics:
                     str(tmp_path / "sub" / "c.py"),
                 ]
 
-        result = _collect_codebase_metrics(FakeLang(), tmp_path)
+        result = collect_codebase_metrics(FakeLang(), tmp_path)
         assert result is not None
         assert result["total_files"] == 3
         assert result["total_loc"] == 6  # 2 + 1 + 3
@@ -535,7 +535,7 @@ class TestCollectCodebaseMetrics:
 
 
 # ---------------------------------------------------------------------------
-# _warn_explicit_lang_with_no_files
+# warn_explicit_lang_with_no_files
 # ---------------------------------------------------------------------------
 
 
@@ -551,7 +551,7 @@ class TestWarnExplicitLangWithNoFiles:
 
         monkeypatch.setattr(lang_mod, "auto_detect_lang", lambda _root: "python")
 
-        _warn_explicit_lang_with_no_files(
+        warn_explicit_lang_with_no_files(
             FakeArgs(), FakeLang(), tmp_path, {"total_files": 0}
         )
         out = capsys.readouterr().out
@@ -565,7 +565,7 @@ class TestWarnExplicitLangWithNoFiles:
         class FakeLang:
             name = "typescript"
 
-        _warn_explicit_lang_with_no_files(
+        warn_explicit_lang_with_no_files(
             FakeArgs(), FakeLang(), tmp_path, {"total_files": 0}
         )
         assert capsys.readouterr().out == ""
@@ -577,7 +577,7 @@ class TestWarnExplicitLangWithNoFiles:
         class FakeLang:
             name = "typescript"
 
-        _warn_explicit_lang_with_no_files(
+        warn_explicit_lang_with_no_files(
             FakeArgs(), FakeLang(), tmp_path, {"total_files": 5}
         )
         assert capsys.readouterr().out == ""

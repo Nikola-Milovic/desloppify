@@ -59,7 +59,7 @@ def test_direct_coverage_priority_modules_smoke():
     assert callable(scan_integrity_report_mod.show_score_integrity)
     assert callable(next_render_support_mod.render_queue_header)
     assert callable(suppress_cmd_mod.cmd_suppress)
-    assert callable(helpers_persist_mod._save_state_or_exit)
+    assert callable(helpers_persist_mod.save_state_or_exit)
     assert callable(resolve_queue_guard_mod._check_queue_order_guard)
     assert callable(resolve_render_support_mod.print_post_resolve_guidance)
     assert callable(show_concerns_view_mod._show_concerns)

@@ -138,6 +138,104 @@ class GenericLangOptions:
     test_coverage_module: Any | None = None
 
 
+def _register_generic_tool_specs(tool_specs: list[dict[str, Any]]) -> dict[str, FixerConfig]:
+    fixers: dict[str, FixerConfig] = {}
+    for tool in tool_specs:
+        has_fixer = tool.get("fix_cmd") is not None
+        fixer_name = tool["id"].replace("_", "-") if has_fixer else ""
+        register_detector(DetectorMeta(
+            name=tool["id"],
+            display=tool["label"],
+            dimension="Code quality",
+            action_type="auto_fix" if has_fixer else "manual_fix",
+            guidance=f"review and fix {tool['label']} issues",
+            fixers=(fixer_name,) if has_fixer else (),
+        ))
+        register_scoring_policy(DetectorScoringPolicy(
+            detector=tool["id"],
+            dimension="Code quality",
+            tier=tool["tier"],
+            file_based=True,
+        ))
+        if has_fixer:
+            fixers[fixer_name] = make_generic_fixer(tool)
+    return fixers
+
+
+def _resolve_generic_extractors(
+    *,
+    path_extensions: list[str],
+    opts: GenericLangOptions,
+) -> tuple[Any, Any, Any, bool, Any]:
+    file_finder = make_file_finder(path_extensions, opts.exclude)
+    extract_fn = noop_extract_functions
+    dep_graph_fn = empty_dep_graph
+    ts_spec = opts.treesitter_spec
+    has_treesitter = False
+    if ts_spec is None:
+        return file_finder, extract_fn, dep_graph_fn, has_treesitter, ts_spec
+
+    from desloppify.languages._framework.treesitter import is_available
+
+    if not is_available():
+        return file_finder, extract_fn, dep_graph_fn, has_treesitter, ts_spec
+
+    from desloppify.languages._framework.treesitter._extractors import make_ts_extractor
+    from desloppify.languages._framework.treesitter._import_graph import make_ts_dep_builder
+
+    has_treesitter = True
+    extract_fn = make_ts_extractor(ts_spec, file_finder)
+    if ts_spec.import_query and ts_spec.resolve_import:
+        dep_graph_fn = make_ts_dep_builder(ts_spec, file_finder)
+    return file_finder, extract_fn, dep_graph_fn, has_treesitter, ts_spec
+
+
+def _build_generic_phases(
+    *,
+    tool_specs: list[dict[str, Any]],
+    ts_spec: Any,
+    has_treesitter: bool,
+    extract_fn,
+    dep_graph_fn,
+) -> list[DetectorPhase]:
+    from desloppify.languages._framework.base.phase_builders import (
+        detector_phase_security,
+        detector_phase_test_coverage,
+        shared_subjective_duplicates_tail,
+    )
+
+    phases = [
+        make_tool_phase(tool["label"], tool["cmd"], tool["fmt"], tool["id"], tool["tier"])
+        for tool in tool_specs
+    ]
+    phases.append(_make_structural_phase(ts_spec if has_treesitter else None))
+
+    if has_treesitter and ts_spec is not None:
+        from desloppify.languages._framework.treesitter.phases import (
+            make_ast_smells_phase,
+            make_cohesion_phase,
+            make_unused_imports_phase,
+        )
+
+        phases.append(make_ast_smells_phase(ts_spec))
+        phases.append(make_cohesion_phase(ts_spec))
+        if ts_spec.import_query:
+            phases.append(make_unused_imports_phase(ts_spec))
+
+    if extract_fn is not noop_extract_functions:
+        from desloppify.languages._framework.base.phase_builders import detector_phase_signature
+
+        phases.append(detector_phase_signature())
+
+    phases.append(detector_phase_security())
+    if dep_graph_fn is not empty_dep_graph:
+        phases.append(_make_coupling_phase(dep_graph_fn))
+        phases.append(detector_phase_test_coverage())
+
+    phases.extend(shared_subjective_duplicates_tail())
+    return phases
+
+
 def generic_lang(
     name: str,
     extensions: list[str],
@@ -177,98 +275,20 @@ def generic_lang(
     )
 
     from desloppify.languages import register_generic_lang
-    from desloppify.languages._framework.base.phase_builders import (
-        detector_phase_security,
-        detector_phase_test_coverage,
-        shared_subjective_duplicates_tail,
-    )
+
     tool_specs = normalize_tool_specs(tools, supported_formats=set(_PARSERS))
-
-    # ── Register each tool as a detector + scoring policy ──
-    fixers: dict[str, FixerConfig] = {}
-    for tool in tool_specs:
-        has_fixer = tool.get("fix_cmd") is not None
-        fixer_name = tool["id"].replace("_", "-") if has_fixer else ""
-        register_detector(DetectorMeta(
-            name=tool["id"],
-            display=tool["label"],
-            dimension="Code quality",
-            action_type="auto_fix" if has_fixer else "manual_fix",
-            guidance=f"review and fix {tool['label']} issues",
-            fixers=(fixer_name,) if has_fixer else (),
-        ))
-        register_scoring_policy(DetectorScoringPolicy(
-            detector=tool["id"],
-            dimension="Code quality",
-            tier=tool["tier"],
-            file_based=True,
-        ))
-        if has_fixer:
-            fixers[fixer_name] = make_generic_fixer(tool)
-
-    # ── Determine extractors based on tree-sitter availability ──
-    file_finder = make_file_finder(extensions, opts.exclude)
-    extract_fn = noop_extract_functions
-    dep_graph_fn = empty_dep_graph
-    ts_spec = opts.treesitter_spec
-    has_treesitter = False
-
-    if ts_spec is not None:
-        from desloppify.languages._framework.treesitter import is_available
-
-        if is_available():
-            from desloppify.languages._framework.treesitter._extractors import (
-                make_ts_extractor,
-            )
-            from desloppify.languages._framework.treesitter._import_graph import (
-                make_ts_dep_builder,
-            )
-
-            has_treesitter = True
-            extract_fn = make_ts_extractor(ts_spec, file_finder)
-            if ts_spec.import_query and ts_spec.resolve_import:
-                dep_graph_fn = make_ts_dep_builder(ts_spec, file_finder)
-
-    # ── Build phases: tool-specific + structural + coupling + shared ──
-    phases = [
-        make_tool_phase(t["label"], t["cmd"], t["fmt"], t["id"], t["tier"])
-        for t in tool_specs
-    ]
-
-    # Add structural phase (with AST complexity if tree-sitter available).
-    phases.append(_make_structural_phase(
-        ts_spec if has_treesitter else None,
-    ))
-
-    # Add tree-sitter-powered AST phases when available.
-    if has_treesitter and ts_spec is not None:
-        from desloppify.languages._framework.treesitter.phases import (
-            make_ast_smells_phase,
-            make_cohesion_phase,
-            make_unused_imports_phase,
-        )
-
-        phases.append(make_ast_smells_phase(ts_spec))
-        phases.append(make_cohesion_phase(ts_spec))
-        if ts_spec.import_query:
-            phases.append(make_unused_imports_phase(ts_spec))
-
-    # Signature analysis — uses lang.extract_functions (no tree-sitter needed).
-    if extract_fn is not noop_extract_functions:
-        from desloppify.languages._framework.base.phase_builders import (
-            detector_phase_signature,
-        )
-
-        phases.append(detector_phase_signature())
-
-    phases.append(detector_phase_security())
-
-    # Add coupling phase if we have a real dep graph.
-    if dep_graph_fn is not empty_dep_graph:
-        phases.append(_make_coupling_phase(dep_graph_fn))
-        phases.append(detector_phase_test_coverage())
-
-    phases.extend(shared_subjective_duplicates_tail())
+    fixers = _register_generic_tool_specs(tool_specs)
+    file_finder, extract_fn, dep_graph_fn, has_treesitter, ts_spec = _resolve_generic_extractors(
+        path_extensions=extensions,
+        opts=opts,
+    )
+    phases = _build_generic_phases(
+        tool_specs=tool_specs,
+        ts_spec=ts_spec,
+        has_treesitter=has_treesitter,
+        extract_fn=extract_fn,
+        dep_graph_fn=dep_graph_fn,
+    )
 
     cfg = LangConfig(
         name=name,

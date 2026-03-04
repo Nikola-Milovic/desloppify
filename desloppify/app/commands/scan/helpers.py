@@ -17,7 +17,7 @@ from desloppify.base.output.terminal import colorize
 logger = logging.getLogger(__name__)
 
 
-def _audit_excluded_dirs(
+def audit_excluded_dirs(
     exclusions: tuple[str, ...],
     scanned_files: list[str],
     project_root: Path,
@@ -77,7 +77,7 @@ def _audit_excluded_dirs(
     return stale_issues
 
 
-def _collect_codebase_metrics(lang, path: Path) -> dict | None:
+def collect_codebase_metrics(lang, path: Path) -> dict | None:
     """Collect LOC/file/directory counts for the configured language."""
     if not lang or not lang.file_finder:
         return None
@@ -101,7 +101,7 @@ def _collect_codebase_metrics(lang, path: Path) -> dict | None:
     }
 
 
-def _resolve_scan_profile(profile: str | None, lang) -> str:
+def resolve_scan_profile(profile: str | None, lang) -> str:
     """Resolve effective scan profile from CLI and language defaults."""
     if profile in {"objective", "full", "ci"}:
         return profile
@@ -111,7 +111,7 @@ def _resolve_scan_profile(profile: str | None, lang) -> str:
     return "full"
 
 
-def _effective_include_slow(include_slow: bool, profile: str) -> bool:
+def effective_include_slow(include_slow: bool, profile: str) -> bool:
     """Determine whether slow phases should run for this profile."""
     return include_slow and profile != "ci"
 
@@ -121,7 +121,7 @@ def _format_hidden_by_detector(hidden_by_detector: dict[str, int]) -> str:
     return ", ".join(f"{det}: +{count}" for det, count in hidden_by_detector.items())
 
 
-def _warn_explicit_lang_with_no_files(
+def warn_explicit_lang_with_no_files(
     args, lang, path: Path, metrics: dict | None
 ) -> None:
     """Warn when user explicitly selected a language but scan found zero files."""
@@ -164,11 +164,11 @@ def format_delta(value: float, prev: float | None) -> tuple[str, str]:
 
 
 __all__ = [
-    "_audit_excluded_dirs",
-    "_collect_codebase_metrics",
-    "_effective_include_slow",
+    "audit_excluded_dirs",
+    "collect_codebase_metrics",
+    "effective_include_slow",
     "format_delta",
     "_format_hidden_by_detector",
-    "_resolve_scan_profile",
-    "_warn_explicit_lang_with_no_files",
+    "resolve_scan_profile",
+    "warn_explicit_lang_with_no_files",
 ]

@@ -169,10 +169,16 @@ def _detect_noop_function(
         "__bool__",
         "__len__",
     }
+    _DISPLAY_HELPER_PREFIXES = ("_print_", "_render_", "_show_")
 
     results: list[dict] = []
     for node in _iter_nodes(tree, all_nodes, (ast.FunctionDef, ast.AsyncFunctionDef)):
         if node.name in _SKIP_NAMES:
+            continue
+        if (
+            "app/commands/" in filepath.replace("\\", "/")
+            and node.name.startswith(_DISPLAY_HELPER_PREFIXES)
+        ):
             continue
         # Skip decorated functions (abstract methods, properties, etc.)
         if node.decorator_list:
