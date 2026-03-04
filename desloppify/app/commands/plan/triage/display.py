@@ -261,20 +261,8 @@ def print_reflect_dashboard(
         print(colorize("  - Which issues will you cluster together vs defer?", "dim"))
         print(colorize("  - What's the overall arc of work and why?", "dim"))
 
-def cmd_triage_dashboard(
-    args: argparse.Namespace,
-    *,
-    services: TriageServices | None = None,
-) -> None:
-    """Default view: show issues, stage progress, and next command."""
-    resolved_services = services or default_triage_services()
-    runtime = resolved_services.command_runtime(args)
-    state = runtime.state
-    plan = resolved_services.load_plan()
-    si = resolved_services.collect_triage_input(plan, state)
-    meta = plan.get("epic_triage_meta", {})
-    stages = meta.get("triage_stages", {})
-
+def _print_dashboard_header(si: object, stages: dict, meta: dict, plan: dict) -> None:
+    """Print the header section: title, open issues count, stage progress, overall status."""
     print(colorize("  Epic triage \u2014 manual", "bold"))
     print(colorize("  " + "\u2500" * 60, "dim"))
     print(f"  Open review issues: {len(si.open_issues)}")
@@ -307,7 +295,9 @@ def cmd_triage_dashboard(
             )
         )
 
-    # --- Action guidance (shown early so agents see what to do first) ---
+
+def _print_action_guidance(stages: dict, meta: dict, si: object, plan: dict) -> None:
+    """Print the 'What to do' action guidance section based on current stage."""
     print()
     has_only_additions = bool(si.new_since_last) and not si.resolved_since_last
     if "observe" not in stages and has_only_additions and meta.get("strategy_summary"):
@@ -363,7 +353,9 @@ def cmd_triage_dashboard(
         print(f"    {TRIAGE_CMD_COMPLETE_VERBOSE}")
         print(colorize('    (use --strategy "same" to keep existing strategy)', "dim"))
 
-    # --- Prior stage reports (context for current action) ---
+
+def _print_prior_stage_reports(stages: dict) -> None:
+    """Print prior stage reports (observe/reflect) as context for current action."""
     if "observe" in stages:
         obs_report = stages["observe"].get("report", "")
         if obs_report:
@@ -381,10 +373,11 @@ def cmd_triage_dashboard(
             if len(ref_report.strip().splitlines()) > 8:
                 print(colorize("    ...", "dim"))
 
-    # --- Issues data ---
-    # Group issues by dimension with suggestions to surface contradictions
+
+def _print_issues_by_dimension(open_issues: dict) -> None:
+    """Print issues grouped by dimension with suggestions to surface contradictions."""
     by_dim: dict[str, list[tuple[str, dict]]] = defaultdict(list)
-    for fid, f in si.open_issues.items():
+    for fid, f in open_issues.items():
         detail = f.get("detail", {}) if isinstance(f.get("detail"), dict) else {}
         dim = detail.get("dimension", "unknown")
         by_dim[dim].append((fid, f))
@@ -407,6 +400,26 @@ def cmd_triage_dashboard(
         if len(items) > max_per_dim:
             print(colorize(f"      ... and {len(items) - max_per_dim} more", "dim"))
     print(colorize("\n  Use hash in commands: desloppify plan skip <hash>  |  desloppify show <hash>", "dim"))
+
+
+def cmd_triage_dashboard(
+    args: argparse.Namespace,
+    *,
+    services: TriageServices | None = None,
+) -> None:
+    """Default view: show issues, stage progress, and next command."""
+    resolved_services = services or default_triage_services()
+    runtime = resolved_services.command_runtime(args)
+    state = runtime.state
+    plan = resolved_services.load_plan()
+    si = resolved_services.collect_triage_input(plan, state)
+    meta = plan.get("epic_triage_meta", {})
+    stages = meta.get("triage_stages", {})
+
+    _print_dashboard_header(si, stages, meta, plan)
+    _print_action_guidance(stages, meta, si, plan)
+    _print_prior_stage_reports(stages)
+    _print_issues_by_dimension(si.open_issues)
 
     # Show reflect dashboard when observe done, reflect not done
     if "observe" in stages and "reflect" not in stages:

@@ -111,6 +111,120 @@ def current_under_target_ids(
 
 
 # ---------------------------------------------------------------------------
+# Helpers for sync_stale_dimensions / sync_unscored_dimensions
+# ---------------------------------------------------------------------------
+
+def _has_objective_backlog(
+    state: StateModel,
+    policy: SubjectiveVisibility | None,
+) -> bool:
+    """Return whether an objective backlog exists (open non-subjective issues)."""
+    if policy is not None:
+        return policy.has_objective_backlog
+    return any(
+        f.get("status") == "open"
+        and f.get("detector") not in _NON_OBJECTIVE_DETECTORS
+        and not f.get("suppressed")
+        for f in state.get("issues", {}).values()
+    )
+
+
+def _prune_subjective_ids(
+    order: list[str],
+    *,
+    keep_ids: set[str],
+    pruned: list[str],
+) -> None:
+    """Remove subjective IDs from *order* that are not in *keep_ids*, appending removed to *pruned*."""
+    to_remove = [
+        fid for fid in order
+        if fid.startswith(SUBJECTIVE_PREFIX)
+        and fid not in keep_ids
+    ]
+    for fid in to_remove:
+        order.remove(fid)
+        pruned.append(fid)
+
+
+def _inject_subjective_ids(
+    order: list[str],
+    plan: PlanModel,
+    *,
+    inject_ids: set[str],
+    to_front: bool,
+    injected: list[str],
+) -> None:
+    """Inject subjective IDs into *order* if not already present.
+
+    When *to_front* is True, inserts after promoted items (front of queue).
+    Otherwise appends to the back.
+    """
+    existing = set(order)
+    if to_front:
+        insert_at = promoted_insertion_index(order, plan)
+        for sid in reversed(sorted(inject_ids)):
+            if sid not in existing:
+                order.insert(insert_at, sid)
+                injected.append(sid)
+    else:
+        for sid in sorted(inject_ids):
+            if sid not in existing:
+                order.append(sid)
+                injected.append(sid)
+
+
+# ---------------------------------------------------------------------------
+# Helpers for sync_triage_needed
+# ---------------------------------------------------------------------------
+
+def _open_review_issue_ids(state: StateModel) -> set[str]:
+    """Return set of open issue IDs whose detector is 'review' or 'concerns'."""
+    issues = state.get("issues", {})
+    return {
+        fid for fid, f in issues.items()
+        if f.get("status") == "open"
+        and f.get("detector") in ("review", "concerns")
+    }
+
+
+def _new_review_ids_since_triage(
+    state: StateModel,
+    meta: dict,
+) -> set[str]:
+    """Return review issue IDs that are new since the last triage."""
+    current_review_ids = _open_review_issue_ids(state)
+    triaged_ids = set(meta.get("triaged_ids", []))
+    return current_review_ids - triaged_ids
+
+
+def _prune_all_triage_stages(order: list[str]) -> None:
+    """Remove all ``triage::*`` stage IDs from *order*."""
+    for sid in TRIAGE_STAGE_IDS:
+        while sid in order:
+            order.remove(sid)
+
+
+def _inject_pending_triage_stages(
+    order: list[str],
+    plan: PlanModel,
+    confirmed: set[str],
+) -> bool:
+    """Inject triage stages for pending (unconfirmed) items.
+
+    Returns True if any stages were injected.
+    """
+    insert_at = promoted_insertion_index(order, plan)
+    stage_names = ("observe", "reflect", "organize", "commit")
+    existing = set(order)
+    injected_count = 0
+    for sid, name in zip(TRIAGE_STAGE_IDS, stage_names, strict=False):
+        if name not in confirmed and sid not in existing:
+            order.insert(insert_at + injected_count, sid)
+            injected_count += 1
+    return injected_count > 0
+
+
+# ---------------------------------------------------------------------------
 # Unscored dimension sync (front of queue, unconditional)
 # ---------------------------------------------------------------------------
 
@@ -134,23 +248,10 @@ def sync_unscored_dimensions(
 
     # --- Cleanup: prune subjective IDs that are no longer unscored --------
     # Only prune IDs that are neither unscored nor stale (stale sync owns those).
-    to_remove: list[str] = [
-        fid for fid in order
-        if fid.startswith(SUBJECTIVE_PREFIX)
-        and fid not in unscored_ids
-        and fid not in stale_ids
-    ]
-    for fid in to_remove:
-        order.remove(fid)
-        result.pruned.append(fid)
+    _prune_subjective_ids(order, keep_ids=unscored_ids | stale_ids, pruned=result.pruned)
 
     # --- Inject: prepend unscored IDs after any promoted items -------------
-    existing = set(order)
-    insert_at = promoted_insertion_index(order, plan)
-    for uid in reversed(sorted(unscored_ids)):
-        if uid not in existing:
-            order.insert(insert_at, uid)
-            result.injected.append(uid)
+    _inject_subjective_ids(order, plan, inject_ids=unscored_ids, to_front=True, injected=result.injected)
 
     return result
 
@@ -186,27 +287,10 @@ def sync_stale_dimensions(
 
     # --- Cleanup: prune resolved subjective IDs --------------------------
     # Only prune IDs that are no longer injectable and not unscored.
-    to_remove: list[str] = [
-        fid for fid in order
-        if fid.startswith(SUBJECTIVE_PREFIX)
-        and fid not in injectable_ids
-        and fid not in unscored_ids
-    ]
-    for fid in to_remove:
-        order.remove(fid)
-        result.pruned.append(fid)
+    _prune_subjective_ids(order, keep_ids=injectable_ids | unscored_ids, pruned=result.pruned)
 
     # --- Inject or evict stale + under-target dimensions -----------------
-    if policy is not None:
-        has_real_items = policy.has_objective_backlog
-    else:
-        has_real_items = any(
-            f.get("status") == "open"
-            and f.get("detector") not in _NON_OBJECTIVE_DETECTORS
-            and not f.get("suppressed")
-            for f in state.get("issues", {}).values()
-        )
-
+    has_real_items = _has_objective_backlog(state, policy)
     should_inject = not has_real_items or cycle_just_completed
 
     if not should_inject:
@@ -224,21 +308,8 @@ def sync_stale_dimensions(
             result.pruned.append(fid)
 
     if should_inject and injectable_ids:
-        existing = set(order)
-        if cycle_just_completed and has_real_items:
-            # Post-cycle: front-of-queue after promoted items so subjective
-            # review happens before the new objective cycle begins.
-            insert_at = promoted_insertion_index(order, plan)
-            for sid in reversed(sorted(injectable_ids)):
-                if sid not in existing:
-                    order.insert(insert_at, sid)
-                    result.injected.append(sid)
-        else:
-            # Mid-cycle or no objective backlog: append to back.
-            for sid in sorted(injectable_ids):
-                if sid not in existing:
-                    order.append(sid)
-                    result.injected.append(sid)
+        to_front = cycle_just_completed and has_real_items
+        _inject_subjective_ids(order, plan, inject_ids=injectable_ids, to_front=to_front, injected=result.injected)
 
     return result
 
@@ -301,20 +372,11 @@ def sync_triage_needed(
         # progress.  This avoids pruning the initial triage or a
         # user-started triage session.
         if last_hash and not confirmed:
-            issues = state.get("issues", {})
-            current_review_ids = {
-                fid for fid, f in issues.items()
-                if f.get("status") == "open"
-                and f.get("detector") in ("review", "concerns")
-            }
-            triaged_ids = set(meta.get("triaged_ids", []))
-            new_since_triage = current_review_ids - triaged_ids
+            new_since_triage = _new_review_ids_since_triage(state, meta)
 
             if not new_since_triage:
                 # No new issues remain — prune stale stages
-                for sid in TRIAGE_STAGE_IDS:
-                    while sid in order:
-                        order.remove(sid)
+                _prune_all_triage_stages(order)
                 if current_hash:
                     meta["issue_snapshot_hash"] = current_hash
                     plan["epic_triage_meta"] = meta
@@ -324,27 +386,11 @@ def sync_triage_needed(
     if current_hash and current_hash != last_hash:
         # Distinguish "new issues appeared" from "issues were resolved".
         # Only re-triage when genuinely new issues exist.
-        issues = state.get("issues", {})
-        current_review_ids = {
-            fid for fid, f in issues.items()
-            if f.get("status") == "open"
-            and f.get("detector") in ("review", "concerns")
-        }
-        triaged_ids = set(meta.get("triaged_ids", []))
-        new_since_triage = current_review_ids - triaged_ids
+        new_since_triage = _new_review_ids_since_triage(state, meta)
 
         if new_since_triage:
             # New review issues appeared — re-triage needed
-            insert_at = promoted_insertion_index(order, plan)
-            stage_names = ("observe", "reflect", "organize", "commit")
-            existing = set(order)
-            injected_count = 0
-            for sid, name in zip(TRIAGE_STAGE_IDS, stage_names, strict=False):
-                if name not in confirmed and sid not in existing:
-                    order.insert(insert_at + injected_count, sid)
-                    injected_count += 1
-            if injected_count:
-                result.injected = True
+            result.injected = _inject_pending_triage_stages(order, plan, confirmed)
         else:
             # Only resolved issues changed the hash — update silently
             meta["issue_snapshot_hash"] = current_hash
