@@ -111,35 +111,71 @@ def test_skip_with_review_after():
 def test_unskip_temporary():
     plan = _plan_with_queue("a", "b", "c")
     skip_items(plan, ["b"], kind="temporary")
-    count, need_reopen = unskip_items(plan, ["b"])
+    count, need_reopen, protected = unskip_items(plan, ["b"])
     assert count == 1
     assert need_reopen == []
+    assert protected == []
     assert "b" in plan["queue_order"]
     assert "b" not in plan["skipped"]
 
 
-def test_unskip_permanent_returns_reopen_ids():
+def test_unskip_permanent_with_note_is_protected():
+    """Permanent skips with notes are protected by default."""
     plan = _plan_with_queue("a")
     skip_items(plan, ["a"], kind="permanent", note="test", attestation="test attest")
-    count, need_reopen = unskip_items(plan, ["a"])
+    count, need_reopen, protected = unskip_items(plan, ["a"])
+    assert count == 0
+    assert need_reopen == []
+    assert protected == ["a"]
+    assert "a" not in plan["queue_order"]
+    assert "a" in plan["skipped"]
+
+
+def test_unskip_permanent_with_note_force():
+    """With include_protected=True, permanent skips with notes are unskipped."""
+    plan = _plan_with_queue("a")
+    skip_items(plan, ["a"], kind="permanent", note="test", attestation="test attest")
+    count, need_reopen, protected = unskip_items(plan, ["a"], include_protected=True)
     assert count == 1
     assert need_reopen == ["a"]
+    assert protected == []
     assert "a" in plan["queue_order"]
 
 
-def test_unskip_false_positive_returns_reopen_ids():
+def test_unskip_permanent_without_note_not_protected():
+    """Permanent skips without notes are NOT protected (no judgment to preserve)."""
     plan = _plan_with_queue("a")
-    skip_items(plan, ["a"], kind="false_positive", attestation="test attest")
-    count, need_reopen = unskip_items(plan, ["a"])
+    skip_items(plan, ["a"], kind="permanent")
+    count, need_reopen, protected = unskip_items(plan, ["a"])
     assert count == 1
     assert need_reopen == ["a"]
+    assert protected == []
+    assert "a" in plan["queue_order"]
+
+
+def test_unskip_false_positive_with_note_is_protected():
+    plan = _plan_with_queue("a")
+    skip_items(plan, ["a"], kind="false_positive", note="not a real issue", attestation="test attest")
+    count, need_reopen, protected = unskip_items(plan, ["a"])
+    assert count == 0
+    assert protected == ["a"]
+
+
+def test_unskip_false_positive_without_note_returns_reopen_ids():
+    plan = _plan_with_queue("a")
+    skip_items(plan, ["a"], kind="false_positive", attestation="test attest")
+    count, need_reopen, protected = unskip_items(plan, ["a"])
+    assert count == 1
+    assert need_reopen == ["a"]
+    assert protected == []
 
 
 def test_unskip_nonexistent():
     plan = _plan_with_queue("a")
-    count, need_reopen = unskip_items(plan, ["zzz"])
+    count, need_reopen, protected = unskip_items(plan, ["zzz"])
     assert count == 0
     assert need_reopen == []
+    assert protected == []
 
 
 # ---------------------------------------------------------------------------
@@ -300,11 +336,22 @@ def test_skip_and_unskip_roundtrip():
     assert plan["queue_order"] == []
     assert len(plan["skipped"]) == 3
 
-    # Unskip all
-    count, need_reopen = unskip_items(plan, ["a", "b", "c"])
-    assert count == 3
-    assert set(need_reopen) == {"b", "c"}
-    assert plan["queue_order"] == ["a", "b", "c"]
+    # Unskip all — b is protected (permanent with note), c is not (fp without note)
+    count, need_reopen, protected = unskip_items(plan, ["a", "b", "c"])
+    assert count == 2  # a (temporary) + c (fp without note)
+    assert set(need_reopen) == {"c"}
+    assert protected == ["b"]
+    assert "a" in plan["queue_order"]
+    assert "b" not in plan["queue_order"]  # protected
+    assert "c" in plan["queue_order"]
+    assert "b" in plan["skipped"]  # stayed
+
+    # Force unskip to get b too
+    count2, need_reopen2, protected2 = unskip_items(plan, ["b"], include_protected=True)
+    assert count2 == 1
+    assert need_reopen2 == ["b"]
+    assert protected2 == []
+    assert "b" in plan["queue_order"]
     assert plan["skipped"] == {}
 
 

@@ -79,6 +79,7 @@ from desloppify.engine._plan.reconcile import (
 
 # --- schema -----------------------------------------------------------------
 from desloppify.engine._plan.schema import (
+    ActionStep,
     EPIC_PREFIX,
     PLAN_VERSION,
     VALID_EPIC_DIRECTIONS,

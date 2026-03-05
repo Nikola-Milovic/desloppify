@@ -95,6 +95,10 @@ def _add_skip_subparsers(plan_sub) -> None:
         "--attest", type=str, default=None,
         help="Attestation (required for --permanent and --false-positive)",
     )
+    p_skip.add_argument(
+        "--confirm", action="store_true", default=False,
+        help="Required when skipping more than 5 items at once",
+    )
 
     # plan unskip <patterns>
     p_unskip = plan_sub.add_parser(
@@ -103,6 +107,10 @@ def _add_skip_subparsers(plan_sub) -> None:
     p_unskip.add_argument(
         "patterns", nargs="+", metavar="PATTERN",
         help="Issue ID(s), detector, file path, glob, or cluster name",
+    )
+    p_unskip.add_argument(
+        "--force", action="store_true", default=False,
+        help="Also unskip protected items (permanent/false_positive with notes)",
     )
 
 
@@ -178,6 +186,9 @@ def _add_cluster_subparser(plan_sub) -> None:
     p_cc.add_argument("cluster_name", type=str, help="Cluster name (slug)")
     p_cc.add_argument("--description", type=str, default=None, help="Cluster description")
     p_cc.add_argument("--action", type=str, default=None, help="Primary action/command for this cluster")
+    p_cc.add_argument("--priority", type=int, default=None, help="Priority (lower = higher priority)")
+    p_cc.add_argument("--steps-file", "-f", type=str, default=None,
+                      help="Load steps from numbered-steps text file")
 
     # plan cluster add <cluster> <patterns...>
     p_ca = cluster_sub.add_parser("add", help="Add issues to a cluster")
@@ -226,7 +237,35 @@ def _add_cluster_subparser(plan_sub) -> None:
     p_cu = cluster_sub.add_parser("update", help="Update cluster description and/or action steps")
     p_cu.add_argument("cluster_name", type=str, help="Cluster name")
     p_cu.add_argument("--description", type=str, default=None, help="Cluster description")
-    p_cu.add_argument("--steps", nargs="+", metavar="STEP", default=None, help="Action steps list")
+    p_cu.add_argument("--steps", nargs="+", metavar="STEP", default=None, help="Action steps list (legacy flat strings)")
+    p_cu.add_argument("--steps-file", "-f", type=str, default=None,
+                      help="Load steps from numbered-steps text file")
+    p_cu.add_argument("--add-step", type=str, default=None, metavar="TITLE",
+                      help="Append a single step")
+    p_cu.add_argument("--detail", type=str, default=None,
+                      help="Body text for --add-step or --update-step")
+    p_cu.add_argument("--update-step", type=int, default=None, metavar="N",
+                      help="Replace step N (1-based) title; use --detail for body")
+    p_cu.add_argument("--remove-step", type=int, default=None, metavar="N",
+                      help="Remove step N (1-based)")
+    p_cu.add_argument("--done-step", type=int, default=None, metavar="N",
+                      help="Mark step N (1-based) as done")
+    p_cu.add_argument("--undone-step", type=int, default=None, metavar="N",
+                      help="Mark step N (1-based) as not done")
+    p_cu.add_argument("--priority", type=int, default=None,
+                      help="Set cluster priority (lower = higher priority)")
+
+    # plan cluster export <name> [--format text|yaml]
+    p_cexport = cluster_sub.add_parser("export", help="Export cluster steps to editable format")
+    p_cexport.add_argument("cluster_name", type=str, help="Cluster name")
+    p_cexport.add_argument("--format", dest="export_format", choices=["text", "yaml"],
+                           default="text", help="Output format (default: text)")
+
+    # plan cluster import <file> [--dry-run]
+    p_cimport = cluster_sub.add_parser("import", help="Bulk create/update clusters from YAML")
+    p_cimport.add_argument("file", type=str, help="YAML file path")
+    p_cimport.add_argument("--dry-run", action="store_true", default=False,
+                           help="Preview changes without saving")
 
 
 def _add_triage_subparser(plan_sub) -> None:

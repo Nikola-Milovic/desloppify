@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 # Minimum thresholds to analyze a file.
 _MIN_FUNCTIONS = 8  # Don't flag files with few functions.
 _MIN_CLUSTERS = 5   # Minimum disconnected clusters to flag.
+_MIN_NON_SINGLETON_CLUSTERS = 3  # Minimum multi-function clusters to flag.
 
 
 def detect_responsibility_cohesion(
@@ -114,6 +115,17 @@ def detect_responsibility_cohesion(
         if len(components) >= _MIN_CLUSTERS:
             # Sort components by size for reporting.
             components.sort(key=len, reverse=True)
+
+            # Toolkit heuristic: "mixed responsibilities" means multiple
+            # distinct groups of interrelated functions coexisting in one
+            # file.  Singleton clusters (isolated utility functions) don't
+            # count as separate "responsibilities" — they're standalone
+            # helpers.  Only flag when there are ≥3 multi-function clusters,
+            # indicating genuinely distinct groups of related code.
+            non_singleton_count = sum(1 for c in components if len(c) > 1)
+            if non_singleton_count < _MIN_NON_SINGLETON_CLUSTERS:
+                continue
+
             families = [c[0] for c in components[:8]]  # Top 8 cluster names.
 
             entries.append({

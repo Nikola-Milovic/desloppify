@@ -7,6 +7,7 @@ from typing import Any
 from desloppify.engine._state.schema import utc_now
 
 V7_SCHEMA_VERSION = 7
+V8_SCHEMA_VERSION = 8
 
 
 def _rename_key(d: dict, old: str, new: str) -> bool:
@@ -307,9 +308,55 @@ def upgrade_plan_to_v7(plan: dict[str, Any]) -> bool:
     return changed
 
 
+def _migrate_action_steps_to_v8(cluster: dict[str, Any]) -> bool:
+    """Convert flat string action_steps to ActionStep dicts."""
+    steps = cluster.get("action_steps")
+    if not isinstance(steps, list) or not steps:
+        return False
+    changed = False
+    for i, step in enumerate(steps):
+        if isinstance(step, str):
+            # Heuristic: if ≤120 chars, title only; if >120, first sentence = title, rest = detail
+            if len(step) <= 120:
+                steps[i] = {"title": step}
+            else:
+                # Split on first sentence boundary
+                for sep in (". ", ".\n", ".\t"):
+                    pos = step.find(sep)
+                    if pos != -1:
+                        title = step[:pos + 1].strip()
+                        detail = step[pos + len(sep):].strip()
+                        steps[i] = {"title": title, "detail": detail} if detail else {"title": title}
+                        break
+                else:
+                    steps[i] = {"title": step}
+            changed = True
+    return changed
+
+
+def upgrade_plan_to_v8(plan: dict[str, Any]) -> bool:
+    """Apply v7 migrations then upgrade action_steps to structured ActionStep dicts.
+
+    Returns ``True`` when any migration was applied.
+    """
+    changed = upgrade_plan_to_v7(plan)
+
+    # Migrate action_steps from flat strings to ActionStep dicts
+    for cluster in plan.get("clusters", {}).values():
+        if isinstance(cluster, dict):
+            if _migrate_action_steps_to_v8(cluster):
+                changed = True
+
+    if plan.get("version") != V8_SCHEMA_VERSION:
+        plan["version"] = V8_SCHEMA_VERSION
+        changed = True
+    return changed
+
+
 __all__ = [
     "ensure_container_types",
     "upgrade_plan_to_v7",
+    "upgrade_plan_to_v8",
     "migrate_deferred_to_skipped",
     "migrate_epics_to_clusters",
     "migrate_synthesis_to_triage",

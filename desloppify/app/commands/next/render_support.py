@@ -147,9 +147,13 @@ def render_cluster_item(item: dict) -> None:
         _render_cluster_files(members)
         _render_cluster_sample(members)
 
+    autofix_hint = item.get("autofix_hint")
     primary_command = item.get("primary_command")
+    if autofix_hint:
+        print(colorize(f"\n  Try auto first: {autofix_hint}", "cyan"))
+        print(colorize("  If auto finds 0, drill into individual issues:", "dim"))
     if primary_command:
-        print(colorize(f"\n  Action: {primary_command}", "cyan"))
+        print(colorize(f"  Action: {primary_command}", "cyan"))
 
     if is_optional:
         _render_optional_cluster_commands(cluster_name)
@@ -172,6 +176,8 @@ def render_queue_header(queue: dict, explain: bool) -> None:
         print(colorize("\n  Queue cleared (1 workflow step)", "bold"))
     else:
         print(colorize(f"\n  Queue: {total} item{'s' if total != 1 else ''}", "bold"))
+        if total > 5:
+            print(colorize("  (Skip items only when explicitly requested.)", "dim"))
 
 
 def show_empty_queue(

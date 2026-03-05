@@ -19,7 +19,7 @@ def _plan_with_clusters():
         "name": "source-cluster",
         "issue_ids": ["f1", "f2", "f3"],
         "description": "Source description",
-        "action_steps": ["step A", "step B"],
+        "action_steps": [{"title": "step A"}, {"title": "step B"}],
         "auto": False,
         "user_modified": False,
         "created_at": "2025-06-01T00:00:00Z",
@@ -31,7 +31,7 @@ def _plan_with_clusters():
         "name": "target-cluster",
         "issue_ids": ["f4", "f5"],
         "description": "Target description",
-        "action_steps": ["step X"],
+        "action_steps": [{"title": "step X"}],
         "auto": False,
         "user_modified": False,
         "created_at": "2025-06-01T00:00:00Z",
@@ -73,7 +73,7 @@ class TestMergeClusters:
 
         target = plan["clusters"]["target-cluster"]
         assert target["description"] == "Target description"
-        assert target["action_steps"] == ["step X"]
+        assert target["action_steps"] == [{"title": "step X"}]
         assert target["action"] == "target action"
 
     def test_merge_fills_missing_target_metadata(self):
@@ -88,7 +88,7 @@ class TestMergeClusters:
 
         target = plan["clusters"]["target-cluster"]
         assert target["description"] == "Source description"
-        assert target["action_steps"] == ["step A", "step B"]
+        assert target["action_steps"] == [{"title": "step A"}, {"title": "step B"}]
         assert target["action"] == "source action"
 
     def test_merge_nonexistent_source_raises(self):

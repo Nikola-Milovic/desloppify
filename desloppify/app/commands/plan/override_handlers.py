@@ -24,7 +24,7 @@ from desloppify.app.commands.helpers.attestation import (
     validate_note_length,
 )
 from desloppify.base.discovery.file_paths import safe_write_text
-from desloppify.base.exception_sets import PLAN_LOAD_EXCEPTIONS
+from desloppify.base.exception_sets import PLAN_LOAD_EXCEPTIONS, CommandError
 from desloppify.base.output.fallbacks import log_best_effort_failure
 from desloppify.base.output.terminal import colorize
 from desloppify.base.output.user_message import print_user_message
@@ -59,6 +59,8 @@ from desloppify.engine.plan import (
 )
 
 logger = logging.getLogger(__name__)
+
+_BULK_SKIP_THRESHOLD = 5
 
 
 def _resolve_state_file(path: Path | None) -> Path:
@@ -246,6 +248,18 @@ def cmd_plan_skip(args: argparse.Namespace) -> None:
         print(colorize("  No matching issues found.", "yellow"))
         return
 
+    # Bulk skip guard — prevent agents from draining the queue in one shot
+    if len(issue_ids) > _BULK_SKIP_THRESHOLD:
+        print(colorize(
+            f"  Bulk skip: {len(issue_ids)} items will be removed from the active queue.",
+            "yellow",
+        ), file=sys.stderr)
+        if not getattr(args, "confirm", False):
+            raise CommandError(
+                f"Skipping {len(issue_ids)} items requires --confirm. "
+                "Review the items first, or skip individually."
+            )
+
     # For permanent/false_positive: delegate to state layer for score impact
     state_data = _apply_state_skip_resolution(
         kind=kind,
@@ -316,9 +330,13 @@ def cmd_plan_unskip(args: argparse.Namespace) -> None:
         print(colorize("  No matching issues found.", "yellow"))
         return
 
-    count, need_reopen = unskip_items(plan, issue_ids)
+    include_protected = bool(getattr(args, "force", False))
+    count, need_reopen, protected_kept = unskip_items(
+        plan, issue_ids, include_protected=include_protected,
+    )
+    unskipped_ids = [fid for fid in issue_ids if fid not in protected_kept]
     append_log_entry(
-        plan, "unskip", issue_ids=issue_ids, actor="user",
+        plan, "unskip", issue_ids=unskipped_ids, actor="user",
         detail={"need_reopen": need_reopen},
     )
 
@@ -339,6 +357,12 @@ def cmd_plan_unskip(args: argparse.Namespace) -> None:
         save_plan(plan, plan_file)
 
     print(colorize(f"  Unskipped {count} item(s) — back in queue.", "green"))
+    if protected_kept:
+        print(colorize(
+            f"  Kept {len(protected_kept)} protected skip(s) "
+            f"(permanent/false_positive with notes). Use --force to override.",
+            "yellow",
+        ))
 
 
 # ---------------------------------------------------------------------------

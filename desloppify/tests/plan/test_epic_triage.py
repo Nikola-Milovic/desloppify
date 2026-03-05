@@ -61,9 +61,10 @@ class TestSchemaDefaults:
         assert "epic_triage_meta" in plan
         assert isinstance(plan["epic_triage_meta"], dict)
 
-    def test_plan_version_is_7(self):
+    def test_plan_version_is_current(self):
         plan = empty_plan()
-        assert plan["version"] == 7
+        from desloppify.engine._plan.schema import PLAN_VERSION
+        assert plan["version"] == PLAN_VERSION
 
     def test_ensure_defaults_adds_meta_to_old_plan(self):
         old = {"version": 2, "created": "x", "updated": "x"}

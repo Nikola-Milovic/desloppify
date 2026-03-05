@@ -397,8 +397,10 @@ def _build_question(
         (
             lambda dets, _signals: "responsibility_cohesion" in dets,
             (
-                "What are the distinct responsibilities? Should this module be "
-                "split along those lines?"
+                "What are the distinct responsibilities? Would splitting "
+                "produce modules with multiple independent consumers, or "
+                "would extracted files only be imported by the parent? "
+                "Only split if the extracted code would be reused."
             ),
         ),
     )

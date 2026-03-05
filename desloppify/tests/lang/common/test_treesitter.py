@@ -1734,24 +1734,59 @@ class TestResponsibilityCohesion:
         assert len(entries) == 0
         assert checked == 1
 
-    def test_disconnected_file_flagged(self, tmp_path):
+    def test_disconnected_singletons_not_flagged(self, tmp_path):
         from desloppify.languages._framework.treesitter._cohesion import (
             detect_responsibility_cohesion,
         )
         from desloppify.languages._framework.treesitter._specs import GO_SPEC
 
-        # Create a file with 8+ completely disconnected functions.
+        # All-singleton file (toolkit pattern) — should NOT be flagged.
         code = "package main\n\n"
         for i in range(10):
             code += f"func isolated{i}() {{\n    x{i} := {i}\n    _ = x{i}\n    y{i} := {i * 2}\n    _ = y{i}\n}}\n\n"
 
-        f = tmp_path / "dumping_ground.go"
+        f = tmp_path / "toolkit.go"
         f.write_text(code)
 
         entries, checked = detect_responsibility_cohesion(
             [str(f)], GO_SPEC, min_loc=5,
         )
-        # 10 disconnected functions => 10 components >= 5 threshold
+        # All singletons — toolkit pattern, not mixed responsibilities.
+        assert len(entries) == 0
+        assert checked == 1
+
+    def test_mixed_responsibilities_flagged(self, tmp_path):
+        from desloppify.languages._framework.treesitter._cohesion import (
+            detect_responsibility_cohesion,
+        )
+        from desloppify.languages._framework.treesitter._specs import GO_SPEC
+
+        # File with 3+ distinct groups of interrelated functions —
+        # genuinely mixed responsibilities.
+        code = "package main\n\n"
+        # Group A: auth functions that call each other
+        code += "func authLogin() { authValidate() }\n"
+        code += "func authValidate() { authHash() }\n"
+        code += "func authHash() { _ = 1 }\n\n"
+        # Group B: database functions that call each other
+        code += "func dbConnect() { dbQuery() }\n"
+        code += "func dbQuery() { dbParse() }\n"
+        code += "func dbParse() { _ = 1 }\n\n"
+        # Group C: HTTP functions that call each other
+        code += "func httpServe() { httpRoute() }\n"
+        code += "func httpRoute() { httpRespond() }\n"
+        code += "func httpRespond() { _ = 1 }\n\n"
+        # Padding to reach min functions
+        code += "func utilA() { _ = 1 }\n"
+        code += "func utilB() { _ = 1 }\n"
+
+        f = tmp_path / "mixed.go"
+        f.write_text(code)
+
+        entries, checked = detect_responsibility_cohesion(
+            [str(f)], GO_SPEC, min_loc=5,
+        )
+        # 3 non-singleton clusters (auth, db, http) + 2 singletons = 5 clusters
         assert len(entries) == 1
         assert entries[0]["component_count"] >= 5
         assert checked == 1

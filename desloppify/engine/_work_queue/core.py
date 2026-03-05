@@ -96,7 +96,7 @@ def build_work_queue(
 
     Pipeline:
     1. Gather    — issue items, subjective dimensions, workflow stages
-    2. Score     — estimate impact from dimension headroom, apply floor
+    2. Score     — estimate impact from dimension headroom
     3. Presort   — stamp plan positions, separate skipped items
     4. Lifecycle — filter endgame-only items when objective work remains
     5. Sort      — rank by impact/confidence, apply plan order
@@ -113,9 +113,8 @@ def build_work_queue(
     items += _gather_subjective_items(state, opts, threshold)
     items += _gather_workflow_items(state, plan, status)
 
-    # 2. Score & filter
+    # 2. Score
     enrich_with_impact(items, state.get("dimension_scores", {}))
-    items = [i for i in items if _passes_impact_floor(i)]
 
     # 3. Plan-aware ordering (part 1: separate skipped items)
     new_ids, skipped = _plan_presort(items, state, plan)
@@ -220,18 +219,6 @@ def _gather_workflow_items(
         items.append(plan_item)
     return items
 
-
-_MIN_STANDALONE_IMPACT = 0.05
-
-
-def _passes_impact_floor(item: WorkQueueItem) -> bool:
-    """Return True if item should survive the impact floor filter."""
-    if item.get("kind") != "issue":
-        return True
-    if item.get("is_review") or item.get("is_subjective"):
-        return True
-    impact = item.get("estimated_impact")
-    return not impact or impact >= _MIN_STANDALONE_IMPACT
 
 
 def _plan_presort(

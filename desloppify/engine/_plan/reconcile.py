@@ -32,6 +32,7 @@ class ReconcileResult:
     superseded: list[str] = field(default_factory=list)
     pruned: list[str] = field(default_factory=list)
     resurfaced: list[str] = field(default_factory=list)
+    clusters_completed: list[str] = field(default_factory=list)
     changes: int = 0
 
 
@@ -171,12 +172,41 @@ def reconcile_plan_after_scan(
         if not any(fid.startswith(prefix) for prefix in SYNTHETIC_PREFIXES)
     }
 
+    # Snapshot non-epic cluster sizes before superseding so we can detect
+    # clusters that become empty (all issues resolved by scan).
+    clusters = plan.get("clusters", {})
+    pre_sizes: dict[str, int] = {
+        name: len(cluster.get("issue_ids", []))
+        for name, cluster in clusters.items()
+        if not name.startswith(EPIC_PREFIX)
+    }
+
     # Check each referenced ID
     for fid in sorted(referenced_ids):
         if not _is_issue_alive(state, fid):
             if _supersede_id(plan, state, fid, now):
                 result.superseded.append(fid)
                 result.changes += 1
+
+    # Detect manual clusters that just became empty (all issues auto-resolved).
+    # Log cluster_done so the plan tracks completion the same way as user resolves.
+    for name, prev_size in pre_sizes.items():
+        if prev_size == 0:
+            continue  # was already empty
+        cluster = clusters.get(name)
+        if cluster is None:
+            continue
+        if len(cluster.get("issue_ids", [])) == 0:
+            result.clusters_completed.append(name)
+            append_log_entry(
+                plan,
+                "cluster_done",
+                issue_ids=[],
+                cluster_name=name,
+                actor="system",
+                detail={"reason": "all issues resolved by scan"},
+            )
+            result.changes += 1
 
     # Reconcile epic clusters: remove dead issues, delete empty epics
     clusters = plan.get("clusters", {})
@@ -219,6 +249,7 @@ def reconcile_plan_after_scan(
                 "superseded_count": len(result.superseded),
                 "pruned_count": len(result.pruned),
                 "resurfaced_count": len(result.resurfaced),
+                "clusters_completed_count": len(result.clusters_completed),
             },
         )
 

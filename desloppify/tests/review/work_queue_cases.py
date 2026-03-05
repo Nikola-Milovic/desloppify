@@ -800,26 +800,16 @@ def test_evidence_only_items_dont_block_subjective():
     assert len(subj_ids) == 1
 
 
-def test_impact_floor_filters_negligible_impact():
-    """Mechanical issues with estimated_impact < 0.05 are dropped."""
+def test_low_impact_items_preserved_in_queue():
+    """All open issues remain in queue regardless of impact score.
+
+    The impact floor was removed — triage/skip is the authority on what matters.
+    """
     state = _state(
         [_issue("unused::src/a.py::x", detector="unused", confidence="high")],
         dimension_scores={
             "Code quality": {"score": 99.99, "strict": 99.99, "checks": 10000, "failing": 1},
         },
-    )
-    queue = build_work_queue(state, count=None, include_subjective=False)
-    # Impact is near-zero because dimension is at ceiling
-    ids = {item["id"] for item in queue["items"]}
-    # The issue should be filtered by the impact floor
-    assert "unused::src/a.py::x" not in ids
-
-
-def test_impact_floor_preserves_items_without_scores():
-    """When no dimension_scores exist, items get impact 0.0 and are preserved."""
-    state = _state(
-        [_issue("unused::src/a.py::x", detector="unused", confidence="high")],
-        dimension_scores={},
     )
     queue = build_work_queue(state, count=None, include_subjective=False)
     ids = {item["id"] for item in queue["items"]}

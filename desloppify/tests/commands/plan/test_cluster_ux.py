@@ -41,6 +41,14 @@ def _fake_args(**overrides) -> argparse.Namespace:
         "description": None,
         "action": None,
         "steps": None,
+        "steps_file": None,
+        "add_step": None,
+        "detail": None,
+        "update_step": None,
+        "remove_step": None,
+        "done_step": None,
+        "undone_step": None,
+        "priority": None,
         "position": "top",
         "target": None,
     }
@@ -177,44 +185,30 @@ class TestStepCountFeedback:
         )
         cluster_mod._cmd_cluster_update(args)
         out = capsys.readouterr().out
-        assert "Stored 2 action step(s):" in out
-        assert "1. Rename variables" in out
-        assert "2. Update imports" in out
+        assert "Stored 2 action step(s)." in out
+        assert "Rename variables" in out
+        assert "Update imports" in out
 
-    def test_cluster_update_warns_zero_steps(self, monkeypatch, capsys):
-        """Update with empty steps list shows warning."""
+    def test_cluster_update_with_add_step(self, monkeypatch, capsys):
+        """--add-step appends a structured step."""
         plan = empty_plan()
         plan["clusters"]["my-cluster"] = {
             "issue_ids": ["f1"],
             "description": "test",
+            "action_steps": [{"title": "existing"}],
         }
 
         monkeypatch.setattr(cluster_mod, "load_plan", lambda *a, **kw: plan)
         monkeypatch.setattr(cluster_mod, "save_plan", lambda p, *a, **kw: None)
 
-        args = _fake_args(cluster_name="my-cluster", steps=[])
+        args = _fake_args(cluster_name="my-cluster", add_step="New step", detail="Some detail")
         cluster_mod._cmd_cluster_update(args)
         out = capsys.readouterr().out
-        assert "0 steps stored" in out.lower()
-        assert "forget" in out.lower()
-
-    def test_cluster_update_warns_single_long_step(self, monkeypatch, capsys):
-        """Update with one very long step warns about shell quoting."""
-        plan = empty_plan()
-        plan["clusters"]["my-cluster"] = {
-            "issue_ids": ["f1"],
-            "description": "test",
-        }
-
-        monkeypatch.setattr(cluster_mod, "load_plan", lambda *a, **kw: plan)
-        monkeypatch.setattr(cluster_mod, "save_plan", lambda p, *a, **kw: None)
-
-        long_step = "x" * 150
-        args = _fake_args(cluster_name="my-cluster", steps=[long_step])
-        cluster_mod._cmd_cluster_update(args)
-        out = capsys.readouterr().out
-        assert "1 step stored" in out.lower()
-        assert "quoting" in out.lower()
+        assert "Added step 2: New step" in out
+        steps = plan["clusters"]["my-cluster"]["action_steps"]
+        assert len(steps) == 2
+        assert steps[1]["title"] == "New step"
+        assert steps[1]["detail"] == "Some detail"
 
 
 # ---------------------------------------------------------------------------

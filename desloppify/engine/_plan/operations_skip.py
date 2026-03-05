@@ -43,28 +43,50 @@ def skip_items(
     return count
 
 
+def _is_protected_skip(entry: SkipEntry) -> bool:
+    """A skip is protected if it was permanent/false_positive AND has a note.
+
+    Protected skips represent deliberate human judgment and should not be
+    silently undone by bulk unskip operations.
+    """
+    kind = str(entry.get("kind", ""))
+    has_note = bool(entry.get("note", ""))
+    return kind in ("permanent", "false_positive") and has_note
+
+
 def unskip_items(
-    plan: PlanModel, issue_ids: list[str]
-) -> tuple[int, list[str]]:
+    plan: PlanModel,
+    issue_ids: list[str],
+    *,
+    include_protected: bool = False,
+) -> tuple[int, list[str], list[str]]:
     """Bring issue IDs back from skipped to the end of queue_order.
 
-    Returns ``(count_unskipped, permanent_ids_needing_state_reopen)``
+    Returns ``(count_unskipped, permanent_ids_needing_state_reopen, protected_ids_kept)``
     where the second list contains IDs that were permanent or false_positive
-    and need their state-layer status reopened by the caller.
+    and need their state-layer status reopened by the caller, and the third
+    list contains protected IDs that were NOT unskipped (unless
+    ``include_protected=True``).
     """
     ensure_plan_defaults(plan)
     count = 0
     need_reopen: list[str] = []
+    protected_kept: list[str] = []
     skipped: dict[str, SkipEntry] = plan["skipped"]
     for fid in issue_ids:
-        entry = skipped.pop(fid, None)
-        if entry is not None:
-            if skip_kind_needs_state_reopen(str(entry.get("kind", ""))):
-                need_reopen.append(fid)
-            if fid not in plan["queue_order"]:
-                plan["queue_order"].append(fid)
-            count += 1
-    return count, need_reopen
+        entry = skipped.get(fid)
+        if entry is None:
+            continue
+        if not include_protected and _is_protected_skip(entry):
+            protected_kept.append(fid)
+            continue
+        skipped.pop(fid)
+        if skip_kind_needs_state_reopen(str(entry.get("kind", ""))):
+            need_reopen.append(fid)
+        if fid not in plan["queue_order"]:
+            plan["queue_order"].append(fid)
+        count += 1
+    return count, need_reopen, protected_kept
 
 
 def resurface_stale_skips(

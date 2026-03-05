@@ -50,6 +50,8 @@ def serialize_item(item: Mapping[str, Any]) -> dict[str, Any]:
             serialized_cluster["members_truncated"] = True
             serialized_cluster["members_sample_limit"] = _CLUSTER_MEMBER_SAMPLE_LIMIT
         serialized_cluster["primary_command"] = item.get("primary_command")
+        if item.get("autofix_hint"):
+            serialized_cluster["autofix_hint"] = item["autofix_hint"]
         action_steps = item.get("action_steps") or []
         if action_steps:
             serialized_cluster["action_steps"] = action_steps
@@ -114,6 +116,11 @@ def build_query_payload(
         "items": serialized,
         "queue": queue_section,
         "narrative": narrative,
+        "agent_notes": [
+            "Do NOT use `desloppify plan skip` unless the user explicitly asks you to skip an item.",
+            "If you cannot fix an item, report it and move to the next one.",
+            "For cluster items: if the autofix_hint finds 0 results, drill into individual issues with the primary_command.",
+        ],
     }
 
     if plan and (

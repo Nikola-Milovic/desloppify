@@ -26,13 +26,13 @@ def find_suspect_detectors(
         )
 
     # 'review' issues enter via `desloppify review --import`, not via scan phases.
-    # They are always marked suspect so the scan never auto-resolves them.
+    # They are always suspect so the scan never auto-resolves them — regardless
+    # of current issue status (open, wontfix, etc.).
     import_only_detectors = {"review"}
-    suspect: set[str] = set()
+    suspect: set[str] = set(import_only_detectors)
 
     for detector, previous_count in previous_open_by_detector.items():
         if detector in import_only_detectors:
-            suspect.add(detector)
             continue
         if current_by_detector.get(detector, 0) > 0:
             continue

@@ -163,9 +163,13 @@ def _build_cluster_meta(
     else:
         summary = stored_desc or f"{len(members)} issues"
 
-    primary_command = cluster_data.get("action")
-    if not primary_command:
+    action = cluster_data.get("action") or ""
+    if "desloppify autofix" in action:
         primary_command = f"desloppify next --cluster {cluster_name} --count 10"
+        autofix_hint = action
+    else:
+        primary_command = action or f"desloppify next --cluster {cluster_name} --count 10"
+        autofix_hint = None
 
     estimated_impact = max(
         (m.get("estimated_impact", 0.0) for m in members), default=0.0
@@ -179,6 +183,7 @@ def _build_cluster_meta(
         "members": members,
         "member_count": len(members),
         "primary_command": primary_command,
+        "autofix_hint": autofix_hint,
         "cluster_name": cluster_name,
         "cluster_auto": True,
         "cluster_optional": bool(cluster_data.get("optional")),
