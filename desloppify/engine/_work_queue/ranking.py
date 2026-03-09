@@ -77,7 +77,7 @@ def enrich_with_impact(
             item["estimated_impact"] = 0.0
         return
 
-    breakdown = compute_health_breakdown(dimension_scores)
+    breakdown = compute_health_breakdown(dimension_scores, score_key="strict")
     entries = breakdown.get("entries", [])
 
     # Build lookup: normalized dimension name -> {per_point, headroom}

@@ -760,6 +760,136 @@ def test_auto_cluster_runs_repair():
     assert changes >= 1
 
 
+def test_repair_missing_override_for_cluster_member():
+    """Issue in cluster.issue_ids but no override → create override."""
+    plan = empty_plan()
+    ensure_plan_defaults(plan)
+
+    plan["clusters"]["my-cluster"] = {
+        "name": "my-cluster",
+        "issue_ids": ["a", "b"],
+        "auto": False,
+        "cluster_key": "",
+        "action": None,
+        "user_modified": False,
+    }
+    # Only "a" has an override; "b" has none
+    plan["overrides"]["a"] = {
+        "issue_id": "a",
+        "cluster": "my-cluster",
+        "created_at": "2025-01-01T00:00:00+00:00",
+    }
+
+    from desloppify.engine._state.schema import utc_now
+    repaired = _repair_ghost_cluster_refs(plan, utc_now())
+
+    assert repaired == 1
+    assert "b" in plan["overrides"]
+    assert plan["overrides"]["b"]["cluster"] == "my-cluster"
+
+
+def test_repair_override_points_wrong_cluster():
+    """Override says cluster X but issue is in cluster Y's issue_ids → fix override."""
+    plan = empty_plan()
+    ensure_plan_defaults(plan)
+
+    plan["clusters"]["cluster-x"] = {
+        "name": "cluster-x",
+        "issue_ids": [],
+        "auto": True,
+        "cluster_key": "auto::x",
+        "action": None,
+        "user_modified": False,
+    }
+    plan["clusters"]["cluster-y"] = {
+        "name": "cluster-y",
+        "issue_ids": ["a"],
+        "auto": True,
+        "cluster_key": "auto::y",
+        "action": None,
+        "user_modified": False,
+    }
+    # Override wrongly points to cluster-x
+    plan["overrides"]["a"] = {
+        "issue_id": "a",
+        "cluster": "cluster-x",
+        "created_at": "2025-01-01T00:00:00+00:00",
+    }
+
+    from desloppify.engine._state.schema import utc_now
+    repaired = _repair_ghost_cluster_refs(plan, utc_now())
+
+    assert repaired >= 1
+    # Override should now match cluster.issue_ids (cluster-y)
+    assert plan["overrides"]["a"]["cluster"] == "cluster-y"
+
+
+def test_repair_override_not_in_any_cluster():
+    """Override points to real cluster but issue not in any cluster's issue_ids → clear."""
+    plan = empty_plan()
+    ensure_plan_defaults(plan)
+
+    plan["clusters"]["my-cluster"] = {
+        "name": "my-cluster",
+        "issue_ids": ["b"],  # "a" is NOT here
+        "auto": False,
+        "cluster_key": "",
+        "action": None,
+        "user_modified": False,
+    }
+    plan["overrides"]["a"] = {
+        "issue_id": "a",
+        "cluster": "my-cluster",  # points to real cluster, but not in its issue_ids
+        "created_at": "2025-01-01T00:00:00+00:00",
+    }
+    plan["overrides"]["b"] = {
+        "issue_id": "b",
+        "cluster": "my-cluster",
+        "created_at": "2025-01-01T00:00:00+00:00",
+    }
+
+    from desloppify.engine._state.schema import utc_now
+    repaired = _repair_ghost_cluster_refs(plan, utc_now())
+
+    assert repaired == 1
+    assert plan["overrides"]["a"]["cluster"] is None
+    assert plan["overrides"]["b"]["cluster"] == "my-cluster"
+
+
+def test_repair_manual_cluster_wins_over_auto():
+    """When issue is in both manual and auto cluster, override should point to manual."""
+    plan = empty_plan()
+    ensure_plan_defaults(plan)
+
+    plan["clusters"]["auto/unused"] = {
+        "name": "auto/unused",
+        "issue_ids": ["a"],
+        "auto": True,
+        "cluster_key": "auto::unused",
+        "action": None,
+        "user_modified": False,
+    }
+    plan["clusters"]["my-manual"] = {
+        "name": "my-manual",
+        "issue_ids": ["a"],
+        "auto": False,
+        "cluster_key": "",
+        "action": None,
+        "user_modified": False,
+    }
+    plan["overrides"]["a"] = {
+        "issue_id": "a",
+        "cluster": "auto/unused",
+        "created_at": "2025-01-01T00:00:00+00:00",
+    }
+
+    from desloppify.engine._state.schema import utc_now
+    repaired = _repair_ghost_cluster_refs(plan, utc_now())
+
+    # Manual cluster should take priority
+    assert plan["overrides"]["a"]["cluster"] == "my-manual"
+
+
 # ---------------------------------------------------------------------------
 # Under-target regression tests (#186)
 # ---------------------------------------------------------------------------

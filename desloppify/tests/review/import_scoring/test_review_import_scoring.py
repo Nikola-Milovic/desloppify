@@ -161,11 +161,13 @@ class TestImportReviewIssues:
             },
         ]
         diff = import_review_issues(_as_review_payload(data), empty_state, "typescript")
-        assert diff["new"] == 2
-        assert len(empty_state["issues"]) == 2
+        # Same file + dimension + identifier = same issue ID, even with different summaries.
+        # The second entry overwrites the first (last-writer wins during import).
+        assert diff["new"] == 1
+        assert len(empty_state["issues"]) == 1
 
     def test_id_stable_for_same_summary(self, empty_state):
-        """Same summary should produce the same issue ID (stable hash)."""
+        """Same summary should produce the same issue ID (stable identifier)."""
         data = [
             {
                 "file": "src/foo.ts",

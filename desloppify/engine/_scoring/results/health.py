@@ -100,6 +100,8 @@ def compute_health_breakdown(
     subjective_rows: list[dict[str, float | str]] = []
 
     for name, data in dimension_scores.items():
+        if data.get("carried_forward"):
+            continue
         score = float(data.get(score_key, data.get("score", 0.0)))
         is_subjective = "subjective_assessment" in data.get("detectors", {})
         if is_subjective:

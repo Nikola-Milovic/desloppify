@@ -642,7 +642,7 @@ class TestGenerateRemediationPlan:
         f = make_issue(
             detector="review",
             file="",
-            name="holistic::cross_module_architecture::god::abc12345",
+            name="holistic::cross_module_architecture::god",
             tier=3,
             confidence="high",
             summary="God module detected",

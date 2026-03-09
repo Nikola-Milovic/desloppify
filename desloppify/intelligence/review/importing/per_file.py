@@ -118,7 +118,7 @@ def import_review_issues(
         imported = make_issue(
             detector="review",
             file=imported_file,
-            name=f"{dimension}::{issue['identifier']}::{content_hash}",
+            name=f"{dimension}::{issue['identifier']}",
             tier=review_tier(confidence, holistic=False),
             confidence=confidence,
             summary=issue["summary"],
@@ -128,6 +128,7 @@ def import_review_issues(
                 "suggestion": issue.get("suggestion", ""),
                 "reasoning": issue.get("reasoning", ""),
                 "evidence_lines": issue.get("evidence_lines", []),
+                "content_hash": content_hash,
             },
         )
         imported["lang"] = lang_name

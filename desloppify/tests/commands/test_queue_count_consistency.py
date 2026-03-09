@@ -79,7 +79,7 @@ class TestAutoResolveOutOfScope:
         assert "unused" in detectors
 
     def test_out_of_scope_resolution_attestation(self):
-        """Out-of-scope issues get scan_verified attestation with scope note."""
+        """Out-of-scope issues get out_of_scope attestation with scope note."""
         existing = {
             "f1": {
                 "id": "f1", "status": "open", "file": "supabase/fn.ts",
@@ -95,7 +95,7 @@ class TestAutoResolveOutOfScope:
             scan_path="src",
         )
         attestation = existing["f1"]["resolution_attestation"]
-        assert attestation["kind"] == "scan_verified"
+        assert attestation["kind"] == "out_of_scope"
         assert "scan_path: src" in attestation["text"]
 
     def test_no_scan_path_skips_nothing(self):

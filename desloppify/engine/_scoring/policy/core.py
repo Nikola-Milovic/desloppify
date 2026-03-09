@@ -190,7 +190,7 @@ SUBJECTIVE_CHECKS = 10
 
 FAILURE_STATUSES_BY_MODE: dict[ScoreMode, frozenset[str]] = {
     "lenient": frozenset({"open"}),
-    "strict": frozenset({"open", "wontfix"}),
+    "strict": frozenset({"open", "wontfix", "auto_resolved"}),
     "verified_strict": frozenset({"open", "wontfix", "fixed", "false_positive"}),
 }
 

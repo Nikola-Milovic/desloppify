@@ -22,7 +22,7 @@ def make_unused_issues(entries: list[dict], stderr_fn) -> list[Issue]:
             make_issue(
                 "unused",
                 e["file"],
-                e["name"],
+                f"{e['name']}:{e['line']}",
                 tier=tier,
                 confidence="high",
                 summary=f"Unused {e['category']}: {e['name']}",

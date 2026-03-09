@@ -5,11 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-_CONFIDENCE_WEIGHTS = {
-    "high": 1.2,
-    "medium": 1.0,
-    "low": 0.75,
-}
+from desloppify.base.scoring_constants import CONFIDENCE_WEIGHTS
+
 _IMPACT_SCOPE_WEIGHTS = {
     "local": 1.0,
     "module": 1.3,
@@ -84,7 +81,7 @@ class DimensionMergeScorer:
             issue.get("fix_scope", note_ref.get("fix_scope", "single_edit"))
         ).strip().lower()
 
-        confidence_weight = _CONFIDENCE_WEIGHTS.get(confidence, 1.0)
+        confidence_weight = CONFIDENCE_WEIGHTS.get(confidence, 1.0)
         impact_weight = _IMPACT_SCOPE_WEIGHTS.get(impact_scope, 1.0)
         fix_weight = _FIX_SCOPE_WEIGHTS.get(fix_scope, 1.0)
         return confidence_weight * impact_weight * fix_weight

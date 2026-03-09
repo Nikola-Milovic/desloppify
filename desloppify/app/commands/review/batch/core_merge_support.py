@@ -2,17 +2,12 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 from desloppify.intelligence.review.feedback_contract import (
     LEGACY_REVIEW_QUALITY_HIGH_SCORE_MISSING_ISSUES_KEY,
     REVIEW_QUALITY_HIGH_SCORE_MISSING_ISSUES_KEY,
 )
 from desloppify.intelligence.review.issue_merge import (
-    merge_list_fields,
     normalize_word_set,
-    pick_longer_text,
-    track_merged_from,
 )
 
 from .core_models import (
@@ -120,36 +115,6 @@ def _issue_identity_key(issue: BatchIssuePayload) -> str:
     return f"{dim}::{summary}"
 
 
-def _merge_issue_payload(
-    existing: BatchIssuePayload,
-    incoming: BatchIssuePayload,
-) -> None:
-    """Merge two concept-equivalent issues into the existing payload."""
-    merge_list_fields(existing, incoming, ("related_files", "evidence"))
-    pick_longer_text(existing, incoming, "summary")
-    pick_longer_text(existing, incoming, "suggestion")
-    track_merged_from(existing, str(incoming.get("identifier", "")).strip())
-
-
-def _should_merge_issues(
-    existing: BatchIssuePayload,
-    incoming: BatchIssuePayload,
-) -> bool:
-    """Check whether two key-matched issues are similar enough to merge."""
-    existing_summary = normalize_word_set(str(existing.get("summary", "")))
-    incoming_summary = normalize_word_set(str(incoming.get("summary", "")))
-    if existing_summary and incoming_summary:
-        overlap = len(existing_summary & incoming_summary)
-        union = len(existing_summary | incoming_summary)
-        if union and overlap / union >= 0.3:
-            return True
-    existing_files = set(cast(list[str], existing.get("related_files", [])))
-    incoming_files = set(cast(list[str], incoming.get("related_files", [])))
-    if existing_files and incoming_files:
-        return bool(existing_files & incoming_files)
-    return not existing_summary or not incoming_summary
-
-
 def _accumulate_batch_quality(
     result: BatchResultPayload,
     *,
@@ -229,6 +194,4 @@ __all__ = [
     "_compute_merged_assessments",
     "_issue_identity_key",
     "_issue_pressure_by_dimension",
-    "_merge_issue_payload",
-    "_should_merge_issues",
 ]

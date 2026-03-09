@@ -4,10 +4,10 @@ from __future__ import annotations
 
 
 def short_issue_id(fid: str) -> str:
-    """Extract the 8-char hash suffix from a issue ID for compact display.
+    """Extract a short suffix from a issue ID for compact display.
 
-    Issue IDs look like ``review::.::holistic::dim::identifier::abcdef12``.
-    Commands accept the hash suffix as a shorthand for the full ID.
+    Issue IDs look like ``review::.::holistic::dim::identifier``.
+    Commands accept the last segment as a shorthand for the full ID.
     """
     if "::" in fid:
         suffix = fid.rsplit("::", 1)[-1]

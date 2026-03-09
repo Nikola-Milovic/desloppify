@@ -66,9 +66,9 @@ def test_merge_penalizes_high_scores_when_severe_issues_exist():
             }
         ]
     )
-    assert merged["assessments"]["high_level_elegance"] == 75.7
+    assert merged["assessments"]["high_level_elegance"] == 78.1
     quality = merged.get("review_quality", {})
-    assert quality["issue_pressure"] == 4.08
+    assert quality["issue_pressure"] == 3.4
     assert quality["dimensions_with_issues"] == 1
 
 

@@ -23,6 +23,7 @@ from desloppify.intelligence.review.feedback_contract import (
 from ..helpers import parse_dimensions
 from ..importing.cmd import do_import as _do_import
 from ..packet.policy import coerce_review_batch_file_limit, redacted_review_config
+from ..prompt_sections import explode_to_single_dimension
 from ..runner_failures import print_failures, print_failures_and_raise
 from ..runner_packets import (
     build_batch_import_provenance,
@@ -54,6 +55,11 @@ from ..runtime_paths import (
 )
 from .core_merge_support import assessment_weight  # noqa: F401 — re-exported
 from .core_models import BatchResultPayload
+from .scope import (
+    collect_reviewed_files_from_batches,
+    normalize_dimension_list,
+    scored_dimensions_for_lang,
+)
 from .core_normalize import normalize_batch_result
 from .core_parse import extract_json_payload, parse_batch_selection
 from .merge import merge_batch_results
@@ -439,6 +445,64 @@ def do_import_run(
         run_stamp=stamp,
         batch_indexes=successful_indexes,
     )
+
+    # -- enrich with review_scope / reviewed_files / assessment_coverage --
+    # Mirror the metadata that merge_and_write_results adds in the normal flow
+    # so that downstream import does not blindly auto-resolve all dimensions.
+    raw_batches = packet.get("investigation_batches", [])
+    raw_dim_prompts = packet.get("dimension_prompts")
+    batches = explode_to_single_dimension(
+        raw_batches if isinstance(raw_batches, list) else [],
+        dimension_prompts=raw_dim_prompts if isinstance(raw_dim_prompts, dict) else None,
+    )
+    reviewed_files = collect_reviewed_files_from_batches(
+        batches=batches,
+        selected_indexes=successful_indexes,
+    )
+    full_sweep_included = any(
+        str(batch.get("name", "")).strip().lower() == "full codebase sweep"
+        for idx in successful_indexes
+        if 0 <= idx < len(batches)
+        for batch in [batches[idx]]
+        if isinstance(batch, dict)
+    )
+    review_scope: dict[str, object] = {
+        "reviewed_files_count": len(reviewed_files),
+        "successful_batch_count": len(successful_indexes),
+        "full_sweep_included": full_sweep_included,
+    }
+    total_files = packet.get("total_files")
+    if isinstance(total_files, int) and not isinstance(total_files, bool) and total_files > 0:
+        review_scope["total_files"] = total_files
+    merged["review_scope"] = review_scope
+    if reviewed_files:
+        merged["reviewed_files"] = reviewed_files
+
+    packet_dimensions = normalize_dimension_list(packet.get("dimensions", []))
+    lang_name = getattr(lang, "name", None) or str(getattr(lang, "lang", ""))
+    scored_dimensions = scored_dimensions_for_lang(lang_name) if lang_name else []
+    merged_assessment_dims = normalize_dimension_list(
+        list((merged.get("assessments") or {}).keys())
+    )
+    merged_issue_dims = normalize_dimension_list(
+        [
+            issue.get("dimension")
+            for issue in (merged.get("issues") or [])
+            if isinstance(issue, dict)
+        ]
+    )
+    merged_imported_dims = normalize_dimension_list(
+        merged_assessment_dims + merged_issue_dims
+    )
+    review_scope["imported_dimensions"] = merged_imported_dims
+    merged["assessment_coverage"] = {
+        "scored_dimensions": scored_dimensions,
+        "selected_dimensions": packet_dimensions,
+        "imported_dimensions": merged_assessment_dims,
+        "missing_dimensions": [
+            dim for dim in scored_dimensions if dim not in set(merged_assessment_dims)
+        ],
+    }
 
     # -- write merged output (always — this is inside the run dir, not state) --
     merged_path = run_dir / "holistic_issues_merged.json"

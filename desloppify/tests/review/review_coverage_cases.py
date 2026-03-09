@@ -357,9 +357,10 @@ class TestReviewProtectedFromAutoResolve:
 
 
 class TestIDCollision:
-    """Two issues same file+dimension+identifier get distinct IDs."""
+    """Two issues same file+dimension+identifier collapse to one ID (no content-hash churn)."""
 
-    def test_distinct_ids_with_evidence_lines(self):
+    def test_same_identifier_collapses_with_evidence_lines(self):
+        """Same identifier = same issue, even with different summary text."""
         issues_data = [
             {
                 "file": "module.py",
@@ -385,12 +386,12 @@ class TestIDCollision:
         state = empty_state()
         _ = _call_import_review_issues(issues_data, state, "python")
 
-        # Both should be present with distinct IDs (content-hash disambiguated)
+        # Same file+dimension+identifier → same issue ID (last writer wins)
         ids = list(state["issues"].keys())
-        assert len(ids) == 2
-        assert ids[0] != ids[1]
+        assert len(ids) == 1
 
-    def test_distinct_ids_without_evidence_lines(self):
+    def test_same_identifier_collapses_without_evidence_lines(self):
+        """Same identifier = same issue, even with different summary text."""
         issues_data = [
             {
                 "file": "module.py",
@@ -417,11 +418,10 @@ class TestIDCollision:
         _ = _call_import_review_issues(issues_data, state, "python")
 
         ids = list(state["issues"].keys())
-        assert len(ids) == 2
-        assert ids[0] != ids[1]
+        assert len(ids) == 1
 
     def test_same_issue_same_id(self):
-        """Same evidence lines → same ID (stable across re-imports)."""
+        """Same identifier → same ID (stable across re-imports)."""
         issues_data = [
             {
                 "file": "module.py",

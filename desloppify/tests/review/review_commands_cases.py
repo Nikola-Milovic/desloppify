@@ -1026,13 +1026,13 @@ class TestCmdReviewPrepare:
 
         payload = captured["payload"]
         assert isinstance(payload, dict)
-        assert payload["assessments"]["high_level_elegance"] == 71.5
-        assert payload["assessments"]["mid_level_elegance"] == 62.1
-        assert payload["assessments"]["low_level_elegance"] == 77.8
+        assert payload["assessments"]["high_level_elegance"] == 72.4
+        assert payload["assessments"]["mid_level_elegance"] == 63.0
+        assert payload["assessments"]["low_level_elegance"] == 78.5
         assert payload["reviewed_files"] == ["src/a.ts", "src/b.ts", "src/c.ts", "src/d.ts"]
         assert "dimension_notes" in payload
         assert "review_quality" in payload
-        assert payload["review_quality"]["dimension_coverage"] == 1.0
+        assert payload["review_quality"]["dimension_coverage"] == round(1 / 3, 3)
         assert len(payload["issues"]) == 3
         provenance = payload.get("provenance", {})
         assert provenance.get("kind") == "blind_review_batch_import"
@@ -1525,7 +1525,7 @@ class TestCmdReviewPrepare:
             do_run_batches(args, empty_state, lang, "fake_sp", config={})
 
         payload = captured["payload"]
-        assert payload["assessments"]["mid_level_elegance"] == pytest.approx(74.1, abs=0.1)
+        assert payload["assessments"]["mid_level_elegance"] == pytest.approx(75.0, abs=0.1)
         assert payload["reviewed_files"] == ["src/a.ts"]
         assert captured["kwargs"]["allow_partial"] is True
         summary_files = sorted(runs_dir.glob("*/run_summary.json"))
@@ -1717,7 +1717,7 @@ class TestCmdReviewPrepare:
         payload = captured["payload"]
         assert isinstance(payload, dict)
         abstraction = payload["assessments"]["abstraction_fitness"]
-        assert abstraction["score"] == 66.5
+        assert abstraction["score"] == 67.4
         assert abstraction["components"] == [
             "Abstraction Leverage",
             "Indirection Cost",

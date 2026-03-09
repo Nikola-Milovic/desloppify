@@ -46,7 +46,15 @@ def find_suspect_detectors(
     return suspect
 
 
-def _mark_auto_resolved(issue: dict, now: str, *, note: str, attestation_text: str) -> None:
+def _mark_auto_resolved(
+    issue: dict,
+    now: str,
+    *,
+    note: str,
+    attestation_text: str,
+    attestation_kind: str = "scan_verified",
+    scan_verified: bool = True,
+) -> None:
     """Stamp a issue as auto-resolved with the given note and attestation."""
     issue["status"] = "auto_resolved"
     issue["resolved_at"] = now
@@ -54,10 +62,10 @@ def _mark_auto_resolved(issue: dict, now: str, *, note: str, attestation_text: s
     issue["suppressed_at"] = None
     issue["suppression_pattern"] = None
     issue["resolution_attestation"] = {
-        "kind": "scan_verified",
+        "kind": attestation_kind,
         "text": attestation_text,
         "attested_at": now,
-        "scan_verified": True,
+        "scan_verified": scan_verified,
     }
     issue["note"] = note
 
@@ -110,6 +118,7 @@ def auto_resolve_disappeared(
                 scope_note = f"Out of current scan scope (scan_path: {scan_path})"
                 _mark_auto_resolved(
                     previous, now, note=scope_note, attestation_text=scope_note,
+                    attestation_kind="out_of_scope", scan_verified=False,
                 )
                 resolved_detectors.add(previous.get("detector", "unknown"))
                 resolved_out_of_scope += 1

@@ -21,6 +21,7 @@ from desloppify.intelligence import review as review_mod
 
 from .batch.orchestrator import FOLLOWUP_SCAN_TIMEOUT_SECONDS
 from .helpers import parse_dimensions
+from .packet.policy import coerce_review_batch_file_limit, redacted_review_config
 from .importing.cmd import do_import, do_validate_import
 from .runner_packets import run_stamp, sha256_file, write_packet_snapshot
 from .runner_process import FollowupScanDeps, run_followup_scan
@@ -154,12 +155,14 @@ def _prepare_packet_snapshot(
         options=review_mod.HolisticReviewPrepareOptions(
             dimensions=dimensions,
             files=found_files or None,
+            max_files_per_batch=coerce_review_batch_file_limit(config),
             include_issue_history=retrospective,
             issue_history_max_issues=retrospective_max_issues,
             issue_history_max_batch_items=retrospective_max_batch_items,
         ),
     )
     packet["narrative"] = narrative
+    packet["config"] = redacted_review_config(config)
     next_command = "desloppify review --external-submit --session-id <id> --import <file>"
     if retrospective:
         next_command += (

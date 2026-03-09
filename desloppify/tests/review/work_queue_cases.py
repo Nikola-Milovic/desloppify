@@ -214,7 +214,7 @@ def test_subjective_items_respect_target_threshold():
 
 def test_subjective_item_uses_show_review_when_matching_review_issues_exist():
     review = _issue(
-        "review::.::holistic::mid_level_elegance::split::abc12345",
+        "review::.::holistic::mid_level_elegance::split",
         detector="review",
         tier=3,
         detail={"holistic": True, "dimension": "mid_level_elegance"},

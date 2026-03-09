@@ -112,6 +112,7 @@ def validate_and_build_issues(
             "evidence": issue["evidence"],
             "suggestion": issue.get("suggestion", ""),
             "reasoning": issue.get("reasoning", ""),
+            "content_hash": content_hash,
         }
         if is_confirmed_concern:
             detail["concern_type"] = issue.get("concern_type", "")
@@ -123,7 +124,7 @@ def validate_and_build_issues(
         imported = make_issue(
             detector=detector,
             file=issue_file,
-            name=f"{prefix}::{dimension}::{issue['identifier']}::{content_hash}",
+            name=f"{prefix}::{dimension}::{issue['identifier']}",
             tier=review_tier(confidence, holistic=True),
             confidence=confidence,
             summary=summary_text,
