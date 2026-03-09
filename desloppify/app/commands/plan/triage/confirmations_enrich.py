@@ -8,6 +8,8 @@ from desloppify.base.output.terminal import colorize
 from desloppify.base.output.user_message import print_user_message
 from desloppify.state import utc_now
 
+from .confirmations_basic import MIN_ATTESTATION_LEN, validate_attestation
+from .helpers import purge_triage_stage
 from .services import TriageServices, default_triage_services
 
 
@@ -20,7 +22,7 @@ def confirm_enrich(
     services: TriageServices | None = None,
 ) -> None:
     """Show enrich summary and record confirmation if attestation is valid."""
-    from . import confirmations as host  # noqa: PLC0415
+
 
     resolved_services = services or default_triage_services()
     if "enrich" not in stages:
@@ -108,21 +110,21 @@ def confirm_enrich(
 
     enrich_clusters = [n for n in plan.get("clusters", {}) if not plan["clusters"][n].get("auto")]
 
-    if not attestation or len(attestation.strip()) < host._MIN_ATTESTATION_LEN:
+    if not attestation or len(attestation.strip()) < MIN_ATTESTATION_LEN:
         if attestation:
-            print(colorize(f"\n  Attestation too short ({len(attestation.strip())} chars, min {host._MIN_ATTESTATION_LEN}).", "red"))
+            print(colorize(f"\n  Attestation too short ({len(attestation.strip())} chars, min {MIN_ATTESTATION_LEN}).", "red"))
         print(colorize("\n  If satisfied, confirm:", "dim"))
         print(colorize('    desloppify plan triage --confirm enrich --attestation "Steps are executor-ready..."', "dim"))
         return
 
-    validation_err = host._validate_attestation(attestation.strip(), "enrich", cluster_names=enrich_clusters)
+    validation_err = validate_attestation(attestation.strip(), "enrich", cluster_names=enrich_clusters)
     if validation_err:
         print(colorize(f"\n  {validation_err}", "red"))
         return
 
     stages["enrich"]["confirmed_at"] = utc_now()
     stages["enrich"]["confirmed_text"] = attestation.strip()
-    host.purge_triage_stage(plan, "enrich")
+    purge_triage_stage(plan, "enrich")
     resolved_services.append_log_entry(
         plan,
         "triage_confirm_enrich",
@@ -147,7 +149,7 @@ def confirm_sense_check(
     services: TriageServices | None = None,
 ) -> None:
     """Show sense-check summary and record confirmation if attestation is valid."""
-    from . import confirmations as host  # noqa: PLC0415
+
 
     resolved_services = services or default_triage_services()
     if "sense-check" not in stages:
@@ -210,21 +212,21 @@ def confirm_sense_check(
 
     sense_check_clusters = [n for n in plan.get("clusters", {}) if not plan["clusters"][n].get("auto")]
 
-    if not attestation or len(attestation.strip()) < host._MIN_ATTESTATION_LEN:
+    if not attestation or len(attestation.strip()) < MIN_ATTESTATION_LEN:
         if attestation:
-            print(colorize(f"\n  Attestation too short ({len(attestation.strip())} chars, min {host._MIN_ATTESTATION_LEN}).", "red"))
+            print(colorize(f"\n  Attestation too short ({len(attestation.strip())} chars, min {MIN_ATTESTATION_LEN}).", "red"))
         print(colorize("\n  If satisfied, confirm:", "dim"))
         print(colorize('    desloppify plan triage --confirm sense-check --attestation "Content and structure verified..."', "dim"))
         return
 
-    validation_err = host._validate_attestation(attestation.strip(), "sense-check", cluster_names=sense_check_clusters)
+    validation_err = validate_attestation(attestation.strip(), "sense-check", cluster_names=sense_check_clusters)
     if validation_err:
         print(colorize(f"\n  {validation_err}", "red"))
         return
 
     stages["sense-check"]["confirmed_at"] = utc_now()
     stages["sense-check"]["confirmed_text"] = attestation.strip()
-    host.purge_triage_stage(plan, "sense-check")
+    purge_triage_stage(plan, "sense-check")
     resolved_services.append_log_entry(
         plan,
         "triage_confirm_sense_check",

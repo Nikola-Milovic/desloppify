@@ -148,7 +148,6 @@ def test_app_plan_modules_avoid_private_engine_plan_imports():
         "app/commands/plan/triage/helpers.py",
         "app/commands/plan/triage/runner/stage_validation.py",
         "app/commands/plan/triage/runner/stage_prompts.py",
-        "app/commands/plan/triage_playbook.py",
         "app/commands/resolve/cmd.py",
         "app/commands/review/importing/cmd.py",
     ]

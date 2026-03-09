@@ -10,10 +10,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
-from desloppify.base.registry_catalog import (
-    DETECTORS as _CATALOG_DETECTORS,
-)
-from desloppify.base.registry_catalog import DISPLAY_ORDER, DetectorMeta
+from desloppify.base.registry_catalog_entries import DETECTORS as _CATALOG_DETECTORS
+from desloppify.base.registry_catalog_models import DISPLAY_ORDER, DetectorMeta
 
 _BASE_DETECTORS: dict[str, DetectorMeta] = dict(_CATALOG_DETECTORS)
 _BASE_DISPLAY_ORDER: list[str] = list(DISPLAY_ORDER)

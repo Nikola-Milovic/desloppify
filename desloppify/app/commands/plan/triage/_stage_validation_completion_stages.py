@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from desloppify.engine._plan.triage_playbook import TRIAGE_CMD_ORGANIZE
 from desloppify.base.output.terminal import colorize
+from desloppify.engine._plan.triage_playbook import TRIAGE_CMD_ORGANIZE
 
+from ._stage_validation_enrich_checks import _underspecified_steps
 from .helpers import manual_clusters_with_issues
 from .stage_helpers import unenriched_clusters
-from ._stage_validation_enrich_checks import _underspecified_steps
 
 
 def _require_enrich_stage_for_complete(
@@ -43,6 +43,8 @@ def _auto_confirm_enrich_for_complete(
     attestation: str | None,
     save_plan_fn=None,
 ) -> bool:
+    from ._stage_validation import _auto_confirm_stage  # noqa: PLC0415
+
     enrich_stage = stages.get("enrich")
     if enrich_stage is None:
         return False
@@ -57,9 +59,9 @@ def _auto_confirm_enrich_for_complete(
         return False
 
     cluster_names = [name for name in plan.get("clusters", {}) if not plan["clusters"][name].get("auto")]
-    from . import _stage_validation as host  # noqa: PLC0415
 
-    return host._auto_confirm_stage(
+
+    return _auto_confirm_stage(
         plan=plan,
         stage_record=enrich_stage,
         stage_name="enrich",
@@ -96,14 +98,16 @@ def _auto_confirm_sense_check_for_complete(
     attestation: str | None,
     save_plan_fn=None,
 ) -> bool:
+    from ._stage_validation import _auto_confirm_stage  # noqa: PLC0415
+
     sense_check_stage = stages.get("sense-check")
     if sense_check_stage is None:
         return False
 
     cluster_names = [name for name in plan.get("clusters", {}) if not plan["clusters"][name].get("auto")]
-    from . import _stage_validation as host  # noqa: PLC0415
 
-    return host._auto_confirm_stage(
+
+    return _auto_confirm_stage(
         plan=plan,
         stage_record=sense_check_stage,
         stage_name="sense-check",
@@ -158,14 +162,16 @@ def _auto_confirm_organize_for_complete(
     attestation: str | None,
     save_plan_fn=None,
 ) -> bool:
+    from ._stage_validation import _auto_confirm_stage  # noqa: PLC0415
+
     organize_stage = stages.get("organize")
     if organize_stage is None:
         return False
 
     organize_clusters = [name for name in plan.get("clusters", {}) if not plan["clusters"][name].get("auto")]
-    from . import _stage_validation as host  # noqa: PLC0415
 
-    return host._auto_confirm_stage(
+
+    return _auto_confirm_stage(
         plan=plan,
         stage_record=organize_stage,
         stage_name="organize",

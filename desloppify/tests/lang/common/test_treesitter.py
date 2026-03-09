@@ -549,7 +549,7 @@ class TestGracefulDegradation:
     def test_generic_lang_stubs_without_treesitter(self):
         """When is_available() is False, generic_lang should use stubs."""
         import desloppify.languages._framework.treesitter as ts_mod
-        from desloppify.languages._framework.generic import (
+        from desloppify.languages._framework.generic_capabilities import (
             empty_dep_graph,
             noop_extract_functions,
         )
@@ -1422,7 +1422,7 @@ let add a b =
 class TestNewLanguageIntegration:
     def test_javascript_registered(self):
         import desloppify.languages.javascript  # noqa: F401
-        from desloppify.languages._framework.generic import (
+        from desloppify.languages._framework.generic_capabilities import (
             empty_dep_graph,
             noop_extract_functions,
         )

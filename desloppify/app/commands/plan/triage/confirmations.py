@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import argparse
 
-from .confirmations_enrich import confirm_enrich as _confirm_enrich_impl
-from .confirmations_enrich import confirm_sense_check as _confirm_sense_check_impl
-from .confirmations_organize import confirm_organize as _confirm_organize_impl
 from .confirmations_basic import MIN_ATTESTATION_LEN as _MIN_ATTESTATION_LEN
 from .confirmations_basic import confirm_observe as _confirm_observe_impl
 from .confirmations_basic import confirm_reflect as _confirm_reflect_impl
 from .confirmations_basic import validate_attestation as _validate_attestation
+from .confirmations_enrich import confirm_enrich as _confirm_enrich_impl
+from .confirmations_enrich import confirm_sense_check as _confirm_sense_check_impl
+from .confirmations_organize import confirm_organize as _confirm_organize_impl
+from .display import show_plan_summary as _show_plan_summary
+from .helpers import count_log_activity_since as _count_log_activity_since
+from .helpers import open_review_ids_from_state as _open_review_ids_from_state
+from .helpers import purge_triage_stage as _purge_triage_stage
+from .helpers import triage_coverage as _triage_coverage
 from .services import TriageServices, default_triage_services
 
 
@@ -96,6 +101,11 @@ def _cmd_confirm_stage(
 
 MIN_ATTESTATION_LEN = _MIN_ATTESTATION_LEN
 validate_attestation = _validate_attestation
+count_log_activity_since = _count_log_activity_since
+open_review_ids_from_state = _open_review_ids_from_state
+purge_triage_stage = _purge_triage_stage
+show_plan_summary = _show_plan_summary
+triage_coverage = _triage_coverage
 
 
 def cmd_confirm_stage(
@@ -119,4 +129,9 @@ __all__ = [
     "_confirm_reflect",
     "_confirm_sense_check",
     "_validate_attestation",
+    "count_log_activity_since",
+    "open_review_ids_from_state",
+    "purge_triage_stage",
+    "show_plan_summary",
+    "triage_coverage",
 ]

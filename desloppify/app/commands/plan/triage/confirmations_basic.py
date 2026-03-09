@@ -8,6 +8,7 @@ from desloppify.base.output.terminal import colorize
 from desloppify.base.output.user_message import print_user_message
 from desloppify.state import utc_now
 
+from .helpers import observe_dimension_breakdown, purge_triage_stage
 from .services import TriageServices, default_triage_services
 
 
@@ -77,7 +78,7 @@ def confirm_observe(
     services: TriageServices | None = None,
 ) -> None:
     """Show observe summary and record confirmation if attestation is valid."""
-    from . import confirmations as host  # noqa: PLC0415
+
 
     resolved_services = services or default_triage_services()
     if "observe" not in stages:
@@ -95,7 +96,7 @@ def confirm_observe(
     print(colorize("  Stage: OBSERVE — Analyse issues & spot contradictions", "bold"))
     print(colorize("  " + "─" * 54, "dim"))
 
-    by_dim, dim_names = host.observe_dimension_breakdown(si)
+    by_dim, dim_names = observe_dimension_breakdown(si)
 
     issue_count = obs.get("issue_count", len(si.open_issues))
     print(f"  Your analysis covered {issue_count} issues across {len(by_dim)} dimensions:")
@@ -114,22 +115,22 @@ def confirm_observe(
         print(colorize("  Re-record observe with more issue citations, then re-confirm.", "dim"))
         return
 
-    if not attestation or len(attestation.strip()) < host._MIN_ATTESTATION_LEN:
+    if not attestation or len(attestation.strip()) < MIN_ATTESTATION_LEN:
         if attestation:
-            print(colorize(f"\n  Attestation too short ({len(attestation.strip())} chars, min {host._MIN_ATTESTATION_LEN}).", "red"))
+            print(colorize(f"\n  Attestation too short ({len(attestation.strip())} chars, min {MIN_ATTESTATION_LEN}).", "red"))
         print(colorize("\n  If satisfied, confirm:", "dim"))
         print(colorize('    desloppify plan triage --confirm observe --attestation "I have thoroughly reviewed..."', "dim"))
         print(colorize("  If not, continue reviewing issues before reflecting.", "dim"))
         return
 
-    validation_err = host._validate_attestation(attestation.strip(), "observe", dimensions=dim_names)
+    validation_err = validate_attestation(attestation.strip(), "observe", dimensions=dim_names)
     if validation_err:
         print(colorize(f"\n  {validation_err}", "red"))
         return
 
     stages["observe"]["confirmed_at"] = utc_now()
     stages["observe"]["confirmed_text"] = attestation.strip()
-    host.purge_triage_stage(plan, "observe")
+    purge_triage_stage(plan, "observe")
     resolved_services.append_log_entry(
         plan,
         "triage_confirm_observe",
@@ -154,7 +155,7 @@ def confirm_reflect(
     services: TriageServices | None = None,
 ) -> None:
     """Show reflect summary and record confirmation if attestation is valid."""
-    from . import confirmations as host  # noqa: PLC0415
+
 
     resolved_services = services or default_triage_services()
     if "reflect" not in stages:
@@ -193,26 +194,26 @@ def confirm_reflect(
             print(colorize("  │ ...", "cyan"))
         print(colorize("  └" + "─" * 51 + "┘", "cyan"))
 
-    _by_dim, observe_dims = host.observe_dimension_breakdown(si)
+    _by_dim, observe_dims = observe_dimension_breakdown(si)
     reflect_dims = sorted(set((list(recurring.keys()) if recurring else []) + observe_dims))
     reflect_clusters = [name for name in plan.get("clusters", {}) if not plan["clusters"][name].get("auto")]
 
-    if not attestation or len(attestation.strip()) < host._MIN_ATTESTATION_LEN:
+    if not attestation or len(attestation.strip()) < MIN_ATTESTATION_LEN:
         if attestation:
-            print(colorize(f"\n  Attestation too short ({len(attestation.strip())} chars, min {host._MIN_ATTESTATION_LEN}).", "red"))
+            print(colorize(f"\n  Attestation too short ({len(attestation.strip())} chars, min {MIN_ATTESTATION_LEN}).", "red"))
         print(colorize("\n  If satisfied, confirm:", "dim"))
         print(colorize('    desloppify plan triage --confirm reflect --attestation "My strategy accounts for..."', "dim"))
         print(colorize("  If not, refine your strategy before organizing.", "dim"))
         return
 
-    validation_err = host._validate_attestation(attestation.strip(), "reflect", dimensions=reflect_dims, cluster_names=reflect_clusters)
+    validation_err = validate_attestation(attestation.strip(), "reflect", dimensions=reflect_dims, cluster_names=reflect_clusters)
     if validation_err:
         print(colorize(f"\n  {validation_err}", "red"))
         return
 
     stages["reflect"]["confirmed_at"] = utc_now()
     stages["reflect"]["confirmed_text"] = attestation.strip()
-    host.purge_triage_stage(plan, "reflect")
+    purge_triage_stage(plan, "reflect")
     resolved_services.append_log_entry(
         plan,
         "triage_confirm_reflect",

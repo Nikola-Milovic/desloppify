@@ -73,7 +73,7 @@ import desloppify.languages.python.phases_quality as py_phases_quality
 import desloppify.languages.typescript.detectors._smell_detectors_safety as ts_smell_detectors_safety
 import desloppify.languages.typescript.detectors.deps_runtime as ts_deps_runtime
 import desloppify.languages.typescript.extractors_components as ts_extractors_components
-from desloppify.intelligence.review import prepare_batches as review_prepare_batches
+from desloppify.intelligence.review import prepare_batches_builders as review_prepare_batches
 from desloppify.languages import resolution as lang_resolution
 from desloppify.languages.csharp import move as csharp_move
 from desloppify.languages.csharp import review as csharp_review
