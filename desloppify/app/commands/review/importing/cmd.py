@@ -40,6 +40,137 @@ _SCORECARD_SUBJECTIVE_AT_TARGET = bind_scorecard_subjective_at_target(
 )
 
 
+def _resolve_import_payload(
+    import_file,
+    *,
+    lang_name: str,
+    import_config: ReviewImportConfig,
+) -> tuple[dict, bool, str | None]:
+    """Validate import flags and load payload with policy checks."""
+    override_enabled, override_attest = import_helpers_mod.resolve_override_context(
+        manual_override=import_config.manual_override,
+        manual_attest=import_config.manual_attest,
+    )
+    try:
+        validate_import_flag_combos(
+            attested_external=import_config.attested_external,
+            allow_partial=import_config.allow_partial,
+            override_enabled=override_enabled,
+            override_attest=override_attest,
+        )
+    except ImportFlagValidationError as exc:
+        raise CommandError(str(exc), exit_code=1) from exc
+
+    try:
+        issues_data = import_helpers_mod.load_import_issues_data(
+            import_file,
+            config=build_import_load_config(
+                lang_name=lang_name,
+                import_config=import_config,
+                override_enabled=override_enabled,
+                override_attest=override_attest,
+            ),
+        )
+    except import_helpers_mod.ImportPayloadLoadError as exc:
+        import_helpers_mod.print_import_load_errors(
+            exc.errors,
+            import_file=str(import_file),
+            colorize_fn=colorize,
+        )
+        raise PacketValidationError("import payload validation failed", exit_code=1) from exc
+
+    return issues_data, override_enabled, override_attest
+
+
+def _build_working_state(state: dict, state_file) -> dict:
+    """Return state snapshot used for import mutation/dry-run rendering."""
+    state_path = Path(state_file) if state_file is not None else None
+    if state_path is not None and state_path.exists():
+        return copy.deepcopy(state_mod.load_state(state_path))
+    return copy.deepcopy(state)
+
+
+def _apply_assessment_policy(
+    *,
+    working_state: dict,
+    issues_data: dict,
+    assessment_policy: AssessmentImportPolicyModel,
+) -> int:
+    """Apply provisional/clear flags based on assessment policy mode."""
+    assessment_keys = imported_assessment_keys(issues_data)
+    if assessment_policy.mode == "manual_override":
+        return mark_manual_override_assessments_provisional(
+            working_state,
+            assessment_keys=assessment_keys,
+        )
+    if assessment_policy.mode in {"trusted_internal", "attested_external"}:
+        clear_provisional_override_flags(
+            working_state,
+            assessment_keys=assessment_keys,
+        )
+    return 0
+
+
+def _raise_on_partial_skip(diff: dict, *, allow_partial: bool) -> None:
+    """Refuse import when payload skips issues and partial imports are disabled."""
+    if diff.get("skipped", 0) <= 0 or allow_partial:
+        return
+    details_lines: list[str] = []
+    for detail in diff.get("skipped_details", []):
+        reasons = "; ".join(detail.get("missing", []))
+        details_lines.append(
+            f"  #{detail.get('index', '?')} ({detail.get('identifier', '<none>')}): {reasons}"
+        )
+    msg = "import produced skipped issue(s); refusing partial import."
+    if details_lines:
+        msg += "\n" + "\n".join(details_lines)
+    msg += "\nFix the payload and retry, or pass --allow-partial to override."
+    raise CommandError(msg, exit_code=1)
+
+
+def _append_assessment_import_audit(
+    *,
+    working_state: dict,
+    assessment_policy: AssessmentImportPolicyModel,
+    provisional_count: int,
+    override_attest: str | None,
+    import_file,
+) -> None:
+    """Record audit metadata for assessment-bearing import payloads."""
+    if not assessment_policy.assessments_present:
+        return
+    audit = working_state.setdefault("assessment_import_audit", [])
+    audit.append(
+        {
+            "timestamp": state_mod.utc_now(),
+            "mode": assessment_policy.mode,
+            "trusted": bool(assessment_policy.trusted),
+            "reason": assessment_policy.reason,
+            "override_used": bool(assessment_policy.mode == "manual_override"),
+            "attested_external": bool(assessment_policy.mode == "attested_external"),
+            "provisional": bool(assessment_policy.mode == "manual_override"),
+            "provisional_count": int(provisional_count),
+            "attest": (override_attest or "").strip(),
+            "import_file": str(import_file),
+        }
+    )
+
+
+def _persist_import_state(
+    *,
+    state: dict,
+    working_state: dict,
+    state_file,
+    diff: dict,
+    assessment_mode: str,
+) -> None:
+    """Persist imported state and synchronize the work plan."""
+    state.clear()
+    state.update(working_state)
+    state_mod.save_state(state, state_file)
+    sync_plan_after_import(state, diff, assessment_mode)
+
+
 def do_import(
     import_file,
     state,
@@ -65,37 +196,11 @@ def do_import(
         manual_override=manual_override,
         manual_attest=manual_attest,
     )
-    override_enabled, override_attest = import_helpers_mod.resolve_override_context(
-        manual_override=import_config.manual_override,
-        manual_attest=import_config.manual_attest,
+    issues_data, _override_enabled, override_attest = _resolve_import_payload(
+        import_file,
+        lang_name=lang.name,
+        import_config=import_config,
     )
-    try:
-        validate_import_flag_combos(
-            attested_external=import_config.attested_external,
-            allow_partial=import_config.allow_partial,
-            override_enabled=override_enabled,
-            override_attest=override_attest,
-        )
-    except ImportFlagValidationError as exc:
-        raise CommandError(str(exc), exit_code=1) from exc
-
-    try:
-        issues_data = import_helpers_mod.load_import_issues_data(
-            import_file,
-            config=build_import_load_config(
-                lang_name=lang.name,
-                import_config=import_config,
-                override_enabled=override_enabled,
-                override_attest=override_attest,
-            ),
-        )
-    except import_helpers_mod.ImportPayloadLoadError as exc:
-        import_helpers_mod.print_import_load_errors(
-            exc.errors,
-            import_file=str(import_file),
-            colorize_fn=colorize,
-        )
-        raise PacketValidationError("import payload validation failed", exit_code=1) from exc
 
     assessment_policy: AssessmentImportPolicyModel = (
         import_helpers_mod.assessment_policy_model_from_payload(issues_data)
@@ -111,63 +216,32 @@ def do_import(
     )
 
     prev = state_mod.score_snapshot(state)
-
-    state_path = Path(state_file) if state_file is not None else None
-    if state_path is not None and state_path.exists():
-        working_state = copy.deepcopy(state_mod.load_state(state_path))
-    else:
-        working_state = copy.deepcopy(state)
+    working_state = _build_working_state(state, state_file)
 
     diff = review_mod.import_holistic_issues(issues_data, working_state, lang.name)
     label = "Holistic review"
-    assessment_keys = imported_assessment_keys(issues_data)
-    provisional_count = 0
-    if assessment_policy.mode == "manual_override":
-        provisional_count = mark_manual_override_assessments_provisional(
-            working_state,
-            assessment_keys=assessment_keys,
-        )
-    elif assessment_policy.mode in {"trusted_internal", "attested_external"}:
-        clear_provisional_override_flags(
-            working_state,
-            assessment_keys=assessment_keys,
-        )
-
-    if diff.get("skipped", 0) > 0 and not import_config.allow_partial:
-        details_lines: list[str] = []
-        for detail in diff.get("skipped_details", []):
-            reasons = "; ".join(detail.get("missing", []))
-            details_lines.append(
-                f"  #{detail.get('index', '?')} ({detail.get('identifier', '<none>')}): {reasons}"
-            )
-        msg = "import produced skipped issue(s); refusing partial import."
-        if details_lines:
-            msg += "\n" + "\n".join(details_lines)
-        msg += "\nFix the payload and retry, or pass --allow-partial to override."
-        raise CommandError(msg, exit_code=1)
-
-    if assessment_policy.assessments_present:
-        audit = working_state.setdefault("assessment_import_audit", [])
-        audit.append(
-            {
-                "timestamp": state_mod.utc_now(),
-                "mode": assessment_policy.mode,
-                "trusted": bool(assessment_policy.trusted),
-                "reason": assessment_policy.reason,
-                "override_used": bool(assessment_policy.mode == "manual_override"),
-                "attested_external": bool(assessment_policy.mode == "attested_external"),
-                "provisional": bool(assessment_policy.mode == "manual_override"),
-                "provisional_count": int(provisional_count),
-                "attest": (override_attest or "").strip(),
-                "import_file": str(import_file),
-            }
-        )
+    provisional_count = _apply_assessment_policy(
+        working_state=working_state,
+        issues_data=issues_data,
+        assessment_policy=assessment_policy,
+    )
+    _raise_on_partial_skip(diff, allow_partial=import_config.allow_partial)
+    _append_assessment_import_audit(
+        working_state=working_state,
+        assessment_policy=assessment_policy,
+        provisional_count=provisional_count,
+        override_attest=override_attest,
+        import_file=import_file,
+    )
 
     if not dry_run:
-        state.clear()
-        state.update(working_state)
-        state_mod.save_state(state, state_file)
-        sync_plan_after_import(state, diff, assessment_policy.mode)
+        _persist_import_state(
+            state=state,
+            working_state=working_state,
+            state_file=state_file,
+            diff=diff,
+            assessment_mode=assessment_policy.mode,
+        )
 
     display_state = state if not dry_run else working_state
     print_import_results(
