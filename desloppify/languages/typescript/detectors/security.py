@@ -71,6 +71,18 @@ def _detect_ts_security_result(
             content = Path(filepath).read_text(errors="replace")
         except OSError as exc:
             log_best_effort_failure(logger, f"read TypeScript security source {filepath}", exc)
+            entries.append(
+                _make_security_entry(
+                    filepath,
+                    1,
+                    str(exc),
+                    check_id="scan_read_error",
+                    summary="Failed to read file during TypeScript security scan",
+                    severity="low",
+                    confidence="high",
+                    remediation="Ensure file is readable and rerun security scan.",
+                )
+            )
             continue
 
         scanned += 1

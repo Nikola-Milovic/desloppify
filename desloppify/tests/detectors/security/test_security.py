@@ -354,6 +354,14 @@ class TestCrossLangZoneFiltering:
 # ═══════════════════════════════════════════════════════════
 
 
+class TestTsReadFailures:
+    def test_read_failures_are_reported_in_entries(self):
+        with patch.object(Path, "read_text", side_effect=OSError("permission denied")):
+            entries, scanned = detect_ts_security(["/fake/src/client.ts"], None)
+        assert scanned == 0
+        assert any(e["detail"]["kind"] == "scan_read_error" for e in entries)
+
+
 class TestTsServiceRoleOnClient:
     def test_service_role_on_client(self):
         content = textwrap.dedent("""\
