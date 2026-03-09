@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from desloppify.app.commands.review.batch import execution_adapter as adapter_mod
 from desloppify.app.commands.review.batch import execution_dry_run as dry_run_mod
 from desloppify.app.commands.review.batch import execution_progress as progress_mod
 from desloppify.app.commands.review.batch import execution_results as results_mod
@@ -206,3 +207,198 @@ def test_import_and_finalize_raises_when_followup_scan_fails(tmp_path: Path) -> 
             append_run_log=lambda _msg: None,
             args=args,
         )
+
+
+def test_execution_adapter_builds_runtime_wrappers(tmp_path: Path) -> None:
+    calls: dict[str, object] = {}
+    args = SimpleNamespace(only_batches="1")
+    policy = SimpleNamespace(
+        batch_timeout_seconds=120,
+        batch_max_retries=3,
+        batch_retry_backoff_seconds=2.0,
+        heartbeat_seconds=4.0,
+        stall_kill_seconds=45.0,
+    )
+
+    def _selected_raw(*, raw_selection, batch_count, parse_fn, colorize_fn):
+        calls["selected_raw"] = {
+            "raw_selection": raw_selection,
+            "batch_count": batch_count,
+            "parse_fn": parse_fn,
+            "colorize_fn": colorize_fn,
+        }
+        return [0]
+
+    def _prepare_raw(
+        *,
+        stamp,
+        selected_indexes,
+        batches,
+        packet_path,
+        run_root,
+        repo_root,
+        build_prompt_fn,
+        safe_write_text_fn,
+        colorize_fn,
+    ):
+        calls["prepare_raw"] = {
+            "stamp": stamp,
+            "selected_indexes": selected_indexes,
+            "batches": batches,
+            "packet_path": packet_path,
+            "run_root": run_root,
+            "repo_root": repo_root,
+            "build_prompt_fn": build_prompt_fn,
+            "safe_write_text_fn": safe_write_text_fn,
+            "colorize_fn": colorize_fn,
+        }
+        return ("run", "logs", {}, {}, {})
+
+    def _run_codex_raw(*, prompt, repo_root, output_file, log_file, deps):
+        calls["run_codex_raw"] = {
+            "prompt": prompt,
+            "repo_root": repo_root,
+            "output_file": output_file,
+            "log_file": log_file,
+            "deps": deps,
+        }
+        return 0
+
+    def _execute_raw(*, tasks, options, progress_fn=None, error_log_fn=None):
+        calls["execute_raw"] = {
+            "tasks": tasks,
+            "options": options,
+            "progress_fn": progress_fn,
+            "error_log_fn": error_log_fn,
+        }
+        return []
+
+    def _extract_raw(raw, *, log_fn):
+        calls["extract_raw"] = {"raw": raw, "log_fn": log_fn}
+        return {"issues": []}
+
+    def _normalize_raw(payload, dims, *, max_batch_issues, abstraction_sub_axes):
+        calls["normalize_raw"] = {
+            "payload": payload,
+            "dims": dims,
+            "max_batch_issues": max_batch_issues,
+            "abstraction_sub_axes": abstraction_sub_axes,
+        }
+        return payload
+
+    def _collect_raw(
+        *,
+        selected_indexes,
+        failures,
+        output_files,
+        allowed_dims,
+        extract_payload_fn,
+        normalize_result_fn,
+    ):
+        calls["collect_raw"] = {
+            "selected_indexes": selected_indexes,
+            "failures": failures,
+            "output_files": output_files,
+            "allowed_dims": allowed_dims,
+        }
+        payload = extract_payload_fn("raw-result")
+        normalize_result_fn(payload, ["dim_a"])
+        return ([], [])
+
+    def _followup_scan_raw(*, lang_name, scan_path, deps):
+        calls["followup_scan_raw"] = {
+            "lang_name": lang_name,
+            "scan_path": scan_path,
+            "deps": deps,
+        }
+        return 0
+
+    kwargs = adapter_mod.build_execution_adapter_kwargs(
+        args=args,
+        policy=policy,
+        runtime_project_root=tmp_path / "repo",
+        subagent_runs_dir=tmp_path / "runs",
+        run_stamp_fn=lambda: "stamp1",
+        load_or_prepare_packet_fn=(
+            lambda *_args, **_kwargs: ({}, tmp_path / "packet.json", tmp_path / "blind.json")
+        ),
+        selected_batch_indexes_fn_raw=_selected_raw,
+        parse_batch_selection_fn=lambda raw, batch_count: [0],
+        prepare_run_artifacts_fn_raw=_prepare_raw,
+        build_prompt_fn=lambda *_args, **_kwargs: "prompt",
+        run_codex_batch_fn_raw=_run_codex_raw,
+        execute_batches_fn=_execute_raw,
+        collect_batch_results_fn_raw=_collect_raw,
+        extract_payload_fn=_extract_raw,
+        normalize_batch_result_fn=_normalize_raw,
+        max_batch_issues_for_dimension_count_fn=lambda count: count + 5,
+        print_failures_fn=lambda **_kwargs: None,
+        print_failures_and_raise_fn=lambda **_kwargs: None,
+        merge_batch_results_fn=lambda _results: {},
+        build_import_provenance_fn=lambda **_kwargs: {},
+        do_import_fn=lambda *_args, **_kwargs: None,
+        run_followup_scan_fn_raw=_followup_scan_raw,
+        safe_write_text_fn=_safe_write_text,
+        colorize_fn=lambda text, _tone=None: text,
+        log_fn=lambda message: calls.setdefault("log_messages", []).append(message),
+        abstraction_sub_axes=("axis_a",),
+        followup_scan_timeout_seconds=900,
+    )
+
+    assert kwargs["project_root"] == tmp_path / "repo"
+    assert kwargs["subagent_runs_dir"] == tmp_path / "runs"
+
+    selected = kwargs["selected_batch_indexes_fn"](SimpleNamespace(only_batches="2"), batch_count=3)
+    assert selected == [0]
+    selected_raw = calls["selected_raw"]
+    assert selected_raw["raw_selection"] == "1"
+    assert selected_raw["batch_count"] == 3
+    assert callable(selected_raw["parse_fn"])
+    assert callable(selected_raw["colorize_fn"])
+
+    kwargs["prepare_run_artifacts_fn"](
+        stamp="s1",
+        selected_indexes=[0],
+        batches=[{"name": "b1"}],
+        packet_path=tmp_path / "packet.json",
+        run_root=tmp_path / "runs",
+        repo_root=tmp_path / "repo",
+    )
+    assert "prepare_raw" in calls
+
+    kwargs["run_codex_batch_fn"](
+        prompt="prompt",
+        repo_root=tmp_path / "repo",
+        output_file=tmp_path / "out.json",
+        log_file=tmp_path / "log.txt",
+    )
+    deps = calls["run_codex_raw"]["deps"]
+    assert deps.timeout_seconds == 120
+    assert deps.max_retries == 3
+    assert deps.retry_backoff_seconds == 2.0
+    assert deps.live_log_interval_seconds == 4.0
+    assert deps.stall_after_output_seconds == 45.0
+
+    kwargs["execute_batches_fn"](
+        tasks=[],
+        options=SimpleNamespace(run_parallel=True, max_parallel_workers=2, heartbeat_seconds=6.0),
+    )
+    execute_options = calls["execute_raw"]["options"]
+    assert execute_options.run_parallel is True
+    assert execute_options.max_parallel_workers == 2
+    assert execute_options.heartbeat_seconds == 6.0
+
+    kwargs["collect_batch_results_fn"](
+        selected_indexes=[0],
+        failures=[],
+        output_files={0: tmp_path / "out.json"},
+        allowed_dims={"dim_a"},
+    )
+    assert calls["extract_raw"]["raw"] == "raw-result"
+    assert calls["normalize_raw"]["max_batch_issues"] == 6
+    assert calls["normalize_raw"]["abstraction_sub_axes"] == ("axis_a",)
+
+    kwargs["run_followup_scan_fn"](lang_name="python", scan_path=".")
+    followup_deps = calls["followup_scan_raw"]["deps"]
+    assert followup_deps.project_root == tmp_path / "repo"
+    assert followup_deps.timeout_seconds == 900

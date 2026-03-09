@@ -56,6 +56,7 @@ from .core_merge_support import assessment_weight  # noqa: F401 — re-exported
 from .core_models import BatchResultPayload
 from .core_normalize import normalize_batch_result
 from .core_parse import extract_json_payload, parse_batch_selection
+from .execution_adapter import build_execution_adapter_kwargs
 from .merge import merge_batch_results
 from .prompt_template import render_batch_prompt
 from . import execution as review_batches_mod
@@ -235,46 +236,35 @@ def do_run_batches(args, state, lang, state_file, config: dict | None = None) ->
 
     runtime_project_root = _runtime_project_root()
     policy = resolve_batch_run_policy(args)
-    batch_timeout_seconds = policy.batch_timeout_seconds
-    batch_max_retries = policy.batch_max_retries
-    batch_retry_backoff_seconds = policy.batch_retry_backoff_seconds
-    batch_heartbeat_seconds = policy.heartbeat_seconds
-    batch_live_log_interval_seconds = (
-        max(1.0, min(batch_heartbeat_seconds, 10.0))
-        if batch_heartbeat_seconds > 0
-        else 5.0
+    adapter_kwargs = build_execution_adapter_kwargs(
+        args=args,
+        policy=policy,
+        runtime_project_root=runtime_project_root,
+        subagent_runs_dir=_subagent_runs_dir(),
+        run_stamp_fn=run_stamp,
+        load_or_prepare_packet_fn=_load_or_prepare_packet,
+        selected_batch_indexes_fn_raw=selected_batch_indexes,
+        parse_batch_selection_fn=parse_batch_selection,
+        prepare_run_artifacts_fn_raw=prepare_run_artifacts,
+        build_prompt_fn=render_batch_prompt,
+        run_codex_batch_fn_raw=run_codex_batch,
+        execute_batches_fn=execute_batches,
+        collect_batch_results_fn_raw=collect_batch_results,
+        extract_payload_fn=extract_json_payload,
+        normalize_batch_result_fn=normalize_batch_result,
+        max_batch_issues_for_dimension_count_fn=max_batch_issues_for_dimension_count,
+        print_failures_fn=print_failures,
+        print_failures_and_raise_fn=print_failures_and_raise,
+        merge_batch_results_fn=_merge_batch_results,
+        build_import_provenance_fn=build_batch_import_provenance,
+        do_import_fn=_do_import,
+        run_followup_scan_fn_raw=run_followup_scan,
+        safe_write_text_fn=safe_write_text,
+        colorize_fn=colorize,
+        log_fn=log,
+        abstraction_sub_axes=ABSTRACTION_SUB_AXES,
+        followup_scan_timeout_seconds=FOLLOWUP_SCAN_TIMEOUT_SECONDS,
     )
-    batch_stall_kill_seconds = policy.stall_kill_seconds
-
-    def _prepare_run_artifacts(*, stamp, selected_indexes, batches, packet_path, run_root, repo_root):
-        return prepare_run_artifacts(
-            stamp=stamp,
-            selected_indexes=selected_indexes,
-            batches=batches,
-            packet_path=packet_path,
-            run_root=run_root,
-            repo_root=repo_root,
-            build_prompt_fn=render_batch_prompt,
-            safe_write_text_fn=safe_write_text,
-            colorize_fn=colorize,
-        )
-
-    def _collect_batch_results(*, selected_indexes, failures, output_files, allowed_dims):
-        return collect_batch_results(
-            selected_indexes=selected_indexes,
-            failures=failures,
-            output_files=output_files,
-            allowed_dims=allowed_dims,
-            extract_payload_fn=lambda raw: extract_json_payload(raw, log_fn=log),
-            normalize_result_fn=lambda payload, dims: normalize_batch_result(
-                payload,
-                dims,
-                max_batch_issues=max_batch_issues_for_dimension_count(
-                    len(dims)
-                ),
-                abstraction_sub_axes=ABSTRACTION_SUB_AXES,
-            ),
-        )
 
     return review_batches_mod.do_run_batches(
         args,
@@ -282,56 +272,7 @@ def do_run_batches(args, state, lang, state_file, config: dict | None = None) ->
         lang,
         state_file,
         config=config,
-        run_stamp_fn=run_stamp,
-        load_or_prepare_packet_fn=_load_or_prepare_packet,
-        selected_batch_indexes_fn=lambda args, *, batch_count: selected_batch_indexes(
-            raw_selection=getattr(args, "only_batches", None),
-            batch_count=batch_count,
-            parse_fn=parse_batch_selection,
-            colorize_fn=colorize,
-        ),
-        prepare_run_artifacts_fn=_prepare_run_artifacts,
-        run_codex_batch_fn=lambda *, prompt, repo_root, output_file, log_file: run_codex_batch(
-            prompt=prompt,
-            repo_root=repo_root,
-            output_file=output_file,
-            log_file=log_file,
-            deps=CodexBatchRunnerDeps(
-                timeout_seconds=batch_timeout_seconds,
-                subprocess_run=subprocess.run,
-                timeout_error=subprocess.TimeoutExpired,
-                safe_write_text_fn=safe_write_text,
-                use_popen_runner=(getattr(subprocess.run, "__module__", "") == "subprocess"),
-                subprocess_popen=subprocess.Popen,
-                live_log_interval_seconds=batch_live_log_interval_seconds,
-                stall_after_output_seconds=batch_stall_kill_seconds,
-                max_retries=batch_max_retries,
-                retry_backoff_seconds=batch_retry_backoff_seconds,
-            ),
-        ),
-        execute_batches_fn=execute_batches,
-        collect_batch_results_fn=_collect_batch_results,
-        print_failures_fn=print_failures,
-        print_failures_and_raise_fn=print_failures_and_raise,
-        merge_batch_results_fn=_merge_batch_results,
-        build_import_provenance_fn=build_batch_import_provenance,
-        do_import_fn=_do_import,
-        run_followup_scan_fn=lambda *, lang_name, scan_path: run_followup_scan(
-            lang_name=lang_name,
-            scan_path=scan_path,
-            deps=FollowupScanDeps(
-                project_root=runtime_project_root,
-                timeout_seconds=FOLLOWUP_SCAN_TIMEOUT_SECONDS,
-                python_executable=sys.executable,
-                subprocess_run=subprocess.run,
-                timeout_error=subprocess.TimeoutExpired,
-                colorize_fn=colorize,
-            ),
-        ),
-        safe_write_text_fn=safe_write_text,
-        colorize_fn=colorize,
-        project_root=runtime_project_root,
-        subagent_runs_dir=_subagent_runs_dir(),
+        **adapter_kwargs,
     )
 
 def _validate_run_dir(run_dir: Path) -> tuple[dict, Path, str]:
