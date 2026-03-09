@@ -3,8 +3,9 @@
 This package produces human-readable plan output (markdown, terminal tables,
 scorecards). It reads from the plan state but does not mutate it.
 
-For plan data operations (queue moves, skips, clusters), use ``engine._plan``.
-For the public plan facade, use ``engine.plan``.
+For plan data operations (queue moves, skips, clusters), use ``engine.plan``.
+``engine._plan`` is private implementation detail and not a stable import
+surface for callers outside the plan internals.
 """
 
 from __future__ import annotations

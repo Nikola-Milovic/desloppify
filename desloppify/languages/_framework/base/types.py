@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol
 
-from desloppify.engine.detectors.base import FunctionInfo
+from desloppify.core.detector_types import FunctionInfo
 from desloppify.languages._framework.base.lang_config_runtime import (
     clone_default,
     coerce_value,

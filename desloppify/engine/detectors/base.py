@@ -1,75 +1,27 @@
-"""Shared data types for language-agnostic detectors."""
+"""Compatibility exports for detector data types.
+
+Canonical definitions live in ``desloppify.core.detector_types`` so both
+engine and language framework layers can depend on the same neutral module.
+"""
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass, field
+from desloppify.core.detector_types import (
+    ClassInfo,
+    ComplexitySignal,
+    ELEVATED_LOC_THRESHOLD,
+    ELEVATED_NESTING_THRESHOLD,
+    ELEVATED_PARAMS_THRESHOLD,
+    FunctionInfo,
+    GodRule,
+)
 
-
-@dataclass
-class FunctionInfo:
-    """Extracted function/method info for cross-language analysis."""
-
-    name: str
-    file: str
-    line: int
-    end_line: int
-    loc: int
-    body: str
-    normalized: str = ""
-    body_hash: str = ""
-    params: list[str] = field(default_factory=list)
-    return_annotation: str | None = None
-
-
-@dataclass
-class ClassInfo:
-    """Extracted class/component info for cross-language analysis.
-
-    For OOP classes: methods/attributes/base_classes are populated directly.
-    For React components: metrics holds hook counts (context_hooks, use_effects, etc.).
-    """
-
-    name: str
-    file: str
-    line: int
-    loc: int
-    methods: list[FunctionInfo] = field(default_factory=list)
-    attributes: list[str] = field(default_factory=list)
-    base_classes: list[str] = field(default_factory=list)
-    metrics: dict[str, int] = field(default_factory=dict)
-
-
-@dataclass
-class ComplexitySignal:
-    """A complexity signal to detect in source files.
-
-    Either pattern-based (regex matched per line, counted) or compute-based
-    (custom function that analyzes content and returns count + label).
-    """
-
-    name: str
-    pattern: str | None = None  # regex (None = uses compute fn)
-    weight: int = 1
-    threshold: int = 0
-    compute: Callable | None = None  # (content, lines) -> (count, label) | None
-
-
-@dataclass
-class GodRule:
-    """A rule for detecting god classes/components.
-
-    The extract callable pulls a metric from ClassInfo; if it meets the threshold,
-    the rule fires and contributes to the "reasons" list.
-    """
-
-    name: str
-    description: str
-    extract: Callable  # (ClassInfo) -> int
-    threshold: int
-
-
-# ── Shared thresholds (concern generator + detectors) ─────
-ELEVATED_PARAMS_THRESHOLD = 8
-ELEVATED_NESTING_THRESHOLD = 6
-ELEVATED_LOC_THRESHOLD = 300
+__all__ = [
+    "ClassInfo",
+    "ComplexitySignal",
+    "ELEVATED_LOC_THRESHOLD",
+    "ELEVATED_NESTING_THRESHOLD",
+    "ELEVATED_PARAMS_THRESHOLD",
+    "FunctionInfo",
+    "GodRule",
+]
