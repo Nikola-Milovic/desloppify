@@ -78,105 +78,40 @@ def _emit_requested_output(
     return next_output_mod.emit_non_terminal_output(opts.output_format, payload, items)
 
 
-def build_and_render_queue(
-    args: argparse.Namespace,
-    state: dict,
-    config: dict,
-    *,
-    resolve_lang_fn=resolve_lang,
-    load_plan_fn=load_plan,
-    build_work_queue_fn=build_work_queue,
-    write_query_fn=write_query,
-) -> None:
-    """Build queue payload and render output for `desloppify next`."""
-    opts = NextOptions.from_args(args)
-
-    # Triage guardrail: for terminal, print; for JSON, embed as warnings.
-    guardrail_warnings = triage_guardrail_messages(state=state)
-
-    target_strict = target_strict_score_from_config(config)
-
+def _resolve_plan_context(load_plan_fn) -> tuple[dict, dict, dict | None]:
+    """Load the plan and derive the renderable plan payload."""
     plan = load_plan_fn()
-    plan_for_queue = plan
     plan_data: dict | None = None
     if plan.get("queue_order") or plan.get("overrides") or plan.get("clusters"):
         plan_data = plan
+    return plan, plan, plan_data
 
-    # Build a single queue context so policy and plan interpretation are aligned.
-    ctx = queue_context(
-        state,
-        config=config,
-        plan=plan_for_queue,
-        target_strict=target_strict,
-    )
 
-    effective_cluster = _resolve_cluster_focus(
-        plan_for_queue,
-        cluster_arg=opts.cluster,
-        scope=opts.scope,
-    )
-
-    queue = build_work_queue_fn(
-        state,
-        options=QueueBuildOptions(
-            count=None,
-            scope=opts.scope,
-            status=opts.status,
-            include_subjective=True,
-            subjective_threshold=target_strict,
-            explain=opts.explain,
-            include_skipped=opts.include_skipped,
-            context=ctx,
-        ),
-    )
-    items = queue.get("items", [])
-
+def _apply_queue_item_filters(
+    *,
+    items: list[dict],
+    plan_for_queue: dict,
+    effective_cluster: str | None,
+) -> list[dict]:
+    """Apply cluster drill-in or collapse behavior to queue items."""
     if effective_cluster and plan_for_queue:
-        items = filter_cluster_focus(items, plan_for_queue, effective_cluster)
-
+        return filter_cluster_focus(items, plan_for_queue, effective_cluster)
     if plan_for_queue and not effective_cluster and not plan_for_queue.get("active_cluster"):
-        items = collapse_clusters(items, plan_for_queue)
+        return collapse_clusters(items, plan_for_queue)
+    return items
 
-    if opts.count:
-        items = items[: opts.count]
-        queue["items"] = items
-        queue["total"] = len(items)
 
-    if not items:
-        strict_score = state_mod.score_snapshot(state).strict
-        plan_start_strict = None
-        if plan_for_queue:
-            plan_start_strict, _ = _plan_queue_context(
-                state=state,
-                plan_data=plan_for_queue,
-                context=ctx,
-            )
-        _render_queue_header(queue, opts.explain)
-        _show_empty_queue(
-            queue,
-            strict_score,
-            plan_start_strict=plan_start_strict,
-            target_strict=target_strict,
-        )
-        payload = _build_next_payload(
-            queue=queue,
-            items=items,
-            state=state,
-            narrative={},
-            plan_data=plan_data,
-        )
-        if guardrail_warnings:
-            payload["warnings"] = guardrail_warnings
-        write_query_fn(payload)
-        return
-
-    lang = resolve_lang_fn(args)
-    lang_name = lang.name if lang else None
-    narrative = compute_narrative(
-        state,
-        context=NarrativeContext(lang=lang_name, command="next", plan=plan_data),
-    )
-
+def _write_next_payload(
+    *,
+    queue: dict,
+    items: list[dict],
+    state: dict,
+    narrative: dict,
+    plan_data: dict | None,
+    guardrail_warnings: list[str],
+    write_query_fn,
+) -> dict:
+    """Build and persist the payload for the current queue view."""
     payload = _build_next_payload(
         queue=queue,
         items=items,
@@ -187,16 +122,67 @@ def build_and_render_queue(
     if guardrail_warnings:
         payload["warnings"] = guardrail_warnings
     write_query_fn(payload)
+    return payload
 
-    if _emit_requested_output(opts, payload, items):
-        return
 
+def _render_empty_queue_view(
+    *,
+    queue: dict,
+    items: list[dict],
+    state: dict,
+    plan_for_queue: dict,
+    plan_data: dict | None,
+    ctx,
+    target_strict: float,
+    opts: NextOptions,
+    guardrail_warnings: list[str],
+    write_query_fn,
+) -> None:
+    """Render and persist the empty queue state."""
+    strict_score = state_mod.score_snapshot(state).strict
+    plan_start_strict = None
+    if plan_for_queue:
+        plan_start_strict, _ = _plan_queue_context(
+            state=state,
+            plan_data=plan_for_queue,
+            context=ctx,
+        )
+    _render_queue_header(queue, opts.explain)
+    _show_empty_queue(
+        queue,
+        strict_score,
+        plan_start_strict=plan_start_strict,
+        target_strict=target_strict,
+    )
+    _write_next_payload(
+        queue=queue,
+        items=items,
+        state=state,
+        narrative={},
+        plan_data=plan_data,
+        guardrail_warnings=guardrail_warnings,
+        write_query_fn=write_query_fn,
+    )
+
+
+def _render_terminal_queue_view(
+    *,
+    queue: dict,
+    items: list[dict],
+    state: dict,
+    opts: NextOptions,
+    plan_for_queue: dict,
+    plan_data: dict | None,
+    effective_cluster: str | None,
+    target_strict: float,
+    ctx,
+) -> None:
+    """Render terminal output for a non-empty queue."""
     dim_scores = state.get("dimension_scores", {})
     issues_scoped = state_mod.path_scoped_issues(
         state.get("issues", {}),
         state.get("scan_path"),
     )
-
     plan_start_strict, breakdown = _plan_queue_context(
         state=state,
         plan_data=plan_for_queue,
@@ -214,8 +200,7 @@ def build_and_render_queue(
     ):
         return
 
-    raw_potentials = state.get("potentials", {})
-    potentials = _merge_potentials_safe(raw_potentials)
+    potentials = _merge_potentials_safe(state.get("potentials", {}))
     next_render_mod.render_terminal_items(
         items,
         dim_scores,
@@ -246,6 +231,105 @@ def build_and_render_queue(
             " `desloppify plan resolve`. Full queue:"
             " `desloppify plan show`."
         )
+
+
+def build_and_render_queue(
+    args: argparse.Namespace,
+    state: dict,
+    config: dict,
+    *,
+    resolve_lang_fn=resolve_lang,
+    load_plan_fn=load_plan,
+    build_work_queue_fn=build_work_queue,
+    write_query_fn=write_query,
+) -> None:
+    """Build queue payload and render output for `desloppify next`."""
+    opts = NextOptions.from_args(args)
+    guardrail_warnings = triage_guardrail_messages(state=state)
+    target_strict = target_strict_score_from_config(config)
+    _plan, plan_for_queue, plan_data = _resolve_plan_context(load_plan_fn)
+
+    ctx = queue_context(
+        state,
+        config=config,
+        plan=plan_for_queue,
+        target_strict=target_strict,
+    )
+    effective_cluster = _resolve_cluster_focus(
+        plan_for_queue,
+        cluster_arg=opts.cluster,
+        scope=opts.scope,
+    )
+
+    queue = build_work_queue_fn(
+        state,
+        options=QueueBuildOptions(
+            count=None,
+            scope=opts.scope,
+            status=opts.status,
+            include_subjective=True,
+            subjective_threshold=target_strict,
+            explain=opts.explain,
+            include_skipped=opts.include_skipped,
+            context=ctx,
+        ),
+    )
+    items = _apply_queue_item_filters(
+        items=queue.get("items", []),
+        plan_for_queue=plan_for_queue,
+        effective_cluster=effective_cluster,
+    )
+
+    if opts.count:
+        items = items[: opts.count]
+        queue["items"] = items
+        queue["total"] = len(items)
+
+    if not items:
+        _render_empty_queue_view(
+            queue=queue,
+            items=items,
+            state=state,
+            plan_for_queue=plan_for_queue,
+            plan_data=plan_data,
+            ctx=ctx,
+            target_strict=target_strict,
+            opts=opts,
+            guardrail_warnings=guardrail_warnings,
+            write_query_fn=write_query_fn,
+        )
+        return
+
+    lang = resolve_lang_fn(args)
+    lang_name = lang.name if lang else None
+    narrative = compute_narrative(
+        state,
+        context=NarrativeContext(lang=lang_name, command="next", plan=plan_data),
+    )
+    payload = _write_next_payload(
+        queue=queue,
+        items=items,
+        state=state,
+        narrative=narrative,
+        plan_data=plan_data,
+        guardrail_warnings=guardrail_warnings,
+        write_query_fn=write_query_fn,
+    )
+
+    if _emit_requested_output(opts, payload, items):
+        return
+
+    _render_terminal_queue_view(
+        queue=queue,
+        items=items,
+        state=state,
+        opts=opts,
+        plan_for_queue=plan_for_queue,
+        plan_data=plan_data,
+        effective_cluster=effective_cluster,
+        target_strict=target_strict,
+        ctx=ctx,
+    )
 
 
 __all__ = ["build_and_render_queue"]
