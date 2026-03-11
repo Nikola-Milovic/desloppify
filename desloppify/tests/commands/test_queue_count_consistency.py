@@ -672,7 +672,7 @@ class TestClusterFocusDoesNotTriggerRunScan:
 # ---------------------------------------------------------------------------
 
 class TestRenderQueueHeaderWorkflow:
-    def test_header_shows_cleared_for_run_scan(self, capsys):
+    def test_header_shows_queue_count_for_run_scan(self, capsys):
         from desloppify.app.commands.next.render_support import (
             render_queue_header,
         )
@@ -682,8 +682,8 @@ class TestRenderQueueHeaderWorkflow:
         }
         render_queue_header(queue, explain=False)
         output = capsys.readouterr().out
-        assert "Queue cleared" in output
-        assert "workflow step" in output
+        assert "Queue: 1 item" in output
+        assert "Queue cleared" not in output
 
     def test_header_shows_count_for_real_items(self, capsys):
         from desloppify.app.commands.next.render_support import (

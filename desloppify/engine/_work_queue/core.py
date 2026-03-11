@@ -34,12 +34,16 @@ from desloppify.engine._work_queue.synthetic import (
     build_create_plan_item,
     build_deferred_disposition_item,
     build_import_scores_item,
+    build_run_scan_item,
     build_score_checkpoint_item,
     build_subjective_items,
     build_triage_stage_items,
 )
 from desloppify.engine._work_queue.types import WorkQueueItem
-from desloppify.engine.plan_queue import postflight_scan_pending
+from desloppify.engine.plan_queue import (
+    WORKFLOW_DEFERRED_DISPOSITION_ID,
+    WORKFLOW_RUN_SCAN_ID,
+)
 from desloppify.engine._state.schema import StateModel
 
 
@@ -156,8 +160,6 @@ def _build_work_queue_with_visibility(
     _plan_postsort(items, skipped, plan, opts)
 
     # 6. Finalize
-    if not items:
-        items += _empty_queue_fallback(plan)
     total = len(items)
     if opts.count is not None and opts.count > 0:
         items = items[:opts.count]
@@ -234,7 +236,12 @@ def _gather_workflow_items(
     if not plan or status not in {"open", "all"}:
         return []
 
-    items: list[WorkQueueItem] = list(build_triage_stage_items(plan, state))
+    items: list[WorkQueueItem] = []
+    for builder in (build_deferred_disposition_item, build_run_scan_item):
+        item = builder(plan)
+        if item is not None:
+            items.append(item)
+    items.extend(build_triage_stage_items(plan, state))
     for builder in (
         build_score_checkpoint_item,
         build_import_scores_item,
@@ -278,12 +285,28 @@ def _filter_plan_visibility(
         return items
     tracked_ids = _planned_item_ids(plan)
     if not tracked_ids:
-        return [] if visibility == QueueVisibility.EXECUTION else items
+        if visibility == QueueVisibility.EXECUTION:
+            return [item for item in items if _is_untracked_execution_workflow(item)]
+        return items
     if visibility == QueueVisibility.EXECUTION:
-        return [item for item in items if item["id"] in tracked_ids]
+        return [
+            item for item in items
+            if item["id"] in tracked_ids or _is_untracked_execution_workflow(item)
+        ]
     if visibility == QueueVisibility.BACKLOG:
-        return [item for item in items if item["id"] not in tracked_ids]
+        return [
+            item for item in items
+            if item["id"] not in tracked_ids and not _is_untracked_execution_workflow(item)
+        ]
     return items
+
+
+def _is_untracked_execution_workflow(item: WorkQueueItem) -> bool:
+    """Return True for synthetic execution items not persisted in queue_order."""
+    return item.get("kind") == "workflow_action" and item.get("id") in {
+        WORKFLOW_DEFERRED_DISPOSITION_ID,
+        WORKFLOW_RUN_SCAN_ID,
+    }
 
 
 
@@ -325,34 +348,6 @@ def _plan_postsort(
     if opts.include_skipped:
         items.extend(skipped)
     stamp_positions(items, plan)
-
-
-def _empty_queue_fallback(plan: dict | None) -> list[WorkQueueItem]:
-    """Return end-of-queue workflow actions when no active queue items remain."""
-    if not plan:
-        return []
-
-    items: list[WorkQueueItem] = []
-    deferred_item = build_deferred_disposition_item(plan)
-    if deferred_item is not None:
-        items.append(deferred_item)
-        return items
-
-    if not postflight_scan_pending(plan):
-        return items
-
-    workflow_item: WorkQueueItem = {
-        "id": "workflow::run-scan",
-        "summary": "Queue cleared - run scan to refresh and surface follow-up review work.",
-        "file": "",
-        "detector": "workflow",
-        "confidence": "high",
-    }
-    workflow_item["kind"] = "workflow_action"
-    workflow_item["primary_command"] = "desloppify scan"
-    items.append(workflow_item)
-    return items
-
 
 __all__ = [
     "ATTEST_EXAMPLE",

@@ -9,7 +9,9 @@ from desloppify.engine.plan_queue import (
     WORKFLOW_CREATE_PLAN_ID,
     WORKFLOW_DEFERRED_DISPOSITION_ID,
     WORKFLOW_IMPORT_SCORES_ID,
+    WORKFLOW_RUN_SCAN_ID,
     WORKFLOW_SCORE_CHECKPOINT_ID,
+    postflight_scan_pending,
     pending_import_scores_meta,
 )
 from desloppify.engine.plan_triage import (
@@ -250,6 +252,28 @@ def build_communicate_score_item(plan: dict, state: dict) -> WorkQueueItem | Non
     }
 
 
+def build_run_scan_item(plan: dict) -> WorkQueueItem | None:
+    """Build a synthetic item for the first post-flight scan step."""
+    if not postflight_scan_pending(plan):
+        return None
+
+    return {
+        "id": WORKFLOW_RUN_SCAN_ID,
+        "tier": 1,
+        "confidence": "high",
+        "detector": "workflow",
+        "file": ".",
+        "kind": "workflow_action",
+        "summary": "Run post-flight scan to refresh queue and surface follow-up review work.",
+        "detail": {
+            "phase": "postflight_scan",
+        },
+        "primary_command": "desloppify scan",
+        "blocked_by": [],
+        "is_blocked": False,
+    }
+
+
 def _temporary_skipped_ids(plan: dict) -> list[str]:
     skipped = plan.get("skipped", {})
     if not isinstance(skipped, dict):
@@ -378,5 +402,6 @@ __all__ = [
     "build_create_plan_item",
     "build_deferred_disposition_item",
     "build_import_scores_item",
+    "build_run_scan_item",
     "build_score_checkpoint_item",
 ]

@@ -11,6 +11,23 @@ def test_build_score_checkpoint_item_returns_none_when_not_queued() -> None:
     assert workflow_mod.build_score_checkpoint_item({"queue_order": []}, {}) is None
 
 
+def test_build_run_scan_item_only_while_postflight_scan_is_pending() -> None:
+    item = workflow_mod.build_run_scan_item({"queue_order": []})
+
+    assert item is not None
+    assert item["id"] == "workflow::run-scan"
+    assert item["kind"] == "workflow_action"
+    assert item["primary_command"] == "desloppify scan"
+
+    completed = workflow_mod.build_run_scan_item(
+        {
+            "queue_order": [],
+            "refresh_state": {"postflight_scan_completed_at_scan_count": 5},
+        }
+    )
+    assert completed is None
+
+
 def test_build_score_checkpoint_item_includes_strict_delta(monkeypatch) -> None:
     from desloppify.engine._plan.constants import WORKFLOW_SCORE_CHECKPOINT_ID
 

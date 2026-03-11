@@ -88,7 +88,7 @@ def test_triage_stage_helpers_ignore_non_stage_meta_dicts() -> None:
 def test_epic_triage_dismiss_moves_issues_to_skipped() -> None:
     triage = SimpleNamespace(
         dismissed_issues=[SimpleNamespace(issue_id="id1", reason="false_positive")],
-        epics=[{"dismissed": ["id2"]}],
+        clusters=[{"dismissed": ["id2"]}],
     )
     order = ["id1", "id2", "id3"]
     skipped: dict = {}
@@ -628,22 +628,40 @@ def test_lifecycle_filter_respects_initial_reviews_triage_and_endgame_rules() ->
     assert all(not str(item.get("id", "")).startswith("triage::") for item in filtered_mid)
     assert all(item.get("kind") != "subjective_dimension" for item in filtered_mid)
 
-    endgame_items = [
+    scan_before_every_postflight_phase = [
+        {"kind": "workflow_action", "id": "workflow::run-scan"},
+        {"kind": "workflow_action", "id": "workflow::communicate-score"},
         {"kind": "workflow_stage", "id": "triage::observe"},
-        {"kind": "workflow_action", "id": "workflow::create-plan"},
+        {"kind": "issue", "id": "review::src/a.py::naming", "detector": "review"},
     ]
-    filtered_endgame = lifecycle_mod.apply_lifecycle_filter(endgame_items)
-    assert filtered_endgame == endgame_items
+    filtered_scan_phase = lifecycle_mod.apply_lifecycle_filter(
+        scan_before_every_postflight_phase
+    )
+    assert filtered_scan_phase == [scan_before_every_postflight_phase[0]]
 
     subjective_before_score_and_triage = [
         {"kind": "workflow_action", "id": "workflow::communicate-score"},
         {"kind": "workflow_stage", "id": "triage::observe"},
-        {"kind": "subjective_dimension", "id": "subjective::naming", "initial_review": False},
+        {"kind": "issue", "id": "review::src/a.py::naming", "detector": "review"},
     ]
     filtered_subjective_phase = lifecycle_mod.apply_lifecycle_filter(
         subjective_before_score_and_triage
     )
     assert filtered_subjective_phase == [subjective_before_score_and_triage[2]]
+
+    workflow_before_triage = [
+        {"kind": "workflow_action", "id": "workflow::communicate-score"},
+        {"kind": "workflow_stage", "id": "triage::observe"},
+    ]
+    filtered_workflow_phase = lifecycle_mod.apply_lifecycle_filter(workflow_before_triage)
+    assert filtered_workflow_phase == [workflow_before_triage[0]]
+
+    triage_only_items = [
+        {"kind": "workflow_stage", "id": "triage::observe"},
+        {"kind": "workflow_action", "id": "workflow::deferred-disposition"},
+    ]
+    filtered_deferred_phase = lifecycle_mod.apply_lifecycle_filter(triage_only_items)
+    assert filtered_deferred_phase == [triage_only_items[1]]
 
     forced_items = [
         {
@@ -678,14 +696,13 @@ def test_lifecycle_filter_treats_clusters_as_objective() -> None:
 
 
 def test_lifecycle_filter_forces_triage_when_only_subjective_clusters() -> None:
-    """When only subjective clusters remain, triage should still be forced."""
+    """Subjective review clusters should surface before triage once scan is done."""
     items = [
         {"kind": "workflow_stage", "id": "triage::observe"},
         {"kind": "cluster", "id": "auto/subjective_review", "detector": "subjective_assessment"},
     ]
     filtered = lifecycle_mod.apply_lifecycle_filter(items)
-    # Subjective cluster is not objective — triage should be forced
-    assert any(str(item.get("id", "")).startswith("triage::") for item in filtered)
+    assert filtered == [items[1]]
 
 
 def test_endgame_only_detectors_is_subset_of_non_objective() -> None:
@@ -693,8 +710,7 @@ def test_endgame_only_detectors_is_subset_of_non_objective() -> None:
     from desloppify.engine.plan_queue import NON_OBJECTIVE_DETECTORS
 
     assert lifecycle_mod.ENDGAME_ONLY_DETECTORS <= NON_OBJECTIVE_DETECTORS
-    # Verify the constant is non-empty (guard against accidental clearing)
-    assert len(lifecycle_mod.ENDGAME_ONLY_DETECTORS) >= 1
+    assert lifecycle_mod.ENDGAME_ONLY_DETECTORS == NON_OBJECTIVE_DETECTORS
 
 
 def test_is_endgame_only_uses_endgame_detectors_constant() -> None:
@@ -702,13 +718,13 @@ def test_is_endgame_only_uses_endgame_detectors_constant() -> None:
     for det in lifecycle_mod.ENDGAME_ONLY_DETECTORS:
         item = {"kind": "issue", "id": f"{det}::x", "detector": det}
         assert lifecycle_mod._is_endgame_only(item) is True
-
-    # Non-endgame non-objective detectors should NOT be endgame-only
-    from desloppify.engine.plan_queue import NON_OBJECTIVE_DETECTORS
-
-    for det in NON_OBJECTIVE_DETECTORS - lifecycle_mod.ENDGAME_ONLY_DETECTORS:
-        item = {"kind": "issue", "id": f"{det}::x", "detector": det}
-        assert lifecycle_mod._is_endgame_only(item) is False
+    initial_review = {
+        "kind": "subjective_dimension",
+        "id": "subjective::naming",
+        "detector": "subjective_assessment",
+        "initial_review": True,
+    }
+    assert lifecycle_mod._is_endgame_only(initial_review) is False
 
 
 def test_lifecycle_filter_hides_subjective_review_issue_while_objective_work_exists() -> None:

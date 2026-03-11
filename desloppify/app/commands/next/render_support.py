@@ -209,19 +209,9 @@ def render_cluster_item(item: dict) -> None:
 def render_queue_header(queue: dict, explain: bool) -> None:
     del explain
     total = queue.get("total", 0)
-    items = queue.get("items", [])
-    # When the only item is the "run scan" workflow action, show "Queue cleared"
-    # instead of a misleading "1 items" count.
-    if (
-        total == 1
-        and len(items) == 1
-        and items[0].get("id") == "workflow::run-scan"
-    ):
-        print(colorize("\n  Queue cleared (1 workflow step)", "bold"))
-    else:
-        print(colorize(f"\n  Queue: {total} item{'s' if total != 1 else ''}", "bold"))
-        if total > 5:
-            print(colorize("  (Skip items only when explicitly requested.)", "dim"))
+    print(colorize(f"\n  Queue: {total} item{'s' if total != 1 else ''}", "bold"))
+    if total > 5:
+        print(colorize("  (Skip items only when explicitly requested.)", "dim"))
 
 
 def show_empty_queue(
