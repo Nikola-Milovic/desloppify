@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 import shlex
 import subprocess  # nosec B404
@@ -15,7 +16,7 @@ from desloppify.languages._framework.generic_parts.parsers import ToolParserErro
 
 SubprocessRun = Callable[..., subprocess.CompletedProcess[str]]
 
-_SHELL_META_CHARS = re.compile(r"[|&;<>()$`\\n]")
+_SHELL_META_CHARS = re.compile(r"[|&;<>()$`\n]")
 logger = logging.getLogger(__name__)
 
 
@@ -30,15 +31,22 @@ class ToolRunResult:
     returncode: int | None = None
 
 
+def _shell_argv(cmd: str) -> list[str]:
+    """Return a platform-appropriate shell argv for shell-meta commands."""
+    if os.name == "nt":
+        return ["cmd.exe", "/d", "/s", "/c", cmd]
+    return ["/bin/sh", "-lc", cmd]
+
+
 def resolve_command_argv(cmd: str) -> list[str]:
     """Return argv for subprocess.run without relying on shell=True."""
     if _SHELL_META_CHARS.search(cmd):
-        return ["/bin/sh", "-lc", cmd]
+        return _shell_argv(cmd)
     try:
         argv = shlex.split(cmd, posix=True)
     except ValueError:
-        return ["/bin/sh", "-lc", cmd]
-    return argv if argv else ["/bin/sh", "-lc", cmd]
+        return _shell_argv(cmd)
+    return argv if argv else _shell_argv(cmd)
 
 
 def _output_preview(output: str, *, limit: int = 160) -> str:
