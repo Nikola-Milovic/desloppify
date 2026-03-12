@@ -11,6 +11,7 @@ from typing import Any
 import desloppify.intelligence.narrative.core as narrative_mod
 from desloppify.base.coercions import coerce_positive_int
 from desloppify.base.exception_sets import PLAN_LOAD_EXCEPTIONS
+from desloppify.engine._plan.persistence import plan_path_for_state
 from desloppify.engine._state.schema import StateModel
 from desloppify.intelligence.review.prepare import (
     HolisticReviewPrepareOptions,
@@ -32,6 +33,7 @@ class ReviewPacketContext:
     """Normalized review-packet CLI options shared across entrypoints."""
 
     path: Path
+    state_path: Path | None
     dimensions: list[str] | None
     retrospective: bool
     retrospective_max_issues: int
@@ -55,6 +57,11 @@ def resolve_review_packet_context(args: Any) -> ReviewPacketContext:
     )
     return ReviewPacketContext(
         path=Path(getattr(args, "path", ".") or "."),
+        state_path=(
+            Path(getattr(args, "state"))
+            if getattr(args, "state", None)
+            else None
+        ),
         dimensions=dimensions,
         retrospective=retrospective,
         retrospective_max_issues=retrospective_max_issues,
@@ -93,15 +100,22 @@ def build_holistic_packet(
         ),
     )
     packet["narrative"] = narrative
-    _attach_plan_deferral_context(packet)
+    _attach_plan_deferral_context(packet, state_path=context.state_path)
     return packet, lang_name
 
 
-def _attach_plan_deferral_context(packet: dict[str, Any]) -> None:
+def _attach_plan_deferral_context(
+    packet: dict[str, Any],
+    *,
+    state_path: Path | None,
+) -> None:
     """Attach subjective_defer_meta from plan to investigation batches."""
     try:
         from desloppify.engine.plan_state import load_plan
-        plan = load_plan()
+
+        plan = load_plan(
+            plan_path_for_state(state_path) if state_path is not None else None
+        )
     except PLAN_LOAD_EXCEPTIONS:
         return
     defer_meta = plan.get("subjective_defer_meta") if isinstance(plan, dict) else None
@@ -138,6 +152,8 @@ def build_run_batches_next_command(context: ReviewPacketContext) -> str:
         "--parallel",
         "--scan-after-import",
     ]
+    if context.state_path is not None:
+        parts.extend(["--state", str(context.state_path)])
     if context.dimensions:
         parts.extend(["--dimensions", ",".join(context.dimensions)])
     if not context.retrospective:
@@ -160,6 +176,7 @@ def prepared_packet_contract(
     payload = json.dumps(redacted, sort_keys=True, separators=(",", ":"))
     return {
         "path": str(context.path.resolve()),
+        "state_path": str(context.state_path.resolve()) if context.state_path is not None else None,
         "dimensions": sorted(context.dimensions or []),
         "retrospective": context.retrospective,
         "retrospective_max_issues": context.retrospective_max_issues,
@@ -179,6 +196,8 @@ def build_external_submit_next_command(context: ReviewPacketContext) -> str:
         "--import",
         "<file>",
     ]
+    if context.state_path is not None:
+        parts.extend(["--state", str(context.state_path)])
     if not context.retrospective:
         parts.append("--no-retrospective")
     return " ".join(parts)

@@ -38,7 +38,15 @@ def _new_review_ids_since_triage(
 ) -> set[str]:
     """Return review issue IDs that are new since the last triage."""
     triaged_ids = set(meta.get("triaged_ids", []))
-    return stale_policy_mod.open_review_ids(state) - triaged_ids
+    active_ids = set(meta.get("active_triage_issue_ids", []))
+    known_ids = triaged_ids | active_ids
+    return stale_policy_mod.open_review_ids(state) - known_ids if known_ids else set()
+
+
+def _baseline_triage_issue_ids(meta: dict) -> set[str]:
+    triaged_ids = set(meta.get("triaged_ids", []))
+    active_ids = set(meta.get("active_triage_issue_ids", []))
+    return triaged_ids | active_ids
 
 
 def _prune_all_triage_stages(order: list[str]) -> None:
@@ -134,6 +142,8 @@ def _prune_stale_present_stages(
 ) -> QueueSyncResult:
     result = QueueSyncResult()
     if not last_hash or confirmed or recorded_unconfirmed:
+        return result
+    if not _baseline_triage_issue_ids(meta) and stale_policy_mod.open_review_ids(state):
         return result
     new_since_triage = _new_review_ids_since_triage(state, meta)
     if new_since_triage:
@@ -232,6 +242,8 @@ def _sync_hash_change(
     current_hash: str,
 ) -> QueueSyncResult:
     new_since_triage = _new_review_ids_since_triage(state, meta)
+    if not new_since_triage and not _baseline_triage_issue_ids(meta):
+        new_since_triage = stale_policy_mod.open_review_ids(state)
     if new_since_triage:
         return _defer_or_inject_triage(
             plan=plan,

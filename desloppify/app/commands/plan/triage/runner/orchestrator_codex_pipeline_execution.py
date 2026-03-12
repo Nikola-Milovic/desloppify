@@ -11,6 +11,7 @@ from typing import Any
 
 from desloppify.base.discovery.file_paths import safe_write_text
 from desloppify.base.output.terminal import colorize
+from desloppify.engine.plan_triage import compute_triage_progress
 
 from ..services import TriageServices
 from ..validation.core import validate_organize_against_reflect_ledger
@@ -18,7 +19,6 @@ from ..validation.reflect_accounting import (
     analyze_reflect_issue_accounting,
     validate_reflect_accounting,
 )
-from ..validation.stage_policy import missing_stage_prerequisite
 from .codex_runner import TriageStageRunResult, run_triage_stage
 from .orchestrator_codex_observe import run_observe
 from .orchestrator_codex_pipeline_context import StageRunContext
@@ -180,6 +180,7 @@ def stage_report_recorded(plan: Mapping[str, Any], stage: str) -> bool:
 def preflight_stage(
     *,
     stage: str,
+    prompt_mode: PromptMode = "output_only",
     plan: Mapping[str, Any],
     triage_input: Any,
     dry_run: bool,
@@ -197,7 +198,8 @@ def preflight_stage(
 
     if stage == "sense-check":
         stages = plan.get("epic_triage_meta", {}).get("triage_stages", {})
-        if missing_stage_prerequisite(stages, flow="sense-check") is None:
+        progress = compute_triage_progress(stages)
+        if "sense-check" in stages or progress.current_stage == "sense-check":
             return True, None
         reason = "enrich_not_confirmed"
         append_run_log(f"stage-preflight-failed stage={stage} reason={reason}")
@@ -223,7 +225,13 @@ def preflight_stage(
         append_run_log(f"stage-preflight-failed stage={stage} reason={reason}")
         return False, reason
 
-    # Validate plan state matches reflect disposition ledger
+    # Self-record stages mutate plan state from within the subagent, so their
+    # postconditions cannot be required before launch. The organize command
+    # itself validates ledger/disposition alignment when it records the stage.
+    if prompt_mode == "self_record":
+        return True, None
+
+    # Output-only organize paths may rely on pre-applied plan mutations.
     ledger_mismatches = validate_organize_against_reflect_ledger(
         plan=dict(plan), stages=stages,
     )
@@ -661,6 +669,7 @@ def execute_stage(
 
     preflight_ok, preflight_reason = preflight_stage(
         stage=stage,
+        prompt_mode=prompt_mode,
         plan=context.plan,
         triage_input=context.triage_input,
         dry_run=context.dry_run,

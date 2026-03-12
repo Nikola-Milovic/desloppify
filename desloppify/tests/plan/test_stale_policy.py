@@ -576,6 +576,17 @@ class TestComputeNewIssueIds:
         result = compute_new_issue_ids(plan, state)
         assert result == {"r2", "r3"}
 
+    def test_excludes_active_cycle_ids_from_new_issue_detection(self):
+        plan = {
+            "epic_triage_meta": {
+                "triaged_ids": ["r1"],
+                "active_triage_issue_ids": ["r2"],
+            }
+        }
+        state = _state_with_review_issues("r1", "r2", "r3")
+        result = compute_new_issue_ids(plan, state)
+        assert result == {"r3"}
+
     def test_no_new_when_all_triaged(self):
         plan = {"epic_triage_meta": {"triaged_ids": ["r1", "r2"]}}
         state = _state_with_review_issues("r1", "r2")
@@ -627,3 +638,12 @@ class TestComputeNewIssueIds:
         state = _state_with_review_issues("r1")
         result = compute_new_issue_ids(plan, state)
         assert result == set()
+
+    def test_active_cycle_ids_do_not_make_triage_stale(self):
+        plan = {
+            "epic_triage_meta": {
+                "active_triage_issue_ids": ["r1", "r2"],
+            }
+        }
+        state = _state_with_review_issues("r1", "r2")
+        assert is_triage_stale(plan, state) is False

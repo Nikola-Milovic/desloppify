@@ -47,6 +47,11 @@ def test_skip_policy_maps_and_requirements():
     assert skip_kind_needs_state_reopen("permanent") is True
     assert skip_kind_needs_state_reopen("false_positive") is True
     assert skip_kind_needs_state_reopen("triaged_out") is True
+    assert skip_kind_needs_state_reopen("triage_observe_auto") is True
+
+    assert skip_kind_state_status("triage_observe_auto") == "false_positive"
+    assert skip_kind_requires_attestation("triage_observe_auto") is False
+    assert skip_kind_requires_note("triage_observe_auto") is False
 
     assert tuple(USER_SKIP_KINDS) == ("temporary", "permanent", "false_positive")
     assert VALID_SKIP_KINDS == {
@@ -54,6 +59,7 @@ def test_skip_policy_maps_and_requirements():
         "permanent",
         "false_positive",
         "triaged_out",
+        "triage_observe_auto",
     }
 
 

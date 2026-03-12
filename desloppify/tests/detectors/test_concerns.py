@@ -4,20 +4,10 @@ from __future__ import annotations
 
 from desloppify.base.registry import JUDGMENT_DETECTORS
 from desloppify.engine._concerns.generators import (
-    _cross_file_patterns,
-    _file_concerns,
     cleanup_stale_dismissals,
     generate_concerns,
 )
-from desloppify.engine._concerns.signals import _extract_signals, _has_elevated_signals
-from desloppify.engine._concerns.state import _group_by_file, _open_issues
-from desloppify.engine._concerns.text import (
-    _build_evidence,
-    _build_question,
-    _build_summary,
-    _classify,
-)
-from desloppify.engine._concerns.utils import _fingerprint, _is_dismissed
+from desloppify.engine._concerns.utils import _fingerprint
 
 # ── Helpers ──────────────────────────────────────────────────────────
 

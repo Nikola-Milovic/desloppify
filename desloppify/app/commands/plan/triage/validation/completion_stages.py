@@ -3,7 +3,11 @@
 from __future__ import annotations
 
 from desloppify.base.output.terminal import colorize
-from desloppify.engine.plan_triage import TRIAGE_CMD_ORGANIZE
+from desloppify.engine.plan_triage import (
+    TRIAGE_CMD_ORGANIZE,
+    TRIAGE_STAGE_LABELS,
+    compute_triage_progress,
+)
 
 from .enrich_checks import _underspecified_steps
 from ..review_coverage import manual_clusters_with_issues
@@ -11,7 +15,6 @@ from ..stages.helpers import unenriched_clusters
 from .stage_policy import (
     AutoConfirmStageRequest,
     confirm_stage,
-    missing_stage_prerequisite,
 )
 
 
@@ -39,6 +42,17 @@ _COMPLETE_AUTO_CONFIRM_STAGE_CONFIG = {
 
 def _manual_cluster_names(plan: dict) -> list[str]:
     return [name for name, cluster in plan.get("clusters", {}).items() if not cluster.get("auto")]
+
+
+def _first_missing_recorded_stage(stages: dict, *, through_stage: str) -> str | None:
+    progress = compute_triage_progress(stages)
+    recorded = {stage.name: stage.recorded for stage in progress.stages}
+    for stage_name, _label in TRIAGE_STAGE_LABELS:
+        if not recorded.get(stage_name, False):
+            return stage_name
+        if stage_name == through_stage:
+            return None
+    return None
 
 
 def _auto_confirm_stage_for_complete(
@@ -77,10 +91,10 @@ def _require_enrich_stage_for_complete(
     stages: dict,
     underspec: list[tuple[str, int, int]] | None = None,
 ) -> bool:
-    missing = missing_stage_prerequisite(stages, flow="complete:enrich")
+    missing = _first_missing_recorded_stage(stages, through_stage="enrich")
     if missing is None:
         return True
-    if missing.stage_name != "enrich":
+    if missing != "enrich":
         return _require_organize_stage_for_complete(plan=plan, meta=meta, stages=stages)
 
     if underspec is None:
@@ -135,10 +149,10 @@ def _require_sense_check_stage_for_complete(
     meta: dict,
     stages: dict,
 ) -> bool:
-    missing = missing_stage_prerequisite(stages, flow="complete:sense-check")
+    missing = _first_missing_recorded_stage(stages, through_stage="sense-check")
     if missing is None:
         return True
-    if missing.stage_name != "sense-check":
+    if missing != "sense-check":
         return _require_enrich_stage_for_complete(plan=plan, meta=meta, stages=stages)
 
     print(colorize("  Cannot complete: sense-check stage not recorded.", "red"))
@@ -152,10 +166,10 @@ def _require_organize_stage_for_complete(
     meta: dict,
     stages: dict,
 ) -> bool:
-    missing = missing_stage_prerequisite(stages, flow="complete:organize")
+    missing = _first_missing_recorded_stage(stages, through_stage="organize")
     if missing is None:
         return True
-    if missing.stage_name == "observe":
+    if missing == "observe":
         print(colorize("  Cannot complete: no stages done yet.", "red"))
         print(colorize('  Start with: desloppify plan triage --stage observe --report "..."', "dim"))
         return False

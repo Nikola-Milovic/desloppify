@@ -10,7 +10,6 @@ Covers:
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 from unittest.mock import patch
 
 from desloppify.engine._plan.policy.subjective import compute_subjective_visibility
@@ -770,6 +769,10 @@ class TestQueueGuardScanPath:
         """_check_queue_order_guard uses build_work_queue which auto-reads
         scan_path from state, so out-of-scope items don't appear in the queue."""
         from desloppify.app.commands.resolve.queue_guard import _check_queue_order_guard
+        from desloppify.app.commands.resolve.plan_load import (
+            DegradedPlanWarningState,
+            ResolvePlanAccess,
+        )
 
         state = {
             "issues": {
@@ -783,22 +786,20 @@ class TestQueueGuardScanPath:
             "grouped": {},
             "new_ids": set(),
         }
+        plan_access = ResolvePlanAccess(
+            plan={"queue_order": ["f1"], "skipped": {}},
+            degraded=False,
+            error_kind=None,
+            warning_state=DegradedPlanWarningState(),
+        )
         with (
-            patch(
-                "desloppify.app.commands.resolve.queue_guard.resolve_plan_load_status",
-                return_value=SimpleNamespace(
-                    degraded=False,
-                    error_kind=None,
-                    plan={"queue_order": ["f1"], "skipped": {}},
-                ),
-            ),
             patch(
                 "desloppify.app.commands.resolve.queue_guard.build_work_queue",
                 return_value=mock_result,
             ) as mock_build,
         ):
             # Should not raise — f1 is at front of queue
-            result = _check_queue_order_guard(state, ["f1"], "fixed")
+            result = _check_queue_order_guard(state, ["f1"], "fixed", plan_access=plan_access)
             assert result is False
             # Verify build_work_queue was called (scan_path resolved internally)
             mock_build.assert_called_once()

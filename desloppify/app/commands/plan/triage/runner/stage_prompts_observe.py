@@ -29,7 +29,7 @@ Do NOT analyze themes, strategy, or relationships between issues. Just verify: i
 
 **Your report must include for EVERY issue ({issue_count} total):**
 1. The issue hash
-2. Your verdict (genuine / false positive / exaggerated / over-engineering)
+2. Your verdict (genuine / false positive / exaggerated / over-engineering / not-worth-it)
 3. Your verdict reasoning (what you found when you read the code)
 4. The file paths you actually read
 5. Your recommendation

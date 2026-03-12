@@ -43,7 +43,6 @@ from .orchestrator_codex_pipeline_context import (
 from .orchestrator_codex_pipeline_execution import (
     DEFAULT_STAGE_HANDLERS,
     StageExecutionDependencies,
-    StageExecutionResult,
     StageHandler,
     execute_stage as execute_stage_impl,
     read_stage_output as read_stage_output_impl,

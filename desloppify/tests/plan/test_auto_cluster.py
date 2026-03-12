@@ -899,7 +899,7 @@ def test_repair_manual_cluster_wins_over_auto():
     }
 
     from desloppify.engine._state.schema import utc_now
-    repaired = _repair_ghost_cluster_refs(plan, utc_now())
+    _repair_ghost_cluster_refs(plan, utc_now())
 
     # Manual cluster should take priority
     assert plan["overrides"]["a"]["cluster"] == "my-manual"

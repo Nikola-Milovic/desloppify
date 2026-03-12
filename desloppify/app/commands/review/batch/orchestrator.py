@@ -10,17 +10,14 @@ from pathlib import Path
 from typing import cast
 
 from desloppify.app.commands.helpers.query import write_query_best_effort
-from desloppify.base.coercions import coerce_positive_int
 from desloppify.base.discovery.file_paths import safe_write_text
 from desloppify.base.exception_sets import CommandError, PacketValidationError
 from desloppify.base.output.terminal import colorize, log
 from desloppify.base.search.query_paths import query_file_path
-import desloppify.intelligence.narrative.core as narrative_mod
 from desloppify.intelligence.review.feedback_contract import (
     max_batch_issues_for_dimension_count,
 )
 from desloppify.intelligence.review.prepare import (
-    HolisticReviewPrepareOptions,
     prepare_holistic_review,
 )
 
@@ -33,7 +30,7 @@ from ..packet.build import (
     prepared_packet_contract,
     resolve_review_packet_context,
 )
-from ..packet.policy import coerce_review_batch_file_limit, redacted_review_config
+from ..packet.policy import redacted_review_config
 from ..prompt_sections import explode_to_single_dimension
 from ..runner_failures import print_failures, print_failures_and_raise
 from ..runner_packets import (
@@ -215,6 +212,7 @@ def _prepared_packet_contract_mismatch_reason(
 
     for key in (
         "path",
+        "state_path",
         "dimensions",
         "retrospective",
         "retrospective_max_issues",

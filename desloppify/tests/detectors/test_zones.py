@@ -11,14 +11,10 @@ from desloppify.engine.policy.zones import (
     ZONE_POLICIES,
     FileZoneMap,
     Zone,
-    ZonePolicy,
     ZoneRule,
     _match_pattern,
-    adjust_potential,
     classify_file,
-    filter_entries,
     normalize_zone,
-    should_skip_issue,
     zone_in,
 )
 

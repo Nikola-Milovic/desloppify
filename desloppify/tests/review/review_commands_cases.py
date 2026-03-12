@@ -6,7 +6,6 @@ import hashlib
 import json
 import subprocess
 import sys
-import time
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -1129,7 +1128,8 @@ class TestCmdReviewPrepare:
         assert payload["assessments"]["high_level_elegance"] == 72.4
         assert payload["assessments"]["mid_level_elegance"] == 63.0
         assert payload["assessments"]["low_level_elegance"] == 78.5
-        assert payload["reviewed_files"] == ["src/a.ts", "src/b.ts", "src/c.ts", "src/d.ts"]
+        # Reviewer agents explore freely — no seed-file-based reviewed_files
+        assert "reviewed_files" not in payload
         assert "dimension_notes" in payload
         assert "review_quality" in payload
         assert payload["review_quality"]["dimension_coverage"] == round(1 / 3, 3)
@@ -1657,7 +1657,7 @@ class TestCmdReviewPrepare:
 
         payload = captured["payload"]
         assert payload["assessments"]["mid_level_elegance"] == pytest.approx(75.0, abs=0.1)
-        assert payload["reviewed_files"] == ["src/a.ts"]
+        assert "reviewed_files" not in payload
         import_config = captured["kwargs"]["import_config"]
         assert isinstance(import_config, ReviewImportConfig)
         assert import_config.allow_partial is True

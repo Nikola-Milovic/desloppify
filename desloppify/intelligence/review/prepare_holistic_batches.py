@@ -35,12 +35,6 @@ def _merge_batch_payload(
     for existing in batches:
         if existing.get("dimensions") != incoming_dimensions:
             continue
-        existing_files = set(existing.get("files_to_read", []))
-        for filepath in incoming_batch.get("files_to_read", []):
-            if filepath in existing_files:
-                continue
-            existing["files_to_read"].append(filepath)
-            existing_files.add(filepath)
         existing["concern_signals"] = incoming_batch.get("concern_signals", [])
         existing["concern_signal_count"] = incoming_batch.get("concern_signal_count", 0)
         judgment_counts = incoming_batch.get("judgment_finding_counts")

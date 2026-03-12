@@ -6,33 +6,24 @@ import math
 
 import pytest
 
-import desloppify.languages.typescript.test_coverage as ts_cov
 from desloppify.engine.detectors.coverage.mapping import (
     _map_test_to_source,
     _strip_test_markers,
     analyze_test_quality,
     get_test_files_for_prod,
     import_based_mapping,
-    naming_based_mapping,
     transitive_coverage,
 )
 from desloppify.engine.detectors.coverage.mapping_imports import (
     _infer_lang_name,
     _parse_test_imports,
-    _resolve_barrel_reexports,
-    _resolve_import,
 )
 from desloppify.engine.detectors.test_coverage.detector import detect_test_coverage
-from desloppify.engine.detectors.test_coverage.heuristics import _has_testable_logic
 from desloppify.engine.detectors.test_coverage.io import (
     clear_coverage_read_warning_cache_for_tests,
 )
 from desloppify.engine.detectors.test_coverage.metrics import _file_loc
 from desloppify.engine.policy.zones import FileZoneMap, Zone, ZoneRule
-from desloppify.languages.python.test_coverage import _strip_py_comment
-from desloppify.languages.typescript.test_coverage import (
-    has_testable_logic as ts_has_testable_logic,
-)
 
 # ── Helpers ────────────────────────────────────────────────
 

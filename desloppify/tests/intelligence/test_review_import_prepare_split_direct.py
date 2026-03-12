@@ -224,13 +224,13 @@ def test_collectors_scope_payload_parts_and_orchestration_helpers(monkeypatch, t
 
     batches = [
         {
-            "files_to_read": ["src/a.py", "tests/a_test.py"],
+            "dimensions": ["naming_quality"],
             "concern_signals": [{"file": "src/a.py"}, {"file": "tests/a_test.py"}],
             "historical_issue_focus": {"issues": [{"related_files": ["src/a.py", "tests/a_test.py"]}]},
         }
     ]
     scoped_batches = scope_mod.filter_batches_to_file_scope(batches, allowed_files={"src/a.py"})
-    assert scoped_batches[0]["files_to_read"] == ["src/a.py"]
+    assert scoped_batches[0]["concern_signals"] == [{"file": "src/a.py"}]
 
     selected = payload_parts_mod._build_selected_prompts(
         ["naming_quality"],

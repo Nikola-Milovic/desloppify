@@ -251,7 +251,6 @@ def test_external_launch_prompt_contains_shared_sections():
                 "name": "B1",
                 "dimensions": ["naming_quality"],
                 "why": "test",
-                "files_to_read": ["a.py"],
                 "dimension_contexts": {
                     "naming_quality": {
                         "insights": [
@@ -278,7 +277,6 @@ def test_external_launch_prompt_contains_shared_sections():
     assert render_scan_evidence_note() in prompt
     assert render_scope_enums() in prompt
     assert "--- Batch 1: B1 ---" in prompt
-    assert "a.py" in prompt
     assert "Codebase Characteristics" in prompt
     assert "dimension_judgment" in prompt
     assert "context_updates" in prompt

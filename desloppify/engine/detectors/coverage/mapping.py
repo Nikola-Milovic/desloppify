@@ -240,3 +240,16 @@ def build_test_import_index(
         parse_test_imports_fn=_parse_test_imports,
         project_root=str(get_project_root()),
     )
+
+
+__all__ = [
+    "analyze_test_quality",
+    "build_test_import_index",
+    "get_test_files_for_prod",
+    "import_based_mapping",
+    "naming_based_mapping",
+    "transitive_coverage",
+    "_build_prod_module_index",
+    "_map_test_to_source",
+    "_strip_test_markers",
+]

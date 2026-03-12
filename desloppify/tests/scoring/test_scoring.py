@@ -9,11 +9,7 @@ from desloppify.engine._scoring.detection import (
     merge_potentials,
 )
 from desloppify.engine._scoring.policy.core import (
-    CONFIDENCE_WEIGHTS,
-    DIMENSIONS,
-    MIN_SAMPLE,
     SUBJECTIVE_CHECKS,
-    TIER_WEIGHTS,
     Dimension,
 )
 from desloppify.engine._scoring.results.core import (
@@ -24,7 +20,6 @@ from desloppify.engine._scoring.results.core import (
     compute_score_impact,
     get_dimension_for_detector,
 )
-from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
 
 # ---------------------------------------------------------------------------
 # Helpers

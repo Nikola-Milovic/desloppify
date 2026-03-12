@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from desloppify.intelligence.narrative._constants import _FEEDBACK_URL, STRUCTURAL_MERGE
 from desloppify.intelligence.narrative.core import (
     NarrativeContext,
     _count_open_by_detector,

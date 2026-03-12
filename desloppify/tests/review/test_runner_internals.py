@@ -9,17 +9,10 @@ Covers the pure-logic functions in:
 from __future__ import annotations
 
 import json
-import threading
-from concurrent.futures import Future
 from pathlib import Path
 from unittest.mock import MagicMock
 
 
-from desloppify.app.commands.review.runner_parallel.execution import (
-    _complete_parallel_future,
-    _heartbeat,
-    _resolve_parallel_runtime,
-)
 from desloppify.app.commands.review.runner_process_impl.attempts import (
     handle_early_attempt_return,
     handle_failed_attempt,

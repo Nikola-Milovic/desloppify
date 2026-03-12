@@ -92,3 +92,6 @@ def make_nesting_depth_compute(spec: TreeSitterLangSpec) -> ComputeFn:
         return depth, f"nesting depth {depth}"
 
     return compute
+
+
+__all__ = ["compute_nesting_depth_ts", "make_callback_depth_compute", "make_nesting_depth_compute"]

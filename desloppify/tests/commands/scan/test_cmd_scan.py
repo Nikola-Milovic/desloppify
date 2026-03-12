@@ -7,7 +7,6 @@ import pytest
 import desloppify.app.commands.scan.artifacts as scan_artifacts_mod
 import desloppify.app.commands.scan.cmd as scan_cmd_mod
 import desloppify.app.commands.scan.preflight as scan_preflight_mod
-import desloppify.intelligence.narrative.core as narrative_mod
 import desloppify.languages as lang_mod
 from desloppify.app.commands.scan.helpers import (
     audit_excluded_dirs,
@@ -23,12 +22,9 @@ from desloppify.app.commands.scan.reporting.summary import (
 from desloppify.app.commands.scan.cmd import (
     cmd_scan,
     show_diff_summary,
-    show_dimension_deltas,
-    show_post_scan_analysis,
     show_score_delta,
 )
 from desloppify.base.exception_sets import CommandError
-from desloppify.engine._scoring.policy.core import DIMENSIONS
 
 # ---------------------------------------------------------------------------
 # Module-level sanity

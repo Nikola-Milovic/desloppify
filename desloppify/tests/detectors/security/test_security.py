@@ -8,16 +8,8 @@ import textwrap
 from pathlib import Path
 from unittest.mock import patch
 
-from desloppify.base.registry import _DISPLAY_ORDER, DETECTORS, dimension_action_type
-from desloppify.engine._scoring.policy.core import (
-    DIMENSIONS,
-    FILE_BASED_DETECTORS,
-    SECURITY_EXCLUDED_ZONES,
-)
-from desloppify.engine._scoring.results.core import compute_dimension_scores
 from desloppify.engine.detectors.security.detector import detect_security_issues
-from desloppify.engine.policy.zones import ZONE_POLICIES, FileZoneMap, Zone
-from desloppify.intelligence.narrative.headline import compute_headline
+from desloppify.engine.policy.zones import FileZoneMap, Zone
 from desloppify.languages.typescript.detectors.security.detector import detect_ts_security
 
 # ── Helpers ──────────────────────────────────────────────────

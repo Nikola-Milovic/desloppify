@@ -10,8 +10,8 @@ from desloppify.engine._plan.constants import (
 )
 from desloppify.engine.plan_triage import (
     TRIAGE_IDS,
-    TRIAGE_STAGE_DEPENDENCIES,
     TRIAGE_STAGE_IDS,
+    TRIAGE_STAGE_PREREQUISITES,
 )
 
 _CLUSTER_INDIVIDUAL_THRESHOLD = 10
@@ -111,12 +111,13 @@ def blocked_triage_stages(plan: dict) -> dict[str, list[str]]:
     for stage_id, name in zip(TRIAGE_STAGE_IDS, stage_names, strict=False):
         if name not in present_names or name in confirmed:
             continue
-        deps = TRIAGE_STAGE_DEPENDENCIES.get(name, set())
-        unmet = sorted(
-            f"triage::{dep}" for dep in deps if dep in present_names and dep not in confirmed
-        )
+        unmet = [
+            prerequisite.stage_name
+            for prerequisite in TRIAGE_STAGE_PREREQUISITES.get(name, ())
+            if prerequisite.stage_name in present_names and prerequisite.stage_name not in confirmed
+        ]
         if unmet:
-            blocked[stage_id] = unmet
+            blocked[stage_id] = [f"triage::{unmet[-1]}"]
     return blocked
 
 

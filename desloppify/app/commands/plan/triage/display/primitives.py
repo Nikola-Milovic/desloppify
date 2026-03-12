@@ -5,8 +5,8 @@ from __future__ import annotations
 from desloppify.base.output.terminal import colorize
 from desloppify.engine.plan_triage import (
     TRIAGE_CMD_CLUSTER_ENRICH_COMPACT,
-    TRIAGE_STAGE_DEPENDENCIES,
     TRIAGE_STAGE_LABELS,
+    compute_triage_progress,
     triage_manual_stage_command,
     triage_runner_commands,
 )
@@ -18,16 +18,23 @@ from ..stages.helpers import unenriched_clusters
 def print_stage_progress(stages: dict, plan: dict | None = None) -> None:
     """Print the triage-stage progress indicator."""
     print(colorize("  Stages:", "dim"))
-    for stage_name, label in TRIAGE_STAGE_LABELS:
-        if stage_name in stages:
-            if stages[stage_name].get("confirmed_at"):
-                print(colorize(f"    ✓ {label} (confirmed)", "green"))
-            else:
-                print(colorize(f"    ✓ {label} (needs confirm)", "yellow"))
-        elif TRIAGE_STAGE_DEPENDENCIES[stage_name].issubset(stages):
+    progress = compute_triage_progress(stages)
+    stage_labels = dict(TRIAGE_STAGE_LABELS)
+    for stage in progress.stages:
+        label = stage_labels.get(stage.name, stage.name)
+        if stage.recorded and stage.confirmed:
+            print(colorize(f"    ✓ {label} (confirmed)", "green"))
+        elif stage.recorded:
+            print(colorize(f"    ✓ {label} (needs confirm)", "yellow"))
+        elif stage.name == progress.current_stage:
             print(colorize(f"    → {label} (current)", "yellow"))
         else:
             print(colorize(f"    ○ {label}", "dim"))
+
+    if progress.blocked_reason:
+        print(colorize(f"\n    {progress.blocked_reason}", "yellow"))
+        if progress.next_command:
+            print(colorize(f"      Next: {progress.next_command}", "dim"))
 
     if plan and "reflect" in stages and "organize" not in stages:
         gaps = unenriched_clusters(plan)

@@ -7,6 +7,7 @@ import argparse
 from desloppify.app.commands.helpers.issue_id_display import short_issue_id
 from desloppify.base.output.terminal import colorize
 from desloppify.base.output.user_message import print_user_message
+from desloppify.engine.plan_triage import build_triage_snapshot
 
 from .layout import (
     print_action_guidance,
@@ -261,11 +262,12 @@ def cmd_triage_dashboard(
     state = runtime.state
     plan = resolved_services.load_plan()
     si = resolved_services.collect_triage_input(plan, state)
+    snapshot = build_triage_snapshot(plan, state)
     meta = plan.get("epic_triage_meta", {})
     stages = meta.get("triage_stages", {})
 
-    print_dashboard_header(si, stages, meta, plan)
-    print_action_guidance(stages, meta, si, plan)
+    print_dashboard_header(si, stages, meta, plan, snapshot=snapshot)
+    print_action_guidance(stages, meta, si, plan, snapshot=snapshot)
     print_prior_stage_reports(stages)
     print_issues_by_dimension(si.open_issues)
 

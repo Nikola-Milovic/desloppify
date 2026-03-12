@@ -9,6 +9,7 @@ from pathlib import Path
 
 from desloppify.base.output.terminal import colorize
 from desloppify.base.output.user_message import print_user_message
+from desloppify.engine.plan_triage import compute_triage_progress
 
 from .records import record_enrich_stage, resolve_reusable_report
 from ..validation.enrich_quality import evaluate_enrich_quality
@@ -75,8 +76,15 @@ def _require_confirmed_organize_stage(
     services: TriageServices,
     deps: EnrichStageDeps,
 ) -> bool:
+    progress = compute_triage_progress(stages)
     if stages.get("organize", {}).get("confirmed_at"):
         return True
+    if progress.current_stage != "enrich":
+        if progress.blocked_reason:
+            print(deps.colorize(f"  {progress.blocked_reason}", "red"))
+            if progress.next_command:
+                print(deps.colorize(f"  Run: {progress.next_command}", "dim"))
+            return False
     if not attestation:
         print(deps.colorize("  Cannot enrich: organize stage not confirmed.", "red"))
         print(deps.colorize("  Run: desloppify plan triage --confirm organize", "dim"))

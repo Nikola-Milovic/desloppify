@@ -13,9 +13,18 @@ _OBSERVE_FALSE_POSITIVE_GUIDANCE = """\
 - Describe code that was already refactored
 - Propose over-engineering that would make things worse
 - Count props/returns/args wrong
+- Propose fixes whose complexity exceeds the problem (e.g., adding a 3-file abstraction
+  to eliminate 5 lines of duplication)
+- Flag issues where the current code is "good enough" — imperfect but clear, simple,
+  and not causing real problems
 
 Your job is to catch these. A report that just restates issue titles is **worthless**.
 The value you add is reading the actual code and forming an independent judgment.
+
+Use the `not-worth-it` verdict when: the issue is technically real but the fix would add
+more complexity than it removes, or the current code is simple and readable despite being
+theoretically suboptimal. YAGNI — if nobody is actually confused or blocked by this code,
+it doesn't need fixing.
 """
 
 _OBSERVE_VERIFICATION_CHECKLIST = """\
@@ -23,7 +32,7 @@ _OBSERVE_VERIFICATION_CHECKLIST = """\
 - Open and read the actual source file
 - Verify specific claims: count the actual casts, props, returns, line count
 - Check if the suggested fix already exists (common false positive)
-- Report a clear verdict: genuine / false positive / exaggerated / over-engineering
+- Report a clear verdict: genuine / false positive / exaggerated / over-engineering / not-worth-it
 """
 
 _OBSERVE_EXAMPLE_REPORT_QUALITY = """\
@@ -42,7 +51,7 @@ _OBSERVE_EXAMPLE_REPORT_QUALITY = """\
 _OBSERVE_STRUCTURED_TEMPLATE = """\
 ```
 - hash: <issue hash>
-  verdict: genuine | false-positive | exaggerated | over-engineering
+  verdict: genuine | false-positive | exaggerated | over-engineering | not-worth-it
   verdict_reasoning: <what you verified in the code and why that leads to this verdict>
   files_read: [<file paths you opened>]
   recommendation: <what to do next>

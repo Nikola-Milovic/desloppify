@@ -143,7 +143,7 @@ def test_cmd_plan_queue_uses_recovered_runtime_state(monkeypatch, capsys) -> Non
     args = argparse.Namespace(top=30, cluster=None, include_skipped=False, sort="priority")
     queue_render_mod.cmd_plan_queue(args)
 
-    out = capsys.readouterr().out
+    capsys.readouterr()
     assert captured_states
     assert "review::src/foo.ts::abcd1234" in captured_states[0]["issues"]
 

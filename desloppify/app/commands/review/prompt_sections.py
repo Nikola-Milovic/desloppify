@@ -16,7 +16,6 @@ class PromptBatchPayload(TypedDict, total=False):
     name: str
     dimensions: list[str]
     why: str
-    files_to_read: list[str]
     dimension_prompts: dict[str, dict[str, object]]
     judgment_finding_counts: dict[str, object]
     mechanical_finding_counts: dict[str, object]
@@ -30,7 +29,6 @@ class PromptBatchContext:
     name: str
     dimensions: tuple[str, ...]
     rationale: str
-    seed_files: tuple[str, ...]
     issues_cap: int
     dimension_prompts: dict[str, dict[str, object]]
 
@@ -41,10 +39,6 @@ class PromptBatchContext:
     @property
     def dimensions_text(self) -> str:
         return ", ".join(self.dimensions) if self.dimensions else "(none)"
-
-    @property
-    def seed_files_text(self) -> str:
-        return "\n".join(f"- {path}" for path in self.seed_files) if self.seed_files else "- (none)"
 
 
 def coerce_string_list(raw: object) -> tuple[str, ...]:
@@ -59,7 +53,6 @@ def build_batch_context(batch: PromptBatchPayload, batch_index: int) -> PromptBa
         name=str(batch.get("name", f"Batch {batch_index + 1}")),
         dimensions=dimensions,
         rationale=str(batch.get("why", "")).strip(),
-        seed_files=coerce_string_list(batch.get("files_to_read", [])),
         issues_cap=max_batch_issues_for_dimension_count(len(dimensions)),
         dimension_prompts=batch_dimension_prompts(batch),
     )
@@ -563,10 +556,6 @@ def render_scan_evidence_note() -> str:
     )
 
 
-def render_seed_files_block(context: PromptBatchContext) -> str:
-    return f"Seed files (start here):\n{context.seed_files_text}\n\n"
-
-
 def render_task_requirements(*, issues_cap: int, dim_set: set[str]) -> str:
     dim_focus = render_dimension_focus(dim_set)
     lines = [
@@ -574,7 +563,7 @@ def render_task_requirements(*, issues_cap: int, dim_set: set[str]) -> str:
         "1. Read the blind packet's `system_prompt` — scoring rules and calibration.",
         "2. Study the dimension rubric (description, look_for, skip).",
         "3. Review the existing characteristics list — which are settled? Which are positive? What needs updating?",
-        "4. Start from seed files. Use scan evidence, historical issues, and mechanical findings as navigation aids.",
+        "4. Explore the codebase freely. Use scan evidence, historical issues, and mechanical findings as navigation aids.",
         "5. Adjudicate mechanical concern signals (confirm/dismiss with fingerprint).",
         "6. Augment the characteristics list via context_updates: positive patterns (positive: true), neutral characteristics, design insights.",
         "7. Collect defects for issues[].",
@@ -645,7 +634,6 @@ __all__ = [
     "render_dimension_focus",
     "render_scoring_frame",
     "render_scan_evidence_note",
-    "render_seed_files_block",
     "render_task_requirements",
     "render_scope_enums",
     "join_non_empty_sections",

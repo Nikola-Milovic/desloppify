@@ -10,7 +10,6 @@ import pytest
 from desloppify.engine.detectors.coupling import (
     detect_boundary_candidates,
     detect_coupling_violations,
-    detect_cross_tool_imports,
 )
 
 # ---------------------------------------------------------------------------

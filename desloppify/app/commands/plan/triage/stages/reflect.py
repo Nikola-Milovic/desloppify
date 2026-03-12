@@ -8,7 +8,7 @@ from desloppify.base.output.terminal import colorize
 from desloppify.state_io import utc_now
 
 from ..display.dashboard import print_reflect_result
-from ..stage_queue import cascade_clear_later_confirmations, has_triage_in_queue
+from ..stage_queue import cascade_clear_dispositions, cascade_clear_later_confirmations, has_triage_in_queue
 from ..services import TriageServices, default_triage_services
 from ..validation.core import (
     ReflectDisposition,
@@ -67,9 +67,19 @@ def _validate_reflect_submission(
         return None
 
     valid_ids = set(triage_input.open_issues.keys())
+
+    # Exclude issues already auto-skipped by observe from reflect accounting
+    meta = plan.get("epic_triage_meta", {})
+    dispositions = meta.get("issue_dispositions", {})
+    auto_skipped_ids = {
+        issue_id for issue_id, disp in dispositions.items()
+        if disp.get("decision_source") == "observe_auto"
+    }
+    accounting_ids = valid_ids - auto_skipped_ids
+
     accounting_ok, cited_ids, missing_ids, duplicate_ids = validate_reflect_accounting(
         report=report,
-        valid_ids=valid_ids,
+        valid_ids=accounting_ids,
     )
     if not accounting_ok:
         return None
@@ -120,6 +130,11 @@ def _persist_reflect_stage(
     services: TriageServices,
 ) -> tuple[dict, list[str]]:
     stages = meta.setdefault("triage_stages", {})
+
+    # On fresh reflect run, cascade-clear reflect decisions from dispositions
+    if not is_reuse:
+        cascade_clear_dispositions(meta, "reflect")
+
     reflect_stage: dict = {
         "stage": "reflect",
         "report": report,
@@ -132,6 +147,15 @@ def _persist_reflect_stage(
     }
     if disposition_ledger:
         reflect_stage["disposition_ledger"] = [d.to_dict() for d in disposition_ledger]
+        # Write reflect decisions to the disposition map
+        dispositions = meta.setdefault("issue_dispositions", {})
+        for d in disposition_ledger:
+            entry = dispositions.setdefault(d.issue_id, {})
+            decision = "skip" if d.decision == "permanent_skip" else d.decision
+            entry["decision"] = decision
+            entry["target"] = d.target
+            entry["decision_source"] = "reflect"
+
     stages["reflect"] = reflect_stage
     if is_reuse and existing_stage and existing_stage.get("confirmed_at"):
         reflect_stage["confirmed_at"] = existing_stage["confirmed_at"]

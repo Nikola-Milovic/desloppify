@@ -47,4 +47,4 @@ def test_banner_progress_when_stages_in_progress_and_no_objective_backlog():
     state = {"issues": {"review-1": {"status": "open", "detector": "review"}}}
 
     banner = triage_phase_banner(plan, state)
-    assert "TRIAGE MODE (2/5 stages complete)" in banner
+    assert "TRIAGE MODE (2/6 stages recorded)" in banner

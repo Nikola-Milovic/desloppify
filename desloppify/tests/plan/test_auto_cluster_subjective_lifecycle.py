@@ -444,14 +444,14 @@ def test_under_target_lifecycle_with_sync_stale():
             "u2": _issue("u2", "unused"),
         },
     }
-    result = sync_subjective_dimensions(plan, state_obj)
+    sync_subjective_dimensions(plan, state_obj)
     order = plan["queue_order"]
     assert "subjective::design_coherence" not in order
     assert "subjective::error_consistency" not in order
 
     # Phase 3: objective resolved again — sync_stale re-injects
     state_empty2 = {**ut, "issues": {}}
-    result = sync_subjective_dimensions(plan, state_empty2)
+    sync_subjective_dimensions(plan, state_empty2)
     order = plan["queue_order"]
     assert "subjective::design_coherence" in order
     assert "subjective::error_consistency" in order

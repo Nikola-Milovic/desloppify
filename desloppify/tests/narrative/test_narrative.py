@@ -4,29 +4,11 @@ from __future__ import annotations
 
 from desloppify.intelligence.narrative._constants import _FEEDBACK_URL, STRUCTURAL_MERGE
 from desloppify.intelligence.narrative.core import (
-    NarrativeContext,
     _count_open_by_detector,
-    compute_narrative,
 )
 from desloppify.intelligence.narrative.dimensions import _analyze_debt
-from desloppify.intelligence.narrative.headline import compute_headline
 from desloppify.intelligence.narrative.phase import detect_milestone, detect_phase
 from desloppify.intelligence.narrative.reminders import compute_reminders
-from desloppify.intelligence.narrative.strategy_engine import (
-    compute_fixer_leverage as _compute_fixer_leverage,
-)
-from desloppify.intelligence.narrative.strategy_engine import (
-    compute_lanes as _compute_lanes,
-)
-from desloppify.intelligence.narrative.strategy_engine import (
-    compute_strategy as _compute_strategy,
-)
-from desloppify.intelligence.narrative.strategy_engine import (
-    compute_strategy_hint as _compute_strategy_hint,
-)
-from desloppify.intelligence.narrative.strategy_engine import (
-    open_files_by_detector as _open_files_by_detector,
-)
 
 # ---------------------------------------------------------------------------
 # Helpers

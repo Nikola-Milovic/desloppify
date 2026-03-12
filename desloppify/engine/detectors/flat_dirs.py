@@ -8,20 +8,13 @@ surface.
 from __future__ import annotations
 
 from ._flat_dirs.config import (
-    DEFAULT_THIN_WRAPPER_NAMES,
     THIN_WRAPPER_NAMES,
     FlatDirDetectionConfig,
-    resolve_detection_settings,
 )
 from ._flat_dirs.detect import detect_flat_dirs
 from ._flat_dirs.entries import (
     format_flat_dir_summary,
-    fragmentation_entry,
-    is_overloaded,
-    sort_entries,
-    thin_wrapper_entry,
 )
-from ._flat_dirs.stats import all_tracked_dirs, build_dir_stats
 
 __all__ = [
     "FlatDirDetectionConfig",

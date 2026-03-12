@@ -133,6 +133,72 @@ def _format_assessments_table(assessments: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _format_disposition_table(
+    dispositions: dict[str, dict],
+    assessments: list[dict],
+) -> str:
+    """Format the unified disposition map for downstream stages.
+
+    Partitions issues into:
+    - Auto-skipped by observe (false-positive/exaggerated)
+    - Genuine issues requiring disposition
+    - Actionability-flagged issues (over-engineering/not-worth-it)
+    """
+    if not dispositions and not assessments:
+        return ""
+
+    auto_skipped: list[dict] = []
+    genuine: list[dict] = []
+    actionability: list[dict] = []
+
+    # Build from assessments for hash display, enriched by dispositions
+    for a in assessments:
+        h = a.get("hash", "?")
+        v = a.get("verdict", "?")
+        r = a.get("recommendation", "")
+        if len(r) > 80:
+            r = r[:77] + "..."
+        entry = {"hash": h, "verdict": v, "recommendation": r}
+
+        if v in ("false positive", "exaggerated"):
+            auto_skipped.append(entry)
+        elif v in ("over engineering", "not worth it"):
+            actionability.append(entry)
+        else:
+            genuine.append(entry)
+
+    lines = ["### Issue Disposition Summary\n"]
+
+    if auto_skipped:
+        lines.append(f"**Auto-skipped by observe ({len(auto_skipped)} issues)** — no action needed:\n")
+        lines.append("| Hash | Verdict | Recommendation |")
+        lines.append("|------|---------|----------------|")
+        for e in auto_skipped:
+            lines.append(f"| {e['hash']} | {e['verdict']} | {e['recommendation']} |")
+        lines.append("")
+
+    if genuine:
+        lines.append(f"**Genuine issues requiring disposition ({len(genuine)} issues):**\n")
+        lines.append("| Hash | Verdict | Recommendation |")
+        lines.append("|------|---------|----------------|")
+        for e in genuine:
+            lines.append(f"| {e['hash']} | {e['verdict']} | {e['recommendation']} |")
+        lines.append("")
+
+    if actionability:
+        lines.append(
+            f"**Actionability-flagged issues ({len(actionability)} issues)** "
+            "— observe thinks these aren't worth it, reflect decides:\n"
+        )
+        lines.append("| Hash | Verdict | Recommendation |")
+        lines.append("|------|---------|----------------|")
+        for e in actionability:
+            lines.append(f"| {e['hash']} | {e['verdict']} | {e['recommendation']} |")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
 def _format_assessment_file_evidence(assessments: list[dict]) -> str:
     """Format file-level observe evidence for clustering-heavy downstream stages."""
     if not assessments:
@@ -172,14 +238,23 @@ def _relevant_prior_reports(
     }.get(stage, tuple(prior_reports))
     result = [(name, prior_reports[name]) for name in wanted if name in prior_reports]
 
-    # Append structured observe assessments for stages that need verdict data
+    # Append structured observe assessments / disposition table for downstream stages
     if stage in {"reflect", "organize", "sense-check"} and stages_data:
         observe_data = stages_data.get("observe", {})
         assessments = observe_data.get("assessments", [])
+
+        # Use disposition table when dispositions exist, fall back to assessments table.
+        # Note: stages_data is the triage_stages dict; dispositions are on
+        # epic_triage_meta which we don't have here. Use assessments to build
+        # the partitioned view since the verdict info is the same.
         if assessments:
-            table = _format_assessments_table(assessments)
-            if table:
-                result.append(("observe-assessments", table))
+            disp_table = _format_disposition_table({}, assessments)
+            if disp_table:
+                result.append(("observe-dispositions", disp_table))
+            else:
+                table = _format_assessments_table(assessments)
+                if table:
+                    result.append(("observe-assessments", table))
         if stage == "organize":
             evidence = _format_assessment_file_evidence(assessments)
             if evidence:

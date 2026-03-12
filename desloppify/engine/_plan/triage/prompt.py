@@ -11,6 +11,7 @@ from desloppify.engine._plan.schema import (
     ensure_plan_defaults,
     triage_clusters,
 )
+from desloppify.engine._plan.triage.snapshot import build_triage_snapshot
 from desloppify.engine._state.schema import StateModel
 
 
@@ -127,10 +128,11 @@ def collect_triage_input(plan: PlanModel, state: StateModel) -> TriageInput:
     meta = plan.get("epic_triage_meta", {})
     epics = triage_clusters(plan)
     open_review, open_mechanical = _split_open_issue_buckets(issues)
+    snapshot = build_triage_snapshot(plan, state)
 
     triaged_ids = set(meta.get("triaged_ids", []))
     current_review_ids = set(open_review.keys())
-    new_since = current_review_ids - triaged_ids
+    new_since = set(snapshot.new_since_triage_ids)
     resolved_since = triaged_ids - current_review_ids
     previously_dismissed = list(meta.get("dismissed_ids", []))
     version = int(meta.get("version", 0)) + 1

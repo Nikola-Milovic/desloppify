@@ -7,7 +7,6 @@ import logging
 from desloppify.base.output.terminal import colorize
 from desloppify.engine._work_queue.context import (
     queue_context,
-    resolve_plan_load_status,
 )
 from desloppify.engine._work_queue.plan_order import collapse_clusters
 from desloppify.engine._work_queue.core import QueueBuildOptions

@@ -24,7 +24,6 @@ from ..prompt_sections import (
     render_scan_evidence_note,
     render_scope_enums,
     render_scoring_frame,
-    render_seed_files_block,
     render_task_requirements,
 )
 
@@ -157,7 +156,6 @@ def render_batch_prompt(
             dimension_contexts if isinstance(dimension_contexts, dict) else {},
         ),
         render_scan_evidence_note(),
-        render_seed_files_block(context),
         render_historical_focus(batch),
         render_dimension_deferral_context(batch),
         render_mechanical_concern_signals(batch),

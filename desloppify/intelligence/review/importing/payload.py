@@ -22,6 +22,7 @@ class ReviewImportEnvelope:
     assessments: dict[str, Any] | None
     reviewed_files: list[str]
     dimension_judgment: dict[str, dict[str, Any]] | None = None
+    context_updates: dict[str, dict[str, Any]] | None = None
 
 
 def normalize_legacy_findings_alias(
@@ -105,11 +106,17 @@ def parse_review_import_payload(
         raw_judgment if isinstance(raw_judgment, dict) else None
     )
 
+    raw_context_updates = data.get("context_updates")
+    context_updates = (
+        raw_context_updates if isinstance(raw_context_updates, dict) else None
+    )
+
     return ReviewImportEnvelope(
         issues=issues_list,
         assessments=assessments,
         reviewed_files=extract_reviewed_files(data),
         dimension_judgment=dimension_judgment,
+        context_updates=context_updates,
     )
 
 

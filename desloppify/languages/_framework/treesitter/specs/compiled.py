@@ -245,3 +245,17 @@ DART_SPEC = TreeSitterLangSpec(
         r"^\s*(?:print\(|debugPrint|log\.)",
     ),
 )
+
+__all__ = [
+    "C_SPEC",
+    "CPP_SPEC",
+    "SCALA_SPEC",
+    "GO_SPEC",
+    "RUST_SPEC",
+    "JAVA_SPEC",
+    "KOTLIN_SPEC",
+    "CSHARP_SPEC",
+    "SWIFT_SPEC",
+    "PHP_SPEC",
+    "DART_SPEC",
+]

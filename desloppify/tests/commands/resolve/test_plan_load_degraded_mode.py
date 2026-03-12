@@ -7,7 +7,6 @@ from unittest.mock import MagicMock
 import desloppify.app.commands.resolve.apply as apply_mod
 import desloppify.app.commands.resolve.plan_load as plan_load_mod
 import desloppify.app.commands.resolve.queue_guard as queue_guard_mod
-from desloppify.engine._work_queue.context import PlanLoadStatus
 
 
 def test_try_expand_cluster_warns_when_plan_load_is_degraded(monkeypatch) -> None:

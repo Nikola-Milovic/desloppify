@@ -4,9 +4,6 @@ import pytest
 
 from desloppify.engine.policy.zones import (
     COMMON_ZONE_RULES,
-    EXCLUDED_ZONE_VALUES,
-    EXCLUDED_ZONES,
-    ZONE_POLICIES,
     FileZoneMap,
     Zone,
     ZonePolicy,

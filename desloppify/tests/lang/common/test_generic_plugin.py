@@ -11,7 +11,6 @@ from unittest.mock import patch
 import pytest
 
 from desloppify.languages._framework.generic_support.core import (
-    capability_report,
     generic_lang,
     make_file_finder,
     make_tool_phase,
@@ -23,9 +22,6 @@ from desloppify.languages._framework.generic_support.core import (
     parse_rubocop,
 )
 from desloppify.languages._framework.generic_parts.parsers import ToolParserError
-from desloppify.languages._framework.generic_parts.tool_factories import (
-    make_generic_fixer,
-)
 from desloppify.languages._framework.generic_parts.tool_runner import (
     run_tool_result,
 )

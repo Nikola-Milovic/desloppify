@@ -39,7 +39,7 @@ def _merge(batch_results: list[dict]) -> dict[str, object]:
     )
 
 
-def test_merge_penalizes_high_scores_when_severe_issues_exist():
+def test_merge_preserves_reviewer_score_when_issues_exist():
     merged = _merge(
         [
             {
@@ -67,9 +67,9 @@ def test_merge_penalizes_high_scores_when_severe_issues_exist():
             }
         ]
     )
-    assert merged["assessments"]["high_level_elegance"] == 78.1
-    assert merged["review_quality"]["issue_pressure"] == 3.4
-    assert merged["review_quality"]["dimensions_with_issues"] == 1
+    assert merged["assessments"]["high_level_elegance"] == 92.0
+    assert "issue_pressure" not in merged["review_quality"]
+    assert "dimensions_with_issues" not in merged["review_quality"]
 
 
 def test_merge_keeps_scores_without_issues():
@@ -103,55 +103,40 @@ def test_batch_prompt_requires_score_and_issue_consistency():
             "name": "high_level_elegance",
             "dimensions": ["high_level_elegance"],
             "why": "test",
-            "files_to_read": ["core.py", "scan.py"],
         },
     )
-    assert "Seed files (start here):" in prompt
-    assert "Start from seed files" in prompt
+    assert "Explore the codebase freely" in prompt
     assert "blind packet's `system_prompt`" in prompt
     assert "Evaluate ONLY listed files and ONLY listed dimensions" not in prompt
 
 
-def test_dimension_merge_scorer_penalizes_higher_pressure():
+def test_dimension_merge_scorer_uses_floor_aware_blend():
     scorer = DimensionMergeScorer()
-    low = scorer.score_dimension(
+    result = scorer.score_dimension(
         ScoreInputs(
             weighted_mean=92.0,
             floor=90.0,
-            issue_pressure=1.0,
-            issue_count=1,
         )
     )
-    high = scorer.score_dimension(
-        ScoreInputs(
-            weighted_mean=92.0,
-            floor=90.0,
-            issue_pressure=4.08,
-            issue_count=1,
-        )
-    )
-    assert low.final_score > high.final_score
+    assert result.floor_aware == pytest.approx(91.4)
+    assert result.final_score == pytest.approx(91.4)
 
 
-def test_dimension_merge_scorer_penalizes_additional_issues():
+def test_dimension_merge_scorer_lower_floor_reduces_result():
     scorer = DimensionMergeScorer()
-    one_issue = scorer.score_dimension(
+    high_floor = scorer.score_dimension(
         ScoreInputs(
             weighted_mean=92.0,
             floor=90.0,
-            issue_pressure=2.0,
-            issue_count=1,
         )
     )
-    three_issues = scorer.score_dimension(
+    low_floor = scorer.score_dimension(
         ScoreInputs(
             weighted_mean=92.0,
-            floor=90.0,
-            issue_pressure=2.0,
-            issue_count=3,
+            floor=70.0,
         )
     )
-    assert one_issue.final_score > three_issues.final_score
+    assert high_floor.final_score > low_floor.final_score
 
 
 def test_merge_batch_results_merges_same_identifier_issues():
@@ -250,8 +235,8 @@ def test_merge_batch_results_preserves_dismissed_concerns_without_counting_them(
     assert len(issues) == 1
     assert issues[0]["concern_verdict"] == "dismissed"
     assert issues[0]["concern_fingerprint"] == "fp-1"
-    assert merged["review_quality"]["issue_pressure"] == 0.0
-    assert merged["review_quality"]["dimensions_with_issues"] == 0
+    assert "issue_pressure" not in merged["review_quality"]
+    assert "dimensions_with_issues" not in merged["review_quality"]
 
 
 def test_normalize_batch_result_rejects_low_score_without_same_dimension_issue():
@@ -673,10 +658,7 @@ def test_merge_scores_uses_percentile_floor_not_absolute_min():
     # Scenario: one small bad file (score=30, weight=0.3) and one
     # large good file (score=90, weight=9.7).
     score_buckets = {dim: [(30.0, 0.3), (90.0, 9.7)]}
-    # score_raw_by_dim is no longer used for floor, but pass it for API compat.
-    score_raw_by_dim = {dim: [30.0, 90.0]}
-
-    result = scorer.merge_scores(score_buckets, score_raw_by_dim, {}, {})
+    result = scorer.merge_scores(score_buckets)
     # Old min()-based floor would be 30.0.
     # New percentile floor: threshold = 10.0 * 0.1 = 1.0
     #   sorted: (30, 0.3) -> acc 0.3, (90, 9.7) -> acc 10.0 >= 1.0
@@ -696,17 +678,11 @@ def test_merge_scores_bad_file_cannot_game_by_merging():
     # Before gaming: two separate files.
     separate = scorer.merge_scores(
         {dim: [(40.0, 3.0), (90.0, 7.0)]},
-        {dim: [40.0, 90.0]},
-        {},
-        {},
     )
 
     # After gaming: bad code merged into the good file (same total weight).
     merged_single = scorer.merge_scores(
         {dim: [(75.0, 10.0)]},
-        {dim: [75.0]},
-        {},
-        {},
     )
 
     # The separate-files score should still reflect the bad code penalty.

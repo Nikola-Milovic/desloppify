@@ -208,6 +208,19 @@ def prepare_holistic_review_payload(
         allowed_review_files,
     )
 
+    # Attach accumulated dimension contexts to each batch
+    dim_contexts = state.get("dimension_contexts", {})
+    if isinstance(dim_contexts, dict) and dim_contexts:
+        payload["dimension_contexts"] = dim_contexts
+        for batch_item in batches:
+            if not isinstance(batch_item, dict):
+                continue
+            batch_dims = batch_item.get("dimensions", [])
+            if isinstance(batch_dims, list):
+                batch_item["dimension_contexts"] = {
+                    d: dim_contexts[d] for d in batch_dims if d in dim_contexts
+                }
+
     payload["investigation_batches"] = batches
     return payload
 

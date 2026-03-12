@@ -113,6 +113,26 @@ class PlanStartScores(TypedDict, total=False):
     reset: bool
 
 
+class IssueDisposition(TypedDict, total=False):
+    """Per-issue intent/history accumulated across triage stages.
+
+    Observe writes verdict fields; reflect writes decision fields.
+    NOT derived state — ``plan["clusters"]`` and ``plan["skipped"]`` remain
+    authoritative for "what is actually true now."
+    """
+
+    # Observe writes (what did we find?):
+    verdict: str  # "genuine" | "false positive" | "exaggerated" | "over engineering" | "not worth it"
+    verdict_reasoning: str
+    files_read: list[str]
+    recommendation: str
+
+    # Reflect writes (what should we do about it?):
+    decision: str  # "cluster" | "skip"
+    target: str  # cluster name or skip reason
+    decision_source: str  # "observe_auto" (false-positive auto-skip) | "reflect" (strategy)
+
+
 class ReflectDisposition(TypedDict, total=False):
     """One issue's disposition as declared by the reflect stage."""
 
@@ -173,6 +193,7 @@ class EpicTriageMeta(TypedDict, total=False):
     stage_refresh_required: bool
     last_triage: LastTriageSnapshot
     triage_defer_state: dict[str, Any]
+    issue_dispositions: dict[str, IssueDisposition]
     triage_force_visible: bool
 
 
@@ -336,6 +357,7 @@ __all__ = [
     "ActionStep",
     "EPIC_PREFIX",
     "EpicTriageMeta",
+    "IssueDisposition",
     "ExecutionLogEntry",
     "PLAN_VERSION",
     "Cluster",

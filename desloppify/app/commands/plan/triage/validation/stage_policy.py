@@ -7,6 +7,11 @@ from dataclasses import dataclass
 
 from desloppify.app.commands.helpers.command_runtime import command_runtime
 from desloppify.base.output.terminal import colorize
+from desloppify.engine.plan_triage import (
+    StagePrerequisite,
+    TRIAGE_STAGE_PREREQUISITES,
+    compute_triage_progress,
+)
 from desloppify.engine.plan_state import save_plan
 from desloppify.engine.plan_triage import collect_triage_input, detect_recurring_patterns
 from desloppify.state_io import utc_now
@@ -30,14 +35,6 @@ class AutoConfirmStageRequest:
 
 
 @dataclass(frozen=True)
-class StagePrerequisite:
-    """One required upstream stage for a triage workflow seam."""
-
-    stage_name: str
-    require_confirmation: bool = False
-
-
-@dataclass(frozen=True)
 class ReflectAutoConfirmDeps:
     """Dependency bundle for reflect auto-confirm flows."""
 
@@ -48,52 +45,6 @@ class ReflectAutoConfirmDeps:
     save_plan_fn: object | None = None
 
 
-_STAGE_PREREQUISITES = {
-    "organize": (
-        StagePrerequisite("observe"),
-        StagePrerequisite("reflect"),
-    ),
-    "enrich": (
-        StagePrerequisite("observe"),
-        StagePrerequisite("reflect"),
-        StagePrerequisite("organize"),
-    ),
-    "sense-check": (
-        StagePrerequisite("enrich", require_confirmation=True),
-    ),
-    "complete:organize": (
-        StagePrerequisite("observe"),
-        StagePrerequisite("organize"),
-    ),
-    "complete:enrich": (
-        StagePrerequisite("observe"),
-        StagePrerequisite("organize"),
-        StagePrerequisite("enrich"),
-    ),
-    "complete:sense-check": (
-        StagePrerequisite("observe"),
-        StagePrerequisite("organize"),
-        StagePrerequisite("enrich"),
-        StagePrerequisite("sense-check"),
-    ),
-}
-
-
-def missing_stage_prerequisite(
-    stages: dict,
-    *,
-    flow: str,
-) -> StagePrerequisite | None:
-    """Return the first missing upstream stage required by a triage flow."""
-    for prerequisite in _STAGE_PREREQUISITES.get(flow, ()):
-        stage_record = stages.get(prerequisite.stage_name)
-        if stage_record is None:
-            return prerequisite
-        if prerequisite.require_confirmation and not stage_record.get("confirmed_at"):
-            return prerequisite
-    return None
-
-
 def require_prerequisite(
     stages: dict,
     *,
@@ -101,10 +52,31 @@ def require_prerequisite(
     messages: dict[str, tuple[str, str]],
 ) -> bool:
     """Print consistent prerequisite guidance for one triage flow."""
-    missing = missing_stage_prerequisite(stages, flow=flow)
-    if missing is None:
+    flow_stage = flow.removeprefix("complete:")
+    progress = compute_triage_progress(stages)
+    if flow_stage in stages or progress.current_stage == flow_stage:
         return True
-    blocked_heading, command_hint = messages[missing.stage_name]
+
+    for prerequisite in TRIAGE_STAGE_PREREQUISITES.get(flow_stage, ()):
+        stage_record = stages.get(prerequisite.stage_name)
+        if stage_record is None:
+            blocked_heading, command_hint = messages[prerequisite.stage_name]
+            print(colorize(blocked_heading, "red"))
+            print(colorize(command_hint, "dim"))
+            return False
+        if prerequisite.require_confirmation and not stage_record.get("confirmed_at"):
+            blocked_heading, command_hint = messages[prerequisite.stage_name]
+            print(colorize(blocked_heading, "red"))
+            print(colorize(command_hint, "dim"))
+            return False
+
+    if progress.blocked_reason:
+        print(colorize(f"  {progress.blocked_reason}", "red"))
+        if progress.next_command:
+            print(colorize(f"  Run: {progress.next_command}", "dim"))
+        return False
+
+    blocked_heading, command_hint = next(iter(messages.values()))
     print(colorize(blocked_heading, "red"))
     print(colorize(command_hint, "dim"))
     return False
@@ -245,6 +217,5 @@ __all__ = [
     "auto_confirm_observe_if_attested",
     "auto_confirm_reflect_for_organize",
     "confirm_stage",
-    "missing_stage_prerequisite",
     "require_prerequisite",
 ]

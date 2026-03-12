@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 TRIAGE_STAGE_LABELS: tuple[tuple[str, str], ...] = (
     ("observe", "Analyse issues & spot contradictions"),
     ("reflect", "Form strategy & present to user"),
@@ -11,16 +13,6 @@ TRIAGE_STAGE_LABELS: tuple[tuple[str, str], ...] = (
     ("commit", "Write strategy & confirm"),
 )
 
-_TRIAGE_STAGE_DEPENDENCY_ITEMS: tuple[tuple[str, set[str]], ...] = (
-    ("observe", set()),
-    ("reflect", {"observe"}),
-    ("organize", {"reflect"}),
-    ("enrich", {"organize"}),
-    ("sense-check", {"enrich"}),
-    ("commit", {"sense-check"}),
-)
-
-TRIAGE_STAGE_DEPENDENCIES: dict[str, set[str]] = dict(_TRIAGE_STAGE_DEPENDENCY_ITEMS)
 TRIAGE_RUNNERS: tuple[str, str] = ("codex", "claude")
 
 TRIAGE_CMD_OBSERVE = (
@@ -80,6 +72,132 @@ _MANUAL_STAGE_COMMANDS: dict[str, str] = {
 }
 
 
+@dataclass(frozen=True)
+class StagePrerequisite:
+    """One required upstream stage for a triage workflow seam."""
+
+    stage_name: str
+    require_confirmation: bool = False
+
+
+@dataclass(frozen=True)
+class StageReadiness:
+    """Readiness state for one triage stage."""
+
+    name: str
+    recorded: bool
+    confirmed: bool
+
+
+@dataclass(frozen=True)
+class TriageProgress:
+    """Canonical stage progression snapshot for display and validation."""
+
+    stages: tuple[StageReadiness, ...]
+    current_stage: str | None
+    blocked_reason: str | None
+    next_command: str | None
+    completed_count: int
+    confirmed_count: int
+
+
+TRIAGE_STAGE_PREREQUISITES: dict[str, tuple[StagePrerequisite, ...]] = {
+    "observe": (),
+    "reflect": (StagePrerequisite("observe"),),
+    "organize": (
+        StagePrerequisite("observe"),
+        StagePrerequisite("reflect"),
+    ),
+    "enrich": (
+        StagePrerequisite("observe"),
+        StagePrerequisite("reflect"),
+        StagePrerequisite("organize", require_confirmation=True),
+    ),
+    "sense-check": (
+        StagePrerequisite("enrich", require_confirmation=True),
+    ),
+    "commit": (
+        StagePrerequisite("sense-check"),
+    ),
+}
+
+TRIAGE_STAGE_DEPENDENCIES: dict[str, set[str]] = {
+    stage: {prerequisite.stage_name for prerequisite in prerequisites}
+    for stage, prerequisites in TRIAGE_STAGE_PREREQUISITES.items()
+}
+
+_STAGE_LABEL_BY_NAME = dict(TRIAGE_STAGE_LABELS)
+
+
+def _confirm_stage_command(stage_name: str) -> str:
+    return f"desloppify plan triage --confirm {stage_name}"
+
+
+def _first_unmet_prerequisite(
+    stage_name: str,
+    recorded: dict[str, bool],
+    confirmed: dict[str, bool],
+) -> StagePrerequisite | None:
+    for prerequisite in TRIAGE_STAGE_PREREQUISITES[stage_name]:
+        if not recorded.get(prerequisite.stage_name, False):
+            return prerequisite
+        if prerequisite.require_confirmation and not confirmed.get(prerequisite.stage_name, False):
+            return prerequisite
+    return None
+
+
+def compute_triage_progress(stages_data: dict) -> TriageProgress:
+    """Return canonical triage-stage progression for display and validation."""
+    stage_map = stages_data if isinstance(stages_data, dict) else {}
+    readiness: list[StageReadiness] = []
+    recorded: dict[str, bool] = {}
+    confirmed: dict[str, bool] = {}
+
+    for stage_name, _label in TRIAGE_STAGE_LABELS:
+        payload = stage_map.get(stage_name, {})
+        is_recorded = isinstance(payload, dict) and stage_name in stage_map
+        is_confirmed = bool(payload.get("confirmed_at")) if isinstance(payload, dict) else False
+        readiness.append(
+            StageReadiness(
+                name=stage_name,
+                recorded=is_recorded,
+                confirmed=is_confirmed,
+            )
+        )
+        recorded[stage_name] = is_recorded
+        confirmed[stage_name] = is_confirmed
+
+    current_stage: str | None = None
+    blocked_reason: str | None = None
+    next_command: str | None = None
+
+    for stage_name, label in TRIAGE_STAGE_LABELS:
+        if recorded[stage_name]:
+            continue
+        missing = _first_unmet_prerequisite(stage_name, recorded, confirmed)
+        if missing is None:
+            current_stage = stage_name
+            next_command = triage_manual_stage_command(stage_name)
+        else:
+            prerequisite_label = _STAGE_LABEL_BY_NAME.get(missing.stage_name, missing.stage_name)
+            if missing.require_confirmation and recorded.get(missing.stage_name, False):
+                blocked_reason = f"{label} blocked until {prerequisite_label} is confirmed."
+                next_command = _confirm_stage_command(missing.stage_name)
+            else:
+                blocked_reason = f"{label} blocked until {prerequisite_label} is recorded."
+                next_command = triage_manual_stage_command(missing.stage_name)
+        break
+
+    return TriageProgress(
+        stages=tuple(readiness),
+        current_stage=current_stage,
+        blocked_reason=blocked_reason,
+        next_command=next_command,
+        completed_count=sum(1 for stage in readiness if stage.recorded),
+        confirmed_count=sum(1 for stage in readiness if stage.confirmed),
+    )
+
+
 def triage_run_stages_command(
     *,
     runner: str = "codex",
@@ -130,8 +248,12 @@ def triage_manual_stage_command(stage: str) -> str:
 
 
 __all__ = [
+    "StagePrerequisite",
+    "StageReadiness",
+    "TriageProgress",
     "TRIAGE_STAGE_DEPENDENCIES",
     "TRIAGE_STAGE_LABELS",
+    "TRIAGE_STAGE_PREREQUISITES",
     "TRIAGE_CMD_CLUSTER_ADD",
     "TRIAGE_CMD_CLUSTER_CREATE",
     "TRIAGE_CMD_CLUSTER_ENRICH",
@@ -148,6 +270,7 @@ __all__ = [
     "TRIAGE_CMD_RUN_STAGES_CLAUDE",
     "TRIAGE_CMD_RUN_STAGES_CODEX",
     "TRIAGE_RUNNERS",
+    "compute_triage_progress",
     "triage_manual_stage_command",
     "triage_run_stages_command",
     "triage_runner_commands",

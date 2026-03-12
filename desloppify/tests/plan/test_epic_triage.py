@@ -10,14 +10,12 @@ from desloppify.engine._plan.triage.core import (
     collect_triage_input,
     parse_triage_result,
 )
-from desloppify.engine._plan.reconcile import reconcile_plan_after_scan
 from desloppify.engine._plan.schema import (
     EPIC_PREFIX,
     VALID_EPIC_DIRECTIONS,
     VALID_SKIP_KINDS,
     empty_plan,
     ensure_plan_defaults,
-    triage_clusters,
 )
 from desloppify.engine._plan.policy.stale import review_issue_snapshot_hash
 from desloppify.engine._plan.sync.triage import (

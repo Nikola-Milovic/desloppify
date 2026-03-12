@@ -15,6 +15,7 @@ from desloppify.app.commands.plan.triage.validation import (
 from desloppify.app.commands.plan.triage.validation import (
     stage_policy as stage_policy_mod,
 )
+from desloppify.engine.plan_triage import compute_triage_progress
 
 
 def test_confirm_stage_records_confirmation(monkeypatch) -> None:
@@ -47,19 +48,20 @@ def test_confirm_stage_records_confirmation(monkeypatch) -> None:
     assert len(saved) == 1
 
 
-def test_missing_stage_prerequisite_requires_confirmed_enrich_for_sense_check() -> None:
+def test_compute_triage_progress_blocks_sense_check_until_enrich_confirmed() -> None:
     stages = {
+        "observe": {"report": "obs", "confirmed_at": "2026-03-12T12:00:00Z"},
+        "reflect": {"report": "ref", "confirmed_at": "2026-03-12T12:05:00Z"},
+        "organize": {"report": "org", "confirmed_at": "2026-03-12T12:10:00Z"},
         "enrich": {"report": "ready but not confirmed"},
     }
 
-    missing = stage_policy_mod.missing_stage_prerequisite(
-        stages,
-        flow="sense-check",
-    )
+    progress = compute_triage_progress(stages)
 
-    assert missing == stage_policy_mod.StagePrerequisite(
-        "enrich",
-        require_confirmation=True,
+    assert progress.current_stage is None
+    assert progress.next_command == "desloppify plan triage --confirm enrich"
+    assert progress.blocked_reason == (
+        "Verify accuracy & cross-cluster deps blocked until Make steps executor-ready (detail, refs) is confirmed."
     )
 
 

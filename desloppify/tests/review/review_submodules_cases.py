@@ -270,7 +270,11 @@ class TestBuildFileRequests:
 class TestBuildInvestigationBatches:
     def test_empty_context(self, mock_lang):
         result = _build_investigation_batches({}, mock_lang)
-        assert result == []  # No files -> no batches
+        # One batch per dimension, even with empty context
+        assert len(result) >= 1
+        for batch in result:
+            assert "name" in batch
+            assert "dimensions" in batch
 
     def test_batches_with_data(self, mock_lang):
         ctx = {
@@ -284,8 +288,11 @@ class TestBuildInvestigationBatches:
         }
         result = _build_investigation_batches(ctx, mock_lang)
         assert len(result) >= 1
-        assert result[0]["name"] == "cross_module_architecture"
-        assert "src/big.ts" in result[0]["files_to_read"]
+        names = [b["name"] for b in result]
+        assert "cross_module_architecture" in names
+        arch_batch = next(b for b in result if b["name"] == "cross_module_architecture")
+        assert "files_to_read" not in arch_batch
+        assert arch_batch["dimensions"] == ["cross_module_architecture"]
 
 
 class TestPrepareReview:

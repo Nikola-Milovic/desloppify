@@ -148,7 +148,9 @@ def compute_new_issue_ids(plan: dict, state: StateModel) -> set[str]:
     """Return open review/concerns IDs that appeared since the last triage."""
     meta = plan.get("epic_triage_meta", {})
     triaged = set(meta.get("triaged_ids", []))
-    return open_review_ids(state) - triaged if triaged else set()
+    active = set(meta.get("active_triage_issue_ids", []))
+    known = triaged | active
+    return open_review_ids(state) - known if known else set()
 
 
 def is_triage_stale(
@@ -163,7 +165,9 @@ def is_triage_stale(
     """
     meta = plan.get("epic_triage_meta", {})
     triaged_ids = set(meta.get("triaged_ids", []))
-    return bool(open_review_ids(state) - triaged_ids)
+    active_ids = set(meta.get("active_triage_issue_ids", []))
+    known = triaged_ids | active_ids
+    return bool(open_review_ids(state) - known)
 
 
 __all__ = [

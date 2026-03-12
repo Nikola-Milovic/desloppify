@@ -10,7 +10,7 @@ def _validation_requirements(stage: str) -> str:
             "## Validation Requirements\n"
             "- Stage must be recorded with a 100+ char report\n"
             "- Report must cite at least 10% of issue IDs (or 5, whichever is smaller)\n"
-            "- Every assessment entry must have: recognized verdict, non-empty verdict_reasoning, non-empty files_read, non-empty recommendation\n"
+            "- Every assessment entry must have: recognized verdict (genuine/false-positive/exaggerated/over-engineering/not-worth-it), non-empty verdict_reasoning, non-empty files_read, non-empty recommendation\n"
             "- Stage must be confirmed with an 80+ char attestation mentioning dimension names\n"
         )
     if stage == "reflect":

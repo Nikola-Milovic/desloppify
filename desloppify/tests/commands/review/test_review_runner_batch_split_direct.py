@@ -221,7 +221,7 @@ def test_core_normalize_helpers_and_batch_normalization() -> None:
             }
         },
     }
-    assessments, issues_payload, notes_payload, judgments, norm_quality = core_normalize_mod.normalize_batch_result(
+    assessments, issues_payload, notes_payload, judgments, norm_quality, _ctx = core_normalize_mod.normalize_batch_result(
         payload,
         {"naming_quality"},
         max_batch_issues=5,

@@ -47,6 +47,7 @@ class BatchResult:
     dimension_judgment: dict[str, BatchDimensionJudgmentPayload] = field(default_factory=dict)
     issues: list[BatchIssuePayload] = field(default_factory=list)
     quality: BatchQualityPayload = field(default_factory=dict)
+    context_updates: dict[str, dict[str, object]] = field(default_factory=dict)
 
     def to_dict(self) -> BatchResultPayload:
         payload: BatchResultPayload = {
@@ -57,6 +58,8 @@ class BatchResult:
             "dimension_judgment": self.dimension_judgment,
         }
         payload["batch_index"] = self.batch_index
+        if self.context_updates:
+            payload["context_updates"] = self.context_updates
         return payload
 
 

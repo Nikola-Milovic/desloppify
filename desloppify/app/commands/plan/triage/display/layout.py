@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 from desloppify.app.commands.helpers.issue_id_display import short_issue_id
+from desloppify.engine.plan_triage import TriageSnapshot
 from desloppify.engine.plan_triage import (
     TRIAGE_CMD_CLUSTER_ADD,
     TRIAGE_CMD_CLUSTER_CREATE,
@@ -46,7 +47,14 @@ def _print_runner_paths(
         print(colorize(f"  Manual fallback: {manual_fallback}", "dim"))
 
 
-def print_dashboard_header(si: object, stages: dict, meta: dict, plan: dict) -> None:
+def print_dashboard_header(
+    si: object,
+    stages: dict,
+    meta: dict,
+    plan: dict,
+    *,
+    snapshot: TriageSnapshot | None = None,
+) -> None:
     """Print the header section: title, open issues count, stage progress, overall status."""
     print(colorize("  Cluster triage", "bold"))
     print(colorize("  " + "─" * 60, "dim"))
@@ -60,9 +68,12 @@ def print_dashboard_header(si: object, stages: dict, meta: dict, plan: dict) -> 
     existing_clusters = si.existing_clusters
     if existing_clusters:
         print(f"  Existing clusters: {len(existing_clusters)}")
-    if si.new_since_last:
-        print(colorize(f"  New since last triage: {len(si.new_since_last)}", "yellow"))
-        for fid in sorted(si.new_since_last):
+    new_since_last = (
+        set(snapshot.new_since_triage_ids) if snapshot is not None else set(si.new_since_last)
+    )
+    if new_since_last:
+        print(colorize(f"  New since last triage: {len(new_since_last)}", "yellow"))
+        for fid in sorted(new_since_last):
             issue = si.open_issues.get(fid, {})
             dim = ""
             detail = issue.get("detail")
@@ -115,16 +126,29 @@ def _print_retriage_guidance(si: object, meta: dict) -> None:
         print(colorize("    (themes, root causes, contradictions between issues — NOT a list of IDs)", "dim"))
 
 
-def _print_in_progress_guidance(stages: dict, meta: dict, plan: dict) -> None:
+def _print_in_progress_guidance(
+    stages: dict,
+    meta: dict,
+    plan: dict,
+    *,
+    snapshot: TriageSnapshot,
+) -> None:
     """Triage stages are active — guide through the stage chain."""
-    if "reflect" not in stages:
+    current_stage = snapshot.progress.current_stage
+    if current_stage is None and snapshot.progress.blocked_reason:
+        print(colorize(f"  {snapshot.progress.blocked_reason}", "yellow"))
+        if snapshot.progress.next_command:
+            print(colorize(f"    {snapshot.progress.next_command}", "dim"))
+        return
+
+    if "reflect" not in stages or current_stage == "reflect":
         _print_runner_paths(
             only_stages="reflect",
             manual_fallback=TRIAGE_CMD_REFLECT,
             intro="  Next step: use the completed work and patterns below to write your reflect report.",
         )
         print(colorize("    (Contradictions, recurring patterns, which direction to take, what to defer)", "dim"))
-    elif "organize" not in stages:
+    elif "organize" not in stages or current_stage == "organize":
         gaps = unenriched_clusters(plan)
         manual = manual_clusters_with_issues(plan)
 
@@ -158,7 +182,7 @@ def _print_in_progress_guidance(stages: dict, meta: dict, plan: dict) -> None:
             print(colorize("  Or fast-track by reusing the current enriched cluster plan:", "dim"))
             print(colorize("    (This confirms the existing manual clusters; it does not materialize a new reflect blueprint.)", "dim"))
             print(f"    {TRIAGE_CMD_CONFIRM_EXISTING}")
-    elif "enrich" not in stages:
+    elif "enrich" not in stages or current_stage == "enrich":
         shallow = unenriched_clusters(plan)
         if shallow:
             print(colorize("  Next step: enrich steps with detail and issue_refs.", "yellow"))
@@ -180,7 +204,14 @@ def _print_in_progress_guidance(stages: dict, meta: dict, plan: dict) -> None:
         print(colorize('    (use --strategy "same" to keep existing strategy)', "dim"))
 
 
-def print_action_guidance(stages: dict, meta: dict, si: object, plan: dict) -> None:
+def print_action_guidance(
+    stages: dict,
+    meta: dict,
+    si: object,
+    plan: dict,
+    *,
+    snapshot: TriageSnapshot,
+) -> None:
     """Print the 'What to do' action guidance section based on current stage.
 
     Three states, matching the engine's canonical triage lifecycle:
@@ -189,8 +220,8 @@ def print_action_guidance(stages: dict, meta: dict, si: object, plan: dict) -> N
       3. In progress — observe done, working through remaining stages
     """
     print()
-    triage_has_run = bool(meta.get("triaged_ids"))
-    has_new_issues = bool(si.new_since_last)
+    triage_has_run = snapshot.triage_has_run
+    has_new_issues = snapshot.is_triage_stale
 
     if "observe" not in stages:
         if triage_has_run and not has_new_issues:
@@ -198,7 +229,7 @@ def print_action_guidance(stages: dict, meta: dict, si: object, plan: dict) -> N
         else:
             _print_retriage_guidance(si, meta)
     else:
-        _print_in_progress_guidance(stages, meta, plan)
+        _print_in_progress_guidance(stages, meta, plan, snapshot=snapshot)
 
 
 def print_prior_stage_reports(stages: dict) -> None:

@@ -17,6 +17,8 @@ VERDICT_KEYWORDS = frozenset({
     "exaggerated",
     "over-engineering",
     "over engineering",
+    "not-worth-it",
+    "not worth it",
 })
 
 # Permissive path regex — detects whether *any* file path was mentioned.
@@ -214,7 +216,7 @@ def parse_observe_evidence(report: str, valid_ids: set[str]) -> ObserveEvidence:
 _OBSERVE_TEMPLATE_HINT = (
     "  Required template per issue:\n"
     "    - hash: <hash>\n"
-    "      verdict: genuine | false-positive | exaggerated | over-engineering\n"
+    "      verdict: genuine | false-positive | exaggerated | over-engineering | not-worth-it\n"
     "      verdict_reasoning: <why this verdict>\n"
     "      files_read: [<file paths>]\n"
     "      recommendation: <what to do>"
@@ -443,6 +445,26 @@ def format_evidence_failures(
     return "\n\n".join(parts)
 
 
+def resolve_short_hash_to_full_id(short_hash: str, valid_ids: set[str]) -> str | None:
+    """Resolve a short hash to a full issue ID using collision-aware resolution.
+
+    Uses ``_build_id_resolution_maps`` from reflect_accounting to handle
+    ambiguous short hashes safely (drops collisions rather than silently
+    overwriting).
+    """
+    from ..validation.reflect_accounting import _build_id_resolution_maps
+
+    maps = _build_id_resolution_maps(valid_ids)
+    # Try direct match first
+    if short_hash in valid_ids:
+        return short_hash
+    # Try collision-aware short hex map
+    resolved = maps.short_hex_map.get(short_hash)
+    if resolved:
+        return resolved
+    return None
+
+
 __all__ = [
     "EvidenceFailure",
     "ObserveAssessment",
@@ -450,6 +472,7 @@ __all__ = [
     "VERDICT_KEYWORDS",
     "format_evidence_failures",
     "parse_observe_evidence",
+    "resolve_short_hash_to_full_id",
     "validate_observe_evidence",
     "validate_reflect_skip_evidence",
     "validate_report_has_file_paths",

@@ -4,15 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from desloppify.base.discovery.file_paths import rel
-from desloppify.engine.policy.zones import (
-    REVIEW_SELECTION_EXCLUDED_ZONES,
-    zone_in,
-)
-
 HOLISTIC_WORKFLOW = [
     "Read .desloppify/query.json for context, excerpts, and investigation batches",
-    "For each batch: start from listed seed files, then explore likely hotspots/unreviewed neighbors; evaluate the batch's dimension (each batch covers exactly one dimension; batches are independent — parallelize)",
+    "For each batch: explore the codebase freely from this dimension's perspective; evaluate the batch's dimension (each batch covers exactly one dimension; batches are independent — parallelize)",
     "Cross-reference issues with the sibling_behavior and convention data",
     "IMPORTANT: issues must be defects only — never positive observations. High scores capture quality; issues capture problems.",
     "Write ALL issues to issues.json — do NOT fix code before importing. Import creates tracked state entries that let desloppify correlate fixes to issues.",
@@ -33,24 +27,13 @@ def append_full_sweep_batch(
     max_files: int | None = None,
 ) -> None:
     """Append an optional cross-cutting full-codebase batch."""
+    del all_files, lang, max_files
     if not dims:
-        return
-    all_rel_files: list[str] = []
-    for filepath in all_files:
-        if lang.zone_map is not None:
-            zone = lang.zone_map.get(filepath)
-            if zone_in(zone, REVIEW_SELECTION_EXCLUDED_ZONES):
-                continue
-        all_rel_files.append(rel(filepath))
-        if isinstance(max_files, int) and max_files > 0 and len(all_rel_files) >= max_files:
-            break
-    if not all_rel_files:
         return
     batches.append(
         {
             "name": "Full Codebase Sweep",
             "dimensions": list(dims),
-            "files_to_read": all_rel_files,
             "why": "thorough default: evaluate cross-cutting quality across all production files",
         }
     )

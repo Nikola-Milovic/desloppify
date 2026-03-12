@@ -20,7 +20,6 @@ from desloppify.intelligence.review import (
     HOLISTIC_DIMENSIONS_BY_LANG,
     REVIEW_SYSTEM_PROMPT,
     build_holistic_context,
-    generate_remediation_plan,
 )
 from desloppify.intelligence.review import (
     import_holistic_issues as _import_holistic_issues_impl,
@@ -30,9 +29,6 @@ from desloppify.intelligence.review import (
 )
 from desloppify.intelligence.review._context.patterns import (
     extract_imported_names,
-)
-from desloppify.intelligence.review._prepare.helpers import (
-    HOLISTIC_WORKFLOW as _HOLISTIC_WORKFLOW,
 )
 from desloppify.intelligence.review.context import file_excerpt
 from desloppify.intelligence.review.prepare import HolisticReviewPrepareOptions
@@ -364,17 +360,12 @@ class TestPrepareHolisticReview:
         assert batch is not None
         assert batch["name"] == "design_coherence"
         assert batch["dimensions"] == ["design_coherence"]
-        assert batch["files_to_read"] == [
-            "src/file_0.ts",
-            "src/file_1.ts",
-            "src/file_2.ts",
-        ]
-        assert batch["total_candidate_files"] == 6
+        assert "files_to_read" not in batch
         assert batch["concern_signal_count"] == 6
         assert len(batch["concern_signals"]) == 6
         assert batch["concern_signals"][0]["summary"] == "concern 0"
         assert batch["concern_signals"][0]["question"] == "is this intentional?"
-        assert "truncated to 3 files from 6 candidates" in batch["why"]
+        assert "mechanical detectors" in batch["why"]
 
     def test_concern_batch_includes_fingerprints_and_finding_ids(self):
         concerns = [
@@ -587,13 +578,9 @@ class TestPrepareHolisticReview:
             ),
         )
 
-        batch_files = [
-            filepath
-            for batch in data["investigation_batches"]
-            for filepath in batch.get("files_to_read", [])
-        ]
-        assert batch_files
-        assert all(not file_path.startswith("Wan2GP/") for file_path in batch_files)
+        # Batches no longer carry files_to_read; verify they exist and
+        # concern signals are properly scoped.
+        assert data["investigation_batches"]
 
         concern_signals = [
             signal
@@ -1382,12 +1369,13 @@ class TestBuildInvestigationBatches:
         assert "cross_module_architecture" in names
         assert "convention_outlier" in names
 
-        # Check that files are populated
+        # Batches no longer carry files_to_read — verify structure only
         arch_batch = next(b for b in batches if b["name"] == "cross_module_architecture")
-        assert "core.py" in arch_batch["files_to_read"]
+        assert arch_batch["dimensions"] == ["cross_module_architecture"]
+        assert "why" in arch_batch
 
         conv_batch = next(b for b in batches if b["name"] == "convention_outlier")
-        assert "commands/review/cmd.py" in conv_batch["files_to_read"]
+        assert conv_batch["dimensions"] == ["convention_outlier"]
 
     def test_abstraction_batch_includes_hotspot_files(self):
         ctx = {
@@ -1430,14 +1418,12 @@ class TestBuildInvestigationBatches:
             b for b in batches if b["name"] == "abstraction_fitness"
         )
 
-        assert "core/wrappers.py" in abstraction_batch["files_to_read"]
-        assert "core/chains.py" in abstraction_batch["files_to_read"]
-        assert "core/options.py" in abstraction_batch["files_to_read"]
-        assert "core/contracts.py" in abstraction_batch["files_to_read"]
-        assert "core/widget_impl.py" in abstraction_batch["files_to_read"]
+        # Batches no longer carry files_to_read — verify batch exists with correct structure
+        assert abstraction_batch["dimensions"] == ["abstraction_fitness"]
+        assert "why" in abstraction_batch
 
-    def test_empty_context_returns_no_batches(self):
-        """No batches when context has no data."""
+    def test_empty_context_still_creates_dimension_batches(self):
+        """Empty context still creates one batch per dimension (no files)."""
         ctx = {
             "architecture": {},
             "coupling": {},
@@ -1453,10 +1439,14 @@ class TestBuildInvestigationBatches:
 
         batches = _build_investigation_batches(ctx, lang)
 
-        assert batches == []
+        assert len(batches) >= 1
+        for batch in batches:
+            assert "name" in batch
+            assert "dimensions" in batch
+            assert "files_to_read" not in batch
 
-    def test_batch_includes_all_available_files_by_default(self):
-        """Thorough mode keeps full batch evidence unless caller sets a cap."""
+    def test_batches_created_without_files(self):
+        """Batches are created per dimension without files_to_read."""
         ctx = {
             "architecture": {
                 "god_modules": [
@@ -1478,10 +1468,11 @@ class TestBuildInvestigationBatches:
         batches = _build_investigation_batches(ctx, lang)
 
         arch_batch = next(b for b in batches if b["name"] == "cross_module_architecture")
-        assert len(arch_batch["files_to_read"]) == 20
+        assert "files_to_read" not in arch_batch
+        assert arch_batch["dimensions"] == ["cross_module_architecture"]
 
     def test_batch_has_required_fields(self):
-        """Each batch has name, dimensions, files_to_read, why."""
+        """Each batch has name, dimensions, why (but not files_to_read)."""
         ctx = {
             "architecture": {
                 "god_modules": [{"file": "core.py", "importers": 10, "excerpt": ""}],
@@ -1502,13 +1493,12 @@ class TestBuildInvestigationBatches:
         for batch in batches:
             assert "name" in batch
             assert "dimensions" in batch
-            assert "files_to_read" in batch
             assert "why" in batch
             assert isinstance(batch["dimensions"], list)
-            assert isinstance(batch["files_to_read"], list)
+            assert "files_to_read" not in batch
 
-    def test_conventions_batch_maps_directory_signals_to_files(self):
-        """Directory-level error strategy signals should map to concrete files."""
+    def test_conventions_batch_exists_for_convention_context(self):
+        """Convention context should produce a convention_outlier batch."""
         ctx = {
             "architecture": {},
             "coupling": {},
@@ -1548,10 +1538,9 @@ class TestBuildInvestigationBatches:
         batches = _build_investigation_batches(ctx, lang)
         conv_batch = next(b for b in batches if b["name"] == "convention_outlier")
 
-        assert "commands/review/cmd.py" in conv_batch["files_to_read"]
-        assert "commands/scan/cmd.py" in conv_batch["files_to_read"]
-        assert "commands/" not in conv_batch["files_to_read"]
-        assert all(not path.endswith("/") for path in conv_batch["files_to_read"])
+        # Batches no longer carry files_to_read — verify structure
+        assert conv_batch["dimensions"] == ["convention_outlier"]
+        assert "why" in conv_batch
 
     def test_elegance_dimensions_are_batch_mapped(self):
         """Rich holistic context should expose high/mid/low elegance batch mappings."""
@@ -1626,7 +1615,6 @@ class TestFilterBatchesToDimensions:
             {
                 "name": "cross_module_architecture",
                 "dimensions": ["cross_module_architecture"],
-                "files_to_read": ["core.py", "utils.py"],
                 "why": "god modules",
             }
         ]
@@ -1636,14 +1624,14 @@ class TestFilterBatchesToDimensions:
         assert len(filtered) == 1
         assert filtered[0]["name"] == "high_level_elegance"
         assert filtered[0]["dimensions"] == ["high_level_elegance"]
-        assert filtered[0]["files_to_read"] == ["core.py", "utils.py"]
+        # Fallback batches have no files_to_read
+        assert "files_to_read" not in filtered[0]
 
     def test_fallback_only_covers_missing_dimensions(self):
         batches = [
             {
                 "name": "high_level_elegance",
                 "dimensions": ["high_level_elegance"],
-                "files_to_read": ["core.py"],
                 "why": "god modules",
             }
         ]
@@ -1659,12 +1647,11 @@ class TestFilterBatchesToDimensions:
         assert filtered[1]["name"] == "low_level_elegance"
         assert filtered[1]["dimensions"] == ["low_level_elegance"]
 
-    def test_fallback_filters_invalid_non_file_tokens(self):
+    def test_fallback_batch_created_for_missing_dimension(self):
         batches = [
             {
                 "name": "high_level_elegance",
                 "dimensions": ["high_level_elegance"],
-                "files_to_read": ["core.py", "commands/", "services"],
                 "why": "god modules",
             }
         ]
@@ -1673,5 +1660,6 @@ class TestFilterBatchesToDimensions:
 
         assert len(filtered) == 1
         assert filtered[0]["name"] == "low_level_elegance"
-        assert filtered[0]["files_to_read"] == ["core.py"]
+        assert filtered[0]["dimensions"] == ["low_level_elegance"]
+        assert "files_to_read" not in filtered[0]
 

@@ -21,7 +21,6 @@ from desloppify.tests.review.context.test_holistic_review import (
     _call_prepare_holistic_review,
     _make_file,
     _mock_lang,
-    patch_project_root,
 )
 # ===================================================================
 # prepare_holistic_review: workflow and batches in output
@@ -373,7 +372,7 @@ class TestNewHolisticDimensions:
 
 class TestNewInvestigationBatches:
     def test_authorization_batch_generated(self):
-        """Batch 5 (Authorization) appears when auth context has gaps."""
+        """Batch for authorization_consistency appears in the dimension list."""
         ctx = {
             "architecture": {},
             "coupling": {},
@@ -402,12 +401,11 @@ class TestNewInvestigationBatches:
         names = [b["name"] for b in batches]
         assert "authorization_consistency" in names
         auth_batch = next(b for b in batches if b["name"] == "authorization_consistency")
-        assert "routes/admin.py" in auth_batch["files_to_read"]
-        assert "lib/supabase.ts" in auth_batch["files_to_read"]
         assert "authorization_consistency" in auth_batch["dimensions"]
+        assert "files_to_read" not in auth_batch
 
     def test_ai_debt_migration_batch_generated(self):
-        """Batch 6 (AI Debt & Migrations) appears when signals exist."""
+        """Batch for ai_generated_debt appears in the dimension list."""
         ctx = {
             "architecture": {},
             "coupling": {},
@@ -438,13 +436,11 @@ class TestNewInvestigationBatches:
         names = [b["name"] for b in batches]
         assert "ai_generated_debt" in names
         debt_batch = next(b for b in batches if b["name"] == "ai_generated_debt")
-        assert "bloated.py" in debt_batch["files_to_read"]
-        assert "old_api.py" in debt_batch["files_to_read"]
-        assert "service.py" in debt_batch["files_to_read"]
         assert "ai_generated_debt" in debt_batch["dimensions"]
+        assert "files_to_read" not in debt_batch
 
-    def test_no_auth_batch_when_no_gaps(self):
-        """No Authorization batch when auth coverage has no gaps."""
+    def test_authorization_batch_always_present(self):
+        """Authorization batch is always present (one batch per dimension)."""
         ctx = {
             "architecture": {},
             "coupling": {},
@@ -470,10 +466,10 @@ class TestNewInvestigationBatches:
         batches = _build_investigation_batches(ctx, lang)
 
         names = [b["name"] for b in batches]
-        assert "authorization_consistency" not in names
+        assert "authorization_consistency" in names
 
-    def test_no_debt_batch_when_no_signals(self):
-        """No AI Debt batch when no signals exist."""
+    def test_ai_debt_batch_always_present(self):
+        """AI Debt batch is always present (one batch per dimension)."""
         ctx = {
             "architecture": {},
             "coupling": {},
@@ -490,10 +486,10 @@ class TestNewInvestigationBatches:
         batches = _build_investigation_batches(ctx, lang)
 
         names = [b["name"] for b in batches]
-        assert "ai_generated_debt" not in names
+        assert "ai_generated_debt" in names
 
     def test_one_batch_per_dimension(self):
-        """With full context, one batch per dimension with seed files."""
+        """With full context, one batch per dimension."""
         ctx = {
             "architecture": {
                 "god_modules": [{"file": "core.py", "importers": 10, "excerpt": ""}],
@@ -644,9 +640,15 @@ class TestStructureContext:
         assert profile["file_count"] == 3
         assert profile["total_loc"] == 240  # 100+80+60
 
-    def test_root_files_classified(self, tmp_path, patch_project_root):
+    def test_root_files_classified(self, tmp_path, monkeypatch):
         """Root-level files are classified as core (fan_in>=5) or peripheral."""
-        patch_project_root(tmp_path)
+        from desloppify.base.discovery.source import (
+            clear_source_file_cache_for_tests,
+        )
+        from desloppify.base.runtime_state import current_runtime_context
+
+        monkeypatch.setattr(current_runtime_context(), "project_root", tmp_path)
+        clear_source_file_cache_for_tests()
 
         f1 = _make_file(str(tmp_path), "utils.py", lines=200)
         f2 = _make_file(str(tmp_path), "scorecard.py", lines=100)
@@ -712,7 +714,7 @@ class TestPackageOrganizationDimension:
         assert diff["new"] == 1
 
     def test_investigation_batch_generated(self):
-        """Batch 7 (Package Organization) appears when structure context has peripheral files."""
+        """Package Organization batch is always present (one batch per dimension)."""
         ctx = {
             "architecture": {},
             "coupling": {},
@@ -731,23 +733,8 @@ class TestPackageOrganizationDimension:
                         "fan_out": 3,
                         "role": "peripheral",
                     },
-                    {
-                        "file": "scorecard.py",
-                        "loc": 200,
-                        "fan_in": 1,
-                        "fan_out": 2,
-                        "role": "peripheral",
-                    },
                 ],
-                "directory_profiles": {
-                    "commands/": {
-                        "file_count": 8,
-                        "files": ["scan.py", "show.py", "next.py"],
-                        "total_loc": 1500,
-                        "avg_fan_in": 2.0,
-                        "avg_fan_out": 5.0,
-                    },
-                },
+                "directory_profiles": {},
             },
         }
         lang = _mock_lang()
@@ -757,12 +744,11 @@ class TestPackageOrganizationDimension:
         names = [b["name"] for b in batches]
         assert "package_organization" in names
         pkg_batch = next(b for b in batches if b["name"] == "package_organization")
-        assert "visualize.py" in pkg_batch["files_to_read"]
-        assert "scorecard.py" in pkg_batch["files_to_read"]
         assert "package_organization" in pkg_batch["dimensions"]
+        assert "files_to_read" not in pkg_batch
 
-    def test_no_batch_when_no_structure(self):
-        """No Package Organization batch when structure context is empty."""
+    def test_batch_present_even_without_structure(self):
+        """Package Organization batch present even when structure context is empty."""
         ctx = {
             "architecture": {},
             "coupling": {},
@@ -779,9 +765,9 @@ class TestPackageOrganizationDimension:
         batches = _build_investigation_batches(ctx, lang)
 
         names = [b["name"] for b in batches]
-        assert "package_organization" not in names
+        assert "package_organization" in names
 
-    def test_mid_level_elegance_uses_workflow_seam_sources(self):
+    def test_mid_level_elegance_batch_present(self):
         ctx = {
             "architecture": {},
             "coupling": {
@@ -809,10 +795,5 @@ class TestPackageOrganizationDimension:
         batches = _build_investigation_batches(ctx, lang)
 
         mid_batch = next(b for b in batches if b["name"] == "mid_level_elegance")
-        assert mid_batch["files_to_read"] == [
-            "app/orchestrator.py",
-            "app/handlers.py",
-            "app/facade.py",
-            "app/protocols.py",
-            "app/api.py",
-        ]
+        assert mid_batch["dimensions"] == ["mid_level_elegance"]
+        assert "files_to_read" not in mid_batch

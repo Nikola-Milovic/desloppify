@@ -8,14 +8,12 @@ from dataclasses import dataclass, field
 from desloppify.app.commands.helpers.issue_id_display import short_issue_id
 from desloppify.base.exception_sets import PLAN_LOAD_EXCEPTIONS, CommandError
 from desloppify.base.output.terminal import colorize
-from desloppify.engine._plan.sync.triage import (
-    compute_new_issue_ids,
-    is_triage_stale,
-)
 from desloppify.engine.plan_state import load_plan
 from desloppify.engine.plan_triage import (
     TRIAGE_CMD_RUN_STAGES_CLAUDE,
     TRIAGE_CMD_RUN_STAGES_CODEX,
+    TriageSnapshot,
+    build_triage_snapshot,
     triage_phase_banner,
 )
 
@@ -29,6 +27,7 @@ class TriageGuardrailResult:
     is_stale: bool = False
     new_ids: set[str] = field(default_factory=set)
     _plan: dict | None = field(default=None, repr=False)
+    _snapshot: TriageSnapshot | None = field(default=None, repr=False)
 
 
 def triage_guardrail_status(
@@ -45,14 +44,16 @@ def triage_guardrail_status(
 
     resolved_state = state or {}
 
-    if not is_triage_stale(resolved_plan, resolved_state):
-        return TriageGuardrailResult(_plan=resolved_plan)
+    snapshot = build_triage_snapshot(resolved_plan, resolved_state)
+    if not snapshot.is_triage_stale:
+        return TriageGuardrailResult(_plan=resolved_plan, _snapshot=snapshot)
 
-    new_ids: set[str] = set()
-    if resolved_state:
-        new_ids = compute_new_issue_ids(resolved_plan, resolved_state)
-
-    return TriageGuardrailResult(is_stale=True, new_ids=new_ids, _plan=resolved_plan)
+    return TriageGuardrailResult(
+        is_stale=True,
+        new_ids=set(snapshot.new_since_triage_ids),
+        _plan=resolved_plan,
+        _snapshot=snapshot,
+    )
 
 
 def triage_guardrail_messages(
@@ -75,7 +76,7 @@ def triage_guardrail_messages(
         )
 
     if result._plan is not None:
-        banner = triage_phase_banner(result._plan, resolved_state)
+        banner = triage_phase_banner(result._plan, resolved_state, snapshot=result._snapshot)
         if banner:
             messages.append(banner)
 

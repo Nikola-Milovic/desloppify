@@ -15,6 +15,9 @@ from .shared import (
 from ..observe_batches import observe_dimension_breakdown
 from ..services import TriageServices, default_triage_services
 
+# Observe verdicts that trigger auto-skip on confirmation
+_AUTO_SKIP_VERDICTS = frozenset({"false positive", "exaggerated"})
+
 
 MIN_ATTESTATION_LEN = 80
 
@@ -101,6 +104,85 @@ def validate_attestation(
     return validator() if validator is not None else None
 
 
+def _apply_observe_auto_skips(
+    plan: dict,
+    meta: dict,
+    services: TriageServices,
+) -> int:
+    """Create skip entries for false-positive/exaggerated dispositions.
+
+    Returns the number of issues auto-skipped. Also updates the disposition
+    map with decision/target/decision_source and removes auto-skipped IDs
+    from queue_order.
+    """
+    from desloppify.state_io import utc_now
+
+    dispositions = meta.get("issue_dispositions", {})
+    if not dispositions:
+        return 0
+
+    skipped = plan.setdefault("skipped", {})
+    queue_order = plan.get("queue_order", [])
+    count = 0
+
+    for issue_id, disp in dispositions.items():
+        verdict = disp.get("verdict", "")
+        if verdict not in _AUTO_SKIP_VERDICTS:
+            continue
+        # Don't double-skip
+        if issue_id in skipped:
+            continue
+        skipped[issue_id] = {
+            "issue_id": issue_id,
+            "kind": "triage_observe_auto",
+            "reason": verdict,
+            "note": disp.get("verdict_reasoning", ""),
+            "created_at": utc_now(),
+            "skipped_at_scan": 0,
+        }
+        # Update disposition with auto-skip decision
+        disp["decision"] = "skip"
+        disp["target"] = verdict
+        disp["decision_source"] = "observe_auto"
+        count += 1
+
+    # Remove auto-skipped IDs from queue_order
+    if count:
+        auto_skipped_ids = {
+            issue_id for issue_id, disp in dispositions.items()
+            if disp.get("decision_source") == "observe_auto"
+        }
+        plan["queue_order"] = [
+            fid for fid in queue_order if fid not in auto_skipped_ids
+        ]
+        services.save_plan(plan)
+
+    return count
+
+
+def _undo_observe_auto_skips(plan: dict, meta: dict) -> int:
+    """Remove previously auto-skipped entries before a fresh observe run.
+
+    Returns the number of entries un-skipped.
+    """
+    dispositions = meta.get("issue_dispositions", {})
+    skipped = plan.get("skipped", {})
+    count = 0
+
+    # Find all entries with decision_source == "observe_auto"
+    auto_skipped_ids = {
+        issue_id for issue_id, disp in dispositions.items()
+        if disp.get("decision_source") == "observe_auto"
+    }
+    for issue_id in auto_skipped_ids:
+        entry = skipped.get(issue_id)
+        if entry and entry.get("kind") == "triage_observe_auto":
+            del skipped[issue_id]
+            count += 1
+
+    return count
+
+
 def confirm_observe(
     args: argparse.Namespace,
     plan: dict,
@@ -157,6 +239,13 @@ def confirm_observe(
         services=resolved_services,
     ):
         return
+
+    # Auto-skip false-positive/exaggerated issues on observe confirmation
+    meta = plan.get("epic_triage_meta", {})
+    auto_skipped = _apply_observe_auto_skips(plan, meta, resolved_services)
+    if auto_skipped:
+        print(colorize(f"  Auto-skipped {auto_skipped} false-positive/exaggerated issue(s).", "green"))
+
     print_user_message(
         "Hey — observe is confirmed. Run `desloppify plan triage"
         " --stage reflect --report \"...\"` next. No need to reply,"

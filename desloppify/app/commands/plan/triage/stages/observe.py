@@ -8,6 +8,7 @@ from desloppify.base.output.terminal import colorize
 from desloppify.base.output.user_message import print_user_message
 
 from ..stage_queue import (
+    cascade_clear_dispositions,
     has_triage_in_queue,
     inject_triage_stages,
     print_cascade_clear_feedback,
@@ -88,6 +89,7 @@ def cmd_stage_observe(
     from .evidence_parsing import (
         format_evidence_failures,
         parse_observe_evidence,
+        resolve_short_hash_to_full_id,
         validate_observe_evidence,
     )
 
@@ -113,6 +115,27 @@ def cmd_stage_observe(
         }
         for entry in evidence.entries
     ]
+
+    # On fresh observe run, cascade-clear dispositions and undo auto-skips
+    if not is_reuse:
+        from ..confirmations.basic import _undo_observe_auto_skips
+
+        _undo_observe_auto_skips(plan, meta)
+        cascade_clear_dispositions(meta, "observe")
+
+    # Populate issue_dispositions from assessments using collision-aware resolution
+    dispositions: dict[str, dict] = {}
+    for entry in evidence.entries:
+        full_id = resolve_short_hash_to_full_id(entry.issue_hash, valid_ids)
+        if full_id:
+            dispositions[full_id] = {
+                "verdict": entry.verdict,
+                "verdict_reasoning": entry.verdict_reasoning,
+                "files_read": entry.files_read,
+                "recommendation": entry.recommendation,
+            }
+    meta["issue_dispositions"] = dispositions
+
     cleared = record_observe_stage(
         stages,
         report=report,
@@ -145,7 +168,7 @@ def cmd_stage_observe(
         " verify every issue with code reads? Check: are there"
         " specific file/line citations in the report, or just"
         " restated issue titles? Each issue needs a verdict:"
-        " genuine / false positive / exaggerated. Don't confirm"
+        " genuine / false positive / exaggerated / not-worth-it. Don't confirm"
         " until the analysis is backed by actual code evidence."
     )
 

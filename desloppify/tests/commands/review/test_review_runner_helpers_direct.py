@@ -6,6 +6,7 @@ import json
 import time
 from pathlib import Path
 
+import desloppify.app.commands.review.batch.prompt_template as prompt_template_mod
 import desloppify.app.commands.review.runner_parallel as runner_helpers_mod
 
 
@@ -85,6 +86,7 @@ def test_collect_batch_results_recovers_from_log_stdout_payload(tmp_path: Path) 
             parsed.get("dimension_notes", {}),
             parsed.get("dimension_judgment", {}),
             {},
+            {},
         ),
     )
 
@@ -112,3 +114,24 @@ def test_collect_batch_results_marks_failure_on_normalize_error(tmp_path: Path) 
 
     assert batch_results == []
     assert failures == [0]
+
+
+def test_render_batch_prompt_loads_context_updates_example() -> None:
+    prompt = prompt_template_mod.render_batch_prompt(
+        repo_root=Path("/tmp/repo"),
+        packet_path=Path("/tmp/repo/query.blind.json"),
+        batch_index=0,
+        batch={
+            "name": "B1",
+            "why": "test",
+            "dimensions": ["logic_clarity"],
+            "files_to_read": ["src/a.py"],
+            "dimension_prompts": {
+                "logic_clarity": {
+                    "description": "Keep logic direct.",
+                }
+            },
+        },
+    )
+
+    assert "context_updates example" in prompt

@@ -42,6 +42,25 @@ def purge_triage_stage(plan: PlanModel, stage_name: str) -> None:
     purge_ids(plan, [f"triage::{stage_name}"])
 
 
+def cascade_clear_dispositions(meta: dict[str, Any], from_stage: str) -> None:
+    """Reset issue_dispositions when an earlier stage reruns.
+
+    - observe rerun: wipe the entire disposition map (verdicts change)
+    - reflect rerun: clear decision/target/decision_source from all entries
+      (observe verdicts remain, but reflect decisions are outdated)
+    """
+    dispositions = meta.get("issue_dispositions")
+    if not dispositions:
+        return
+    if from_stage == "observe":
+        meta["issue_dispositions"] = {}
+    elif from_stage == "reflect":
+        for entry in dispositions.values():
+            entry.pop("decision", None)
+            entry.pop("target", None)
+            entry.pop("decision_source", None)
+
+
 def cascade_clear_later_confirmations(
     stages: dict[str, dict[str, Any]],
     from_stage: str,
@@ -87,6 +106,7 @@ def print_cascade_clear_feedback(
 
 __all__ = [
     "STAGE_ORDER",
+    "cascade_clear_dispositions",
     "cascade_clear_later_confirmations",
     "has_triage_in_queue",
     "inject_triage_stages",

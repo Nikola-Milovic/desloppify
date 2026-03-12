@@ -105,16 +105,6 @@ def filter_batches_to_file_scope(
         if not isinstance(raw_batch, dict):
             continue
         batch = dict(raw_batch)
-        files_to_read = batch.get("files_to_read", [])
-        if isinstance(files_to_read, list):
-            scoped_files = [
-                filepath
-                for filepath in files_to_read
-                if file_in_allowed_scope(filepath, allowed_files)
-            ]
-        else:
-            scoped_files = []
-        batch["files_to_read"] = scoped_files
 
         concern_signals = batch.get("concern_signals", [])
         if isinstance(concern_signals, list):
@@ -134,9 +124,8 @@ def filter_batches_to_file_scope(
         if issue_focus is not None:
             batch["historical_issue_focus"] = issue_focus
 
-        has_seed_files = bool(batch["files_to_read"])
-        has_signals = bool(batch.get("concern_signals"))
-        if has_seed_files or has_signals:
+        # Keep any batch that has dimensions to review
+        if batch.get("dimensions"):
             scoped_batches.append(batch)
     return scoped_batches
 

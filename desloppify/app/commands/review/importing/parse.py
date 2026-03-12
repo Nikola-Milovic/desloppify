@@ -20,7 +20,6 @@ from desloppify.intelligence.review.importing.contracts_models import (
 )
 from desloppify.intelligence.review.importing.contracts_types import (
     NormalizedReviewImportPayload,
-    ReviewImportPayload,
     ReviewIssuePayload,
 )
 from desloppify.intelligence.review.importing.contracts_validation import (

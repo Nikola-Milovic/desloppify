@@ -9,7 +9,6 @@ from desloppify.engine._work_queue.inputs import resolve_queue_inputs
 from desloppify.engine._work_queue.models import (
     QueueBuildOptions,
     QueueVisibility,
-    ScanPathOption,
     WorkQueueResult,
 )
 from desloppify.engine._work_queue.plan_order import collapse_clusters

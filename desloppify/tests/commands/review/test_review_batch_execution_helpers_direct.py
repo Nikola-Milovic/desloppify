@@ -396,6 +396,7 @@ def test_do_import_run_recollects_batches_from_selected_indexes(tmp_path: Path, 
 def test_try_load_prepared_packet_accepts_matching_contract(tmp_path: Path, monkeypatch) -> None:
     expected_contract = {
         "path": "/repo",
+        "state_path": "/repo/.desloppify/state.json",
         "dimensions": [],
         "retrospective": False,
         "retrospective_max_issues": 30,
@@ -423,6 +424,7 @@ def test_try_load_prepared_packet_accepts_matching_contract(tmp_path: Path, monk
 def test_try_load_prepared_packet_rejects_contract_mismatch(tmp_path: Path, monkeypatch) -> None:
     expected_contract = {
         "path": "/repo/new",
+        "state_path": "/repo/.desloppify/state.json",
         "dimensions": [],
         "retrospective": False,
         "retrospective_max_issues": 30,
@@ -448,3 +450,38 @@ def test_try_load_prepared_packet_rejects_contract_mismatch(tmp_path: Path, monk
     )
     assert packet is None
     assert mismatch == "contract field 'path' differs"
+
+
+def test_try_load_prepared_packet_rejects_state_scope_mismatch(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    expected_contract = {
+        "path": "/repo",
+        "state_path": "/repo/.desloppify/state-a.json",
+        "dimensions": [],
+        "retrospective": False,
+        "retrospective_max_issues": 30,
+        "retrospective_max_batch_items": 20,
+        "config_hash": "abc",
+    }
+    query_path = tmp_path / "query.json"
+    query_path.write_text(
+        json.dumps(
+            {
+                "investigation_batches": [{"name": "mid_level_elegance"}],
+                "prepared_packet_contract": {
+                    **expected_contract,
+                    "state_path": "/repo/.desloppify/state-b.json",
+                },
+            }
+        )
+    )
+    monkeypatch.setattr(orchestrator_mod, "query_file_path", lambda: query_path)
+
+    packet, mismatch = orchestrator_mod._try_load_prepared_packet(
+        expected_contract=expected_contract
+    )
+
+    assert packet is None
+    assert mismatch == "contract field 'state_path' differs"

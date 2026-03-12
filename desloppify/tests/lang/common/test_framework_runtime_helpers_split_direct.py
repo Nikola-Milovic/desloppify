@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from types import SimpleNamespace
 
 import desloppify.languages._framework.base.lang_config_runtime as runtime_mod

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .prepare_batches_collectors import _DIMENSION_FILE_MAPPING, _FILE_COLLECTORS
+from .prepare_batches_collectors import _DIMENSION_FILE_MAPPING
 from .prepare_batches_core import (
-    _collect_files_from_batches,
     _ensure_holistic_context,
     _normalize_file_path,
 )
@@ -59,30 +58,18 @@ def build_investigation_batches(
     state: dict | None = None,
 ) -> list[dict]:
     """Build one batch per dimension from holistic context."""
-    ctx = _ensure_holistic_context(holistic_ctx)
+    _ensure_holistic_context(holistic_ctx)
     del lang
     del repo_root
+    del max_files_per_batch
 
-    file_cache: dict[str, list[str]] = {}
     batches: list[dict] = []
 
-    for dimension, collector_key in _DIMENSION_FILE_MAPPING.items():
-        if collector_key not in file_cache:
-            collector = _FILE_COLLECTORS[collector_key]
-            file_cache[collector_key] = collector(
-                ctx,
-                max_files=max_files_per_batch,
-            )
-
-        files = file_cache[collector_key]
-        if not files:
-            continue
-
+    for dimension in _DIMENSION_FILE_MAPPING:
         batch: dict[str, object] = {
             "name": dimension,
             "dimensions": [dimension],
-            "files_to_read": files,
-            "why": f"seed files for {dimension} review",
+            "why": f"{dimension} review",
         }
 
         if state is not None:
@@ -104,6 +91,7 @@ def filter_batches_to_dimensions(
     fallback_max_files: int | None = 80,
 ) -> list[dict]:
     """Keep only batches whose dimension is in the active set."""
+    del fallback_max_files
     selected = [dimension for dimension in dimensions if isinstance(dimension, str) and dimension]
     if not selected:
         return []
@@ -117,27 +105,14 @@ def filter_batches_to_dimensions(
         filtered.append({**batch, "dimensions": batch_dims})
         covered.update(batch_dims)
 
+    # Create empty batches for dimensions not covered by existing batches
     missing = [dim for dim in selected if dim not in covered]
-    if not missing:
-        return filtered
-
-    max_files = fallback_max_files if isinstance(fallback_max_files, int) else None
-    if isinstance(max_files, int) and max_files <= 0:
-        max_files = None
-    fallback_files = _collect_files_from_batches(
-        filtered or batches,
-        max_files=max_files,
-    )
-    if not fallback_files:
-        return filtered
-
     for dim in missing:
         filtered.append(
             {
                 "name": dim,
                 "dimensions": [dim],
-                "files_to_read": fallback_files,
-                "why": f"no direct batch mapping for {dim}; using representative files",
+                "why": f"{dim} review",
             }
         )
     return filtered
@@ -197,18 +172,6 @@ def batch_concerns(
             signal["finding_ids"] = list(source_issues)
         concern_signals.append(signal)
 
-    total_candidate_files = len(files)
-    if (
-        max_files is not None
-        and isinstance(max_files, int)
-        and max_files > 0
-        and total_candidate_files > max_files
-    ):
-        files = files[:max_files]
-        why_parts.append(
-            f"truncated to {max_files} files from {total_candidate_files} candidates"
-        )
-
     # Build per-detector judgment finding counts by extracting the detector name
     # from each source issue ID (format: "detector::file::detail").
     detector_counts: dict[str, int] = {}
@@ -226,9 +189,7 @@ def batch_concerns(
     result: dict[str, object] = {
         "name": "design_coherence",
         "dimensions": ["design_coherence"],
-        "files_to_read": files,
         "why": "; ".join(why_parts),
-        "total_candidate_files": total_candidate_files,
         "concern_signals": concern_signals,
         "concern_signal_count": len(concern_signals),
     }

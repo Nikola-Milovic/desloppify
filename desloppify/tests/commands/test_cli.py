@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -12,19 +11,12 @@ import pytest
 import desloppify.app.commands.helpers.lang as lang_helpers_mod
 import desloppify.cli as cli_mod
 from desloppify.app.commands.helpers.lang import resolve_lang, resolve_lang_settings
-from desloppify.app.commands.helpers.query import write_query
 from desloppify.app.commands.helpers.runtime_options import (
     LangRuntimeOptionsError,
     resolve_lang_runtime_options,
 )
-from desloppify.base.config import (
-    coerce_target_score,
-    target_strict_score_from_config,
-)
 from desloppify.cli import (
-    _apply_persisted_exclusions,
     _get_detector_names,
-    _project_root_from_state_path,
     _running_installed_package_from_checkout,
     _resolve_default_path,
     _warn_if_running_installed_package_from_checkout,

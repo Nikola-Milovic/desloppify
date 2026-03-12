@@ -165,6 +165,51 @@ def _disposition_matches(intended: ReflectDisposition, actual: ActualDisposition
     return False
 
 
+def validate_organize_against_dispositions(
+    *,
+    plan: dict,
+) -> list[LedgerMismatch]:
+    """Check that plan mutations match the unified issue_dispositions map.
+
+    Preferred over ``validate_organize_against_reflect_ledger`` when the
+    disposition map exists.  Only checks entries with a ``decision`` field
+    (i.e. entries that have been through observe auto-skip or reflect).
+    """
+    meta = plan.get("epic_triage_meta", {})
+    dispositions = meta.get("issue_dispositions", {})
+    if not dispositions:
+        return []
+
+    # Only validate entries that have a decision
+    decided = [
+        (issue_id, disp)
+        for issue_id, disp in dispositions.items()
+        if disp.get("decision")
+    ]
+    if not decided:
+        return []
+
+    actuals = _build_actual_disposition_index(plan)
+    unplaced = ActualDisposition(kind="unplaced")
+    mismatches: list[LedgerMismatch] = []
+
+    for issue_id, disp in decided:
+        decision = disp["decision"]
+        target = disp.get("target", "")
+        # Normalize to ReflectDisposition for the mismatch report
+        reflect_decision = "permanent_skip" if decision == "skip" else decision
+        intended = ReflectDisposition(
+            issue_id=issue_id,
+            decision=reflect_decision,
+            target=target,
+        )
+        actual = actuals.get(issue_id, unplaced)
+        if not _disposition_matches(intended, actual):
+            mismatches.append(LedgerMismatch(intended=intended, actual=actual))
+
+    return mismatches
+
+
 def validate_organize_against_reflect_ledger(
     *,
     plan: dict,
@@ -191,11 +236,15 @@ def _validate_organize_against_ledger_or_error(
     plan: dict,
     stages: dict,
 ) -> bool:
-    """Block organize if plan state diverges from the reflect disposition ledger."""
-    mismatches = validate_organize_against_reflect_ledger(
-        plan=plan,
-        stages=stages,
-    )
+    """Block organize if plan state diverges from dispositions or the reflect ledger."""
+    # Prefer unified disposition map when available
+    mismatches = validate_organize_against_dispositions(plan=plan)
+    if not mismatches:
+        # Fall back to legacy reflect ledger validation
+        mismatches = validate_organize_against_reflect_ledger(
+            plan=plan,
+            stages=stages,
+        )
     if not mismatches:
         return True
 
@@ -234,5 +283,6 @@ __all__ = [
     "_organize_report_or_error",
     "_unclustered_review_issues_or_error",
     "_validate_organize_against_ledger_or_error",
+    "validate_organize_against_dispositions",
     "validate_organize_against_reflect_ledger",
 ]

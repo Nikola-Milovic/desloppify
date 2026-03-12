@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -65,7 +64,7 @@ class TestCmdReviewPrepareRunnerHelpers:
 
         def normalize_result(payload, _allowed_dims):
             notes = payload.get("dimension_notes", {})
-            return payload.get("assessments", {}), payload.get("issues", []), notes, {}, {}
+            return payload.get("assessments", {}), payload.get("issues", []), notes, {}, {}, {}
 
         batch_results, failures = runner_helpers_mod.collect_batch_results(
             selected_indexes=[0],
@@ -126,6 +125,7 @@ class TestCmdReviewPrepareRunnerHelpers:
                 payload.get("issues", []),
                 payload.get("dimension_notes", {}),
                 payload.get("dimension_judgment", {}),
+                {},
                 {},
             ),
         )

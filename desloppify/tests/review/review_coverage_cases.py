@@ -12,7 +12,6 @@ from desloppify.base.discovery.file_paths import rel
 from desloppify.base.registry import _DISPLAY_ORDER, DETECTORS
 from desloppify.engine._scoring.policy.core import (
     DIMENSIONS,
-    FILE_BASED_DETECTORS,
     _NON_OBJECTIVE_DETECTORS,
 )
 from desloppify.engine.detectors.review_coverage import (

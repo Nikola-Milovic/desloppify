@@ -4,26 +4,16 @@ from __future__ import annotations
 
 import functools
 import textwrap
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
-from desloppify.intelligence.review.context import (
-    ReviewContext,
-    build_review_context,
-    serialize_context,
-)
-from desloppify.intelligence.review.context_holistic.orchestrator import (
-    build_holistic_context,
-)
 from desloppify.intelligence.review.context_signals.ai import gather_ai_debt_signals
 from desloppify.intelligence.review.context_signals.auth import gather_auth_context
 from desloppify.intelligence.review.context_signals.migration import (
     classify_error_strategy,
     gather_migration_signals,
 )
-from desloppify.state import empty_state as make_empty_state
 
 
 def _test_rel(path: str) -> str:

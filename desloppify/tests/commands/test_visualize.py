@@ -3,24 +3,15 @@
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from desloppify.app.commands.helpers.command_runtime import CommandRuntime
-from desloppify.app.output._viz_cmd_context import load_cmd_context
 from desloppify.app.output.tree_text import _aggregate, _print_tree
-from desloppify.app.commands.viz import cmd_viz
-from desloppify.app.output.visualize import (
-    D3_CDN_URL,
-    generate_visualization,
-)
 from desloppify.app.output.visualize_data import (
     _build_tree,
     _collect_file_data,
 )
-from desloppify.base.output.contract import OutputResult
 
 # ===========================================================================
 # esc() — XSS sanitizer (lives in the JS template, test the Python-side

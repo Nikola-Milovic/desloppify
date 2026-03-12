@@ -17,6 +17,8 @@ from desloppify.engine._state.schema_types_review import (
     AssessmentImportAuditEntry,
     AttestationLogEntry,
     ConcernDismissal,
+    ContextInsight,
+    DimensionContext,
     IgnoreIntegrityModel,
     LangCapability,
     ReviewCacheModel,
@@ -70,6 +72,7 @@ class StateModel(TypedDict, total=False):
     assessment_import_audit: list[AssessmentImportAuditEntry]
     attestation_log: list[AttestationLogEntry]
     concern_dismissals: dict[str, ConcernDismissal]
+    dimension_contexts: dict[str, DimensionContext]
     _plan_start_scores_for_reveal: dict[str, Any]
     scan_metadata: Required[ScanMetadataModel]
 
@@ -93,6 +96,8 @@ class ScanDiff(TypedDict):
 
 __all__ = [
     "ConcernDismissal",
+    "ContextInsight",
+    "DimensionContext",
     "AssessmentImportAuditEntry",
     "AttestationLogEntry",
     "Issue",

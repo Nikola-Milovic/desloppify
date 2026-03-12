@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 
 from desloppify.app.commands.plan.triage.stages.evidence_parsing import (
-    EvidenceFailure,
     ObserveAssessment,
     ObserveEvidence,
     parse_observe_evidence,
@@ -287,7 +285,7 @@ class TestValidateReflectSkipEvidence:
         report = "Skip: [abc12345] ()\n"
         # The regex requires .+ after the separator, so this line may not match.
         # If it does match, the empty reason should fail.
-        failures = validate_reflect_skip_evidence(report)
+        validate_reflect_skip_evidence(report)
         # Either no match (no failures) or matched with empty reason (failure)
         # Both are acceptable behaviors
         assert True  # The important thing is no crash

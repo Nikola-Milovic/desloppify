@@ -746,8 +746,32 @@ def test_queue_snapshot_orders_scan_review_and_workflow_postflight() -> None:
         "refresh_state": {"postflight_scan_completed_at_scan_count": 1},
     }
     review_snapshot = snapshot_mod.build_queue_snapshot(review_state, plan=review_plan)
-    assert review_snapshot.phase == snapshot_mod.PHASE_REVIEW_POSTFLIGHT
-    assert [item["id"] for item in review_snapshot.execution_items] == ["review::src/a.py::naming"]
+    assert review_snapshot.phase == snapshot_mod.PHASE_WORKFLOW_POSTFLIGHT
+    assert [item["id"] for item in review_snapshot.execution_items] == ["workflow::communicate-score"]
+    assert "review::src/a.py::naming" in {item["id"] for item in review_snapshot.backlog_items}
+
+    triage_snapshot = snapshot_mod.build_queue_snapshot(
+        review_state,
+        plan={
+            "queue_order": ["triage::observe"],
+            "plan_start_scores": {"strict": 80.0},
+            "refresh_state": {"postflight_scan_completed_at_scan_count": 1},
+        },
+    )
+    assert triage_snapshot.phase == snapshot_mod.PHASE_TRIAGE_POSTFLIGHT
+    assert [item["id"] for item in triage_snapshot.execution_items] == ["triage::observe"]
+
+    post_triage_snapshot = snapshot_mod.build_queue_snapshot(
+        review_state,
+        plan={
+            "queue_order": [],
+            "plan_start_scores": {"strict": 80.0},
+            "refresh_state": {"postflight_scan_completed_at_scan_count": 1},
+            "epic_triage_meta": {"triaged_ids": ["review::src/a.py::naming"]},
+        },
+    )
+    assert post_triage_snapshot.phase == snapshot_mod.PHASE_REVIEW_POSTFLIGHT
+    assert [item["id"] for item in post_triage_snapshot.execution_items] == ["review::src/a.py::naming"]
 
     workflow_snapshot = snapshot_mod.build_queue_snapshot(
         {"issues": {}},

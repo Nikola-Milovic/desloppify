@@ -97,5 +97,6 @@ __all__ = [
     "make_lang_run",
     "make_lang_config",
     "reset_script_import_caches",
+    "registry_state",
     "shared_phase_labels",
 ]

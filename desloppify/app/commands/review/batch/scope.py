@@ -64,24 +64,15 @@ def print_review_quality(quality: object, *, colorize_fn) -> None:
         high_missing_issue_note = quality.get(
             LEGACY_REVIEW_QUALITY_HIGH_SCORE_MISSING_ISSUES_KEY
         )
-    issue_pressure = quality.get("issue_pressure")
-    dims_with_issues = quality.get("dimensions_with_issues")
     if not isinstance(coverage, int | float) or not isinstance(density, int | float):
         return
-
-    pressure_segment = ""
-    if isinstance(issue_pressure, int | float) and isinstance(dims_with_issues, int):
-        pressure_segment = (
-            f", issue-pressure {float(issue_pressure):.2f} "
-            f"across {dims_with_issues} dims"
-        )
     print(
         colorize_fn(
             "  Review quality: "
             f"dimension coverage {float(coverage):.2f}, "
             f"evidence density {float(density):.2f}, "
             f"high-score-missing-issue-note {int(high_missing_issue_note or 0)}"
-            f"{pressure_segment}",
+            "",
             "dim",
         )
     )
@@ -92,29 +83,13 @@ def collect_reviewed_files_from_batches(
     batches: list[dict[str, object]],
     selected_indexes: list[int],
 ) -> list[str]:
-    """Collect normalized file paths reviewed in the selected batch set."""
-    reviewed: list[str] = []
-    seen: set[str] = set()
-    for idx in selected_indexes:
-        if idx < 0 or idx >= len(batches):
-            continue
-        batch = batches[idx]
-        files = batch.get("files_to_read", [])
-        if not isinstance(files, list):
-            continue
-        for raw in files:
-            if not isinstance(raw, str):
-                continue
-            path = raw.strip().strip(",'\"")
-            if not path or path in {".", ".."}:
-                continue
-            if path.endswith("/"):
-                continue
-            if path in seen:
-                continue
-            seen.add(path)
-            reviewed.append(path)
-    return reviewed
+    """Collect normalized file paths reviewed in the selected batch set.
+
+    Returns empty — reviewer agents explore the codebase freely rather than
+    being constrained to seed files.
+    """
+    del batches, selected_indexes
+    return []
 
 
 def normalize_dimension_list(raw: object) -> list[str]:

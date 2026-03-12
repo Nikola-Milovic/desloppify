@@ -188,7 +188,6 @@ def test_phase_test_coverage_and_private_imports_paths(monkeypatch) -> None:
 
 def test_phase_subjective_review_normalizes_cache_shape(monkeypatch) -> None:
     """phase_subjective_review now creates one issue per unassessed/stale dimension."""
-    from desloppify.base.subjective_dimensions import default_dimension_keys_for_lang
 
     lang = SimpleNamespace(
         zone_map=None,

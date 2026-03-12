@@ -3,7 +3,6 @@
 import json
 from pathlib import Path
 
-import pytest
 
 from desloppify.engine._state import filtering as state_query_mod
 from desloppify.state import (
@@ -17,7 +16,6 @@ from desloppify.state import (
     resolve_issue_noise_global_budget,
     resolve_issue_noise_settings,
     save_state,
-    suppression_metrics,
     upsert_issues,
     validate_state_invariants,
 )

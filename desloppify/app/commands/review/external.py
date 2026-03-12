@@ -42,7 +42,6 @@ from .prompt_sections import (
     render_scan_evidence_note,
     render_scope_enums,
     render_scoring_frame,
-    render_seed_files_block,
     render_task_requirements,
 )
 from .runner_packets import run_stamp, sha256_file
@@ -242,7 +241,6 @@ def _build_claude_launch_prompt(
             ctx.dimensions,
             dimension_contexts if isinstance(dimension_contexts, dict) else {},
         )
-        section += render_seed_files_block(ctx)
         section += render_historical_focus(batch)
         section += render_dimension_deferral_context(batch)
         section += render_mechanical_concern_signals(batch)
@@ -304,6 +302,7 @@ def _build_claude_launch_prompt(
         "3. Do not include provenance metadata (CLI injects canonical provenance).\n"
     )
 
+    from desloppify.engine._plan.policy.execution_constraints import render_constraints
     from desloppify.engine.plan_state import load_policy_result, render_policy_block
 
     policy_result = load_policy_result()
@@ -315,11 +314,15 @@ def _build_claude_launch_prompt(
                 "yellow",
             )
         )
+    constraints_text = render_constraints(
+        header="## Execution Constraints\n\nNever suggest changes that:",
+    )
 
     return join_non_empty_sections(
         header,
         *batch_sections,
         policy_text,
+        constraints_text,
         render_scoring_frame(),
         render_scan_evidence_note(),
         render_task_requirements(issues_cap=combined_cap, dim_set=all_dims),

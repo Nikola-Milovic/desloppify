@@ -135,6 +135,7 @@ def collect_batch_results(
                 dimension_notes,
                 dimension_judgment,
                 quality,
+                context_updates,
             ) = normalize_result_fn(payload, allowed_dims)
         except ValueError as exc:
             logger.debug("Invalid batch payload at index %s (%s): %s", idx, raw_path, exc)
@@ -154,6 +155,7 @@ def collect_batch_results(
                 dimension_judgment=dimension_judgment,
                 issues=issues,
                 quality=quality,
+                context_updates=context_updates,
             )
         )
     return batch_results, sorted(failure_set)

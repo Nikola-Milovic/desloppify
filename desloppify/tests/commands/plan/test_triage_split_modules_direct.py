@@ -17,18 +17,20 @@ import desloppify.app.commands.plan.triage.lifecycle as triage_lifecycle_mod
 import desloppify.app.commands.plan.triage.runner.codex_runner as codex_runner_mod
 import desloppify.app.commands.plan.triage.runner.orchestrator_claude as orchestrator_claude_mod
 import desloppify.app.commands.plan.triage.runner.orchestrator_codex_observe as orchestrator_observe_mod
+import desloppify.app.commands.plan.triage.runner.orchestrator_codex_pipeline as orchestrator_pipeline_mod
 import desloppify.app.commands.plan.triage.runner.orchestrator_codex_pipeline_completion as orchestrator_pipeline_completion_mod
 import desloppify.app.commands.plan.triage.runner.orchestrator_codex_pipeline_context as orchestrator_pipeline_context_mod
-import desloppify.app.commands.plan.triage.runner.orchestrator_codex_pipeline as orchestrator_pipeline_mod
 import desloppify.app.commands.plan.triage.runner.orchestrator_codex_pipeline_execution as orchestrator_pipeline_execution_mod
 import desloppify.app.commands.plan.triage.runner.orchestrator_codex_sense as orchestrator_sense_mod
 import desloppify.app.commands.plan.triage.runner.orchestrator_common as orchestrator_common_mod
 import desloppify.app.commands.plan.triage.validation.completion_policy as completion_policy_mod
 import desloppify.app.commands.plan.triage.validation.completion_stages as completion_stages_mod
-import desloppify.app.commands.plan.triage.validation.core as stage_validation_mod
 import desloppify.app.commands.plan.triage.validation.enrich_checks as enrich_checks_mod
-from desloppify.app.commands.plan.triage.runner.orchestrator_codex_pipeline_execution import StageExecutionResult
+from desloppify.app.commands.plan.triage.runner.orchestrator_codex_pipeline_execution import (
+    StageExecutionResult,
+)
 from desloppify.base.exception_sets import CommandError
+from desloppify.engine.plan_triage import build_triage_snapshot
 
 
 def _make_stage_context(
@@ -346,9 +348,10 @@ def test_display_layout_renderers(monkeypatch, capsys) -> None:
         "queue_order": ["review::src/a.py::id1"],
     }
     state = {"issues": si.open_issues}
+    snapshot = build_triage_snapshot(plan, state)
 
-    display_layout_mod.print_dashboard_header(si, stages, meta, plan)
-    display_layout_mod.print_action_guidance(stages, meta, si, plan)
+    display_layout_mod.print_dashboard_header(si, stages, meta, plan, snapshot=snapshot)
+    display_layout_mod.print_action_guidance(stages, meta, si, plan, snapshot=snapshot)
     display_layout_mod.print_prior_stage_reports(stages)
     display_layout_mod.print_issues_by_dimension(si.open_issues)
     display_layout_mod.show_plan_summary(plan, state)
@@ -1094,6 +1097,80 @@ def test_execute_stage_uses_self_record_mode_for_organize(monkeypatch, tmp_path:
     assert captured["stage"] == "organize"
     assert captured["mode"] == "self_record"
     assert captured["cli_command"] == "/tmp/run_desloppify.sh"
+
+
+def test_preflight_stage_allows_self_record_organize_before_ledger_materializes() -> None:
+    log_lines: list[str] = []
+    plan = {
+        "epic_triage_meta": {
+            "triage_stages": {
+                "reflect": {
+                    "report": '## Coverage Ledger\n- deadbeef -> cluster "state-cleanup"\n',
+                    "disposition_ledger": [
+                        {
+                            "issue_id": "review::src/a.py::deadbeef",
+                            "decision": "cluster",
+                            "target": "state-cleanup",
+                        }
+                    ],
+                }
+            }
+        },
+        "clusters": {},
+        "skipped": {},
+    }
+
+    ok, reason = orchestrator_pipeline_execution_mod.preflight_stage(
+        stage="organize",
+        prompt_mode="self_record",
+        plan=plan,
+        triage_input=SimpleNamespace(open_issues={"review::src/a.py::deadbeef": {}}),
+        dry_run=False,
+        append_run_log=log_lines.append,
+        validate_reflect_issue_accounting=lambda **_kwargs: (True, set(), [], []),
+    )
+
+    assert ok is True
+    assert reason is None
+    assert log_lines == []
+
+
+def test_preflight_stage_blocks_output_only_organize_when_ledger_unapplied() -> None:
+    log_lines: list[str] = []
+    plan = {
+        "epic_triage_meta": {
+            "triage_stages": {
+                "reflect": {
+                    "report": '## Coverage Ledger\n- deadbeef -> cluster "state-cleanup"\n',
+                    "disposition_ledger": [
+                        {
+                            "issue_id": "review::src/a.py::deadbeef",
+                            "decision": "cluster",
+                            "target": "state-cleanup",
+                        }
+                    ],
+                }
+            }
+        },
+        "clusters": {},
+        "skipped": {},
+    }
+
+    ok, reason = orchestrator_pipeline_execution_mod.preflight_stage(
+        stage="organize",
+        prompt_mode="output_only",
+        plan=plan,
+        triage_input=SimpleNamespace(open_issues={"review::src/a.py::deadbeef": {}}),
+        dry_run=False,
+        append_run_log=log_lines.append,
+        validate_reflect_issue_accounting=lambda **_kwargs: (True, set(), [], []),
+    )
+
+    assert ok is False
+    assert reason == "reflect_ledger_mismatch(count=1 types=cluster)"
+    assert log_lines == [
+        "stage-preflight-failed stage=organize reason=reflect_ledger_mismatch(count=1 types=cluster)"
+    ]
 
 
 def test_execute_stage_allows_organize_dry_run_without_persisted_reflect(

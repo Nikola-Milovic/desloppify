@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import desloppify.engine._plan.schema.migrations as migrations
+from desloppify.engine._plan.schema.version_upgrades import V7_SCHEMA_VERSION
 
 
 def test_ensure_container_types_sets_defaults_and_renames_keys() -> None:
@@ -68,7 +69,7 @@ def test_upgrade_plan_to_v7_runs_legacy_cleanup() -> None:
     changed = migrations.upgrade_plan_to_v7(plan)
 
     assert changed is True
-    assert plan["version"] == migrations.V7_SCHEMA_VERSION
+    assert plan["version"] == V7_SCHEMA_VERSION
     assert "epics" not in plan
     assert "epic_synthesis_meta" not in plan
     assert "pending_plan_gate" not in plan

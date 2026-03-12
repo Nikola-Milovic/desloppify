@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from desloppify.engine._plan.policy.execution_constraints import render_constraints
+
 from .stage_prompts_instruction_shared import (
     PromptMode,
     observe_example_report_quality,
@@ -40,7 +42,7 @@ group — to investigate concurrently. Each subagent MUST:
 - Open and read the actual source file for EVERY assigned issue
 - Verify specific claims: count the actual casts, props, returns, line count
 - Check if the suggested fix already exists (common false positive)
-- Report a clear verdict per issue: genuine / false positive / exaggerated / over-engineering
+- Report a clear verdict per issue: genuine / false positive / exaggerated / over-engineering / not-worth-it
 
 Example subagent split for 90 issues across 17 dimensions:
 - Subagent 1: architecture + organization (cross_module_architecture, package_organization, high_level_elegance)
@@ -106,17 +108,28 @@ Your task: using the verdicts from observe, design the cluster structure.
 says "here's what we should DO about it, and here's what we should NOT do, and here's WHY."
 
 **The Structured Observe Assessments table (provided below) is your primary input.** It contains
-a per-issue verdict (genuine/false-positive/exaggerated/over-engineering) with reasoning. Use
+a per-issue verdict (genuine/false-positive/exaggerated/over-engineering/not-worth-it) with reasoning. Use
 these verdicts as authoritative — do not second-guess observe unless you have specific evidence.
-Issues with verdict `false-positive` or `over-engineering` should go into skip lines, not clusters.
+
+**Important: Issues with verdict `false-positive` or `exaggerated` have already been auto-skipped
+by observe confirmation.** They are NOT in your issue set and do NOT need ledger entries.
+
+For issues with verdict `over-engineering` or `not-worth-it`: observe flagged these as
+questionable, but YOU decide. If you agree they're not worth fixing, skip them. If you disagree
+and think the fix has value, cluster them. These are judgment calls, not factual determinations.
 
 ### What you must do:
 
 1. **Filter:** which issues are genuine (from the observe assessments table)?
 2. **Map:** for each genuine issue, what file/directory does it touch?
 3. **Group:** which issues share files or directories? These become clusters.
-4. **Skip:** which issues should be skipped? (with per-issue justification — "low priority" is
-   not a justification; "the fix would add a 50-line abstraction to save 3 lines of duplication" is)
+4. **Skip:** which issues should be skipped? Apply YAGNI: if the fix is more complex than the
+   problem, skip it. Valid skip reasons:
+   - "the fix would add a 50-line abstraction to save 3 lines of duplication"
+   - "the current code is clear and simple despite being theoretically suboptimal"
+   - "observe verdict: not-worth-it — the improvement is marginal"
+   - "fixing this requires touching 8 files for a naming consistency issue nobody notices"
+   Invalid: "low priority" (everything is low priority compared to something)
 5. **Order:** which clusters depend on others? What's the execution sequence?
 6. **Check recurring patterns** — compare current issues against resolved history. If the same
    dimension keeps producing issues, that's a root cause that needs addressing, not just
@@ -163,7 +176,9 @@ Skip "false-positive-current-code" (false positive per observe)
   convention fixes (zero risk, 30 min) — cluster 'convention-batch'. The remaining 7 split into
   3 clusters by file proximity: 'media-lightbox-hooks' (issues X,Y,Z — all in src/domains/media-lightbox/),
   'timeline-cleanup' (issues A,B,C — touching Timeline components), 'task-typing' (issues D,E).
-  Skip: issue W (false positive), issue V (over-engineering).
+  Skip: issue W (false positive), issue V (over-engineering), issue U (not-worth-it:
+  adds ErrorBoundary wrapper around 3 components that already handle errors inline —
+  technically cleaner but doubles the JSX nesting depth for no behavioral change).
   design_coherence recurs (2 resolved, 5 open) but only 1 of the 5 actually warrants work."
 
 {tail}
@@ -179,14 +194,12 @@ def _organize_instructions(mode: PromptMode = "self_record") -> str:
         "(issue hash doesn't match, file proximity doesn't hold), adjust and document why."
     )
     process_block = """\
-2. **Skip issues that observe flagged as false-positive or over-engineering.** This is mandatory,
-   not optional. Check the **Structured Observe Assessments** table (provided below) — every
-   issue with verdict `false-positive` or `over-engineering` MUST be skipped. Use the observe
-   `verdict_reasoning` as the basis for your skip note:
+2. **False-positive and exaggerated issues have already been auto-skipped** by observe confirmation.
+   You do NOT need to skip them manually. If reflect skipped additional issues (over-engineering/not-worth-it),
+   skip those now:
    ```
-   desloppify plan skip --permanent <pattern> --note "<reason from observe verdict>" --attest "I have reviewed this triage skip against the code and I am not gaming the score by suppressing a real defect."
+   desloppify plan skip --permanent <pattern> --note "<reason from reflect>" --attest "I have reviewed this triage skip against the code and I am not gaming the score by suppressing a real defect."
    ```
-   Do NOT cluster an issue that observe determined is not a real defect.
 3. Create clusters as specified in the blueprint:
    `desloppify plan cluster create <name> --description "..."`
 4. Add issues: `desloppify plan cluster add <name> <patterns...>`
@@ -210,11 +223,8 @@ desloppify plan triage --stage organize --report "<summary of priorities and org
             "and document why."
         )
         process_block = """\
-2. **Skip issues that observe flagged as false-positive or over-engineering.** This is mandatory.
-   Check the **Structured Observe Assessments** table (provided below) — every issue with
-   verdict `false-positive` or `over-engineering` MUST be skipped. Use the observe
-   `verdict_reasoning` as the basis for your skip justification.
-   Do NOT cluster an issue that observe determined is not a real defect.
+2. **False-positive and exaggerated issues have already been auto-skipped** by observe confirmation.
+   If reflect skipped additional issues (over-engineering/not-worth-it), include those skip decisions.
 3. Define the clusters exactly as they should be created.
 4. Assign every kept issue to a cluster.
 5. Consolidate steps: one step per file or logical change, NOT one step per issue.
@@ -243,7 +253,9 @@ decisions, something went wrong in reflect — the strategy should already be de
 ### Quality gates (the confirmation will check these)
 
 Before recording, verify:
-- [ ] Every issue with observe verdict `false-positive` or `over-engineering` has been skipped
+- [ ] Every issue that reflect marked as skip has been skipped (false-positive/exaggerated are already auto-skipped)
+- [ ] No cluster where the total fix effort exceeds the problem severity (KISS: prefer
+      simple code with a known smell over complex code with a hidden abstraction)
 - [ ] Every cluster name describes an area or specific change, not a problem type
 - [ ] No cluster has issues from 5+ unrelated directories (theme-group smell)
 - [ ] Step count < issue count (consolidation happened)
@@ -331,6 +343,12 @@ confirmation will block. READ the file system. Only reference files you've verif
 **Bulk effort tags.** Don't mark everything "small". A file rename with 2 imports is "trivial".
 Decomposing a 400-line hook into 3 sub-hooks is "medium" or "large". Think about each one.
 
+**Over-engineering the fix.** KISS: the fix should be simpler than the problem. If you're
+adding interfaces, registries, factory methods, or configuration to fix a code smell, the
+cure is worse than the disease. Prefer: delete code > inline code > extract a function >
+add an abstraction. If the simplest fix is "delete these 10 lines," say that — don't
+propose a refactoring framework.
+
 ### Examples
 
 **GOOD step detail:**
@@ -396,6 +414,7 @@ The orchestrator records and confirms the stage.
         if mode == "self_record"
         else ""
     )
+    constraints = render_constraints(header="   Also flag steps that:", bullet="   - ")
     return f"""\
 ## SENSE-CHECK Stage Instructions
 
@@ -404,20 +423,24 @@ single-subprocess fallback, perform BOTH the content and structure checks below.
 
 ### Content Check (per cluster)
 {investigation_hint}For EVERY step in every cluster, read the actual source file and verify:
-1. LINE NUMBERS: Does the code at the claimed lines match the step description?
-2. NAMES: Do function/variable/type names in the step exist in the file?
-3. COUNTS: Are counts ("update the 3 imports") accurate?
-4. STALENESS: Is the problem still present, or already fixed?
-5. VAGUENESS: Could a developer with zero context execute this step?
-6. EFFORT TAGS: Does the tag match actual scope?
-7. DUPLICATES: Flag steps that duplicate work in another cluster.
-8. OVER-ENGINEERING: Would this change make the codebase *worse*? Flag steps that:
+1. OVER-ENGINEERING (check FIRST — if the fix fails this, skip the rest):
+   Would this change make the codebase *worse*? Flag steps that:
    - Add abstractions, wrappers, or indirection for a one-time operation
    - Introduce unnecessary config/feature-flags/generalization
    - Make simple code harder to read for marginal benefit
    - Gold-plate beyond what the issue actually requires
    - Trade one smell for a worse one (e.g. fix duplication by adding a fragile base class)
-   Remove or simplify over-engineered steps. If the whole cluster is net-negative, say so.
+   - Add more lines of code than they remove (net complexity increase)
+{constraints}
+   Remove or simplify over-engineered steps. If the whole cluster is net-negative,
+   recommend removing it entirely — don't just flag it, say "skip this cluster."
+2. STALENESS: Is the problem still present, or already fixed?
+3. LINE NUMBERS: Does the code at the claimed lines match the step description?
+4. NAMES: Do function/variable/type names in the step exist in the file?
+5. COUNTS: Are counts ("update the 3 imports") accurate?
+6. VAGUENESS: Could a developer with zero context execute this step?
+7. EFFORT TAGS: Does the tag match actual scope?
+8. DUPLICATES: Flag steps that duplicate work in another cluster.
 
 {content_fix_block}
 

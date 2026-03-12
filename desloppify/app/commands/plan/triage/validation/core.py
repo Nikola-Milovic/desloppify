@@ -59,15 +59,12 @@ from .organize_policy import (
 from .stage_policy import (
     AutoConfirmStageRequest,
     ReflectAutoConfirmDeps,
-    StagePrerequisite,
     auto_confirm_observe_if_attested,
     auto_confirm_reflect_for_organize,
     confirm_stage,
-    missing_stage_prerequisite,
     require_prerequisite,
 )
 
-_missing_stage_prerequisite = missing_stage_prerequisite
 require_stage_prerequisite = require_prerequisite
 _analyze_reflect_issue_accounting = analyze_reflect_issue_accounting
 _validate_reflect_issue_accounting = validate_reflect_accounting
@@ -210,7 +207,6 @@ __all__ = [
     "_require_prior_strategy_for_confirm",
     "_require_reflect_stage_for_organize",
     "_require_sense_check_stage_for_complete",
-    "_missing_stage_prerequisite",
     "_resolve_completion_strategy",
     "_resolve_confirm_existing_strategy",
     "_underspecified_steps",

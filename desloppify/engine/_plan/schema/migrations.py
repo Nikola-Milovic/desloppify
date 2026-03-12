@@ -7,8 +7,6 @@ from desloppify.engine._plan.schema.normalize import (
     normalize_cluster_defaults,
 )
 from desloppify.engine._plan.schema.version_upgrades import (
-    V7_SCHEMA_VERSION,
-    V8_SCHEMA_VERSION,
     migrate_deferred_to_skipped,
     migrate_epics_to_clusters,
     migrate_synthesis_to_triage,

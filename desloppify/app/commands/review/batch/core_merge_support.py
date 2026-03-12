@@ -45,23 +45,10 @@ def assessment_weight(
     return float(1 + note_evidence + issue_count)
 
 
-def _issue_pressure_by_dimension(
-    issues: list[BatchIssuePayload],
-    *,
-    dimension_notes: dict[str, BatchDimensionNotePayload],
-) -> tuple[dict[str, float], dict[str, int]]:
-    """Summarize how strongly issues should pull dimension scores down."""
-    return _DIMENSION_SCORER.issue_pressure_by_dimension(
-        issues,
-        dimension_notes=dimension_notes,
-    )
-
-
 def _accumulate_batch_scores(
     result: BatchResultPayload,
     *,
     score_buckets: dict[str, list[tuple[float, float]]],
-    score_raw_by_dim: dict[str, list[float]],
     merged_dimension_notes: dict[str, BatchDimensionNotePayload],
     abstraction_axis_scores: dict[str, list[tuple[float, float]]],
     abstraction_sub_axes: tuple[str, ...],
@@ -84,7 +71,6 @@ def _accumulate_batch_scores(
             score_value,
             weight,
             score_buckets=score_buckets,
-            score_raw_by_dim=score_raw_by_dim,
         )
         note = result_notes.get(key)
         _merge_strongest_dimension_note(key, note, merged_dimension_notes=merged_dimension_notes)
@@ -121,10 +107,8 @@ def _record_batch_score(
     weight: float,
     *,
     score_buckets: dict[str, list[tuple[float, float]]],
-    score_raw_by_dim: dict[str, list[float]],
 ) -> None:
     score_buckets.setdefault(key, []).append((score_value, weight))
-    score_raw_by_dim.setdefault(key, []).append(score_value)
 
 
 def _evidence_count(note: BatchDimensionNotePayload | None) -> int:
@@ -214,17 +198,9 @@ def _accumulate_batch_quality(
 
 def _compute_merged_assessments(
     score_buckets: dict[str, list[tuple[float, float]]],
-    score_raw_by_dim: dict[str, list[float]],
-    issue_pressure_by_dim: dict[str, float],
-    issue_count_by_dim: dict[str, int],
 ) -> dict[str, float]:
-    """Compute pressure-adjusted weighted mean for each dimension."""
-    return _DIMENSION_SCORER.merge_scores(
-        score_buckets,
-        score_raw_by_dim,
-        issue_pressure_by_dim,
-        issue_count_by_dim,
-    )
+    """Compute merged weighted mean for each dimension."""
+    return _DIMENSION_SCORER.merge_scores(score_buckets)
 
 
 def _compute_abstraction_components(
@@ -262,5 +238,4 @@ __all__ = [
     "_compute_abstraction_components",
     "_compute_merged_assessments",
     "_issue_identity_key",
-    "_issue_pressure_by_dimension",
 ]

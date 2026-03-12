@@ -13,33 +13,10 @@ from desloppify.languages.typescript.detectors.security.entries import (
     _make_security_entry,
 )
 from desloppify.languages.typescript.detectors.security.file_checks import (
-    _check_json_parse_unguarded,
-    _check_rls_bypass,
-    _extract_handler_body,
     _file_level_security_issues,
-    _handler_has_auth_check,
-    _is_in_try_scope,
-    _looks_like_edge_handler,
 )
 from desloppify.languages.typescript.detectors.security.line_checks import (
     _line_security_issues,
-)
-from desloppify.languages.typescript.detectors.security.patterns import (
-    _ATOB_JWT_RE,
-    _AUTH_CHECK_RE,
-    _CREATE_CLIENT_RE,
-    _CREATE_VIEW_RE,
-    _DANGEROUS_HTML_RE,
-    _DEV_CRED_RE,
-    _EDGE_ENTRYPOINT_RE,
-    _EVAL_PATTERNS,
-    _INNER_HTML_RE,
-    _JSON_DEEP_CLONE_RE,
-    _JSON_PARSE_RE,
-    _JWT_PAYLOAD_RE,
-    _OPEN_REDIRECT_RE,
-    _SECURITY_INVOKER_RE,
-    _SERVE_ASYNC_RE,
 )
 
 logger = logging.getLogger(__name__)

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any
 
 from desloppify.base.config import DEFAULT_TARGET_STRICT_SCORE
 from desloppify.engine._plan.constants import (
@@ -14,7 +15,9 @@ from desloppify.engine._plan.policy.subjective import NON_OBJECTIVE_DETECTORS
 from desloppify.engine._plan.schema import (
     planned_objective_ids as _planned_objective_ids,
 )
+from desloppify.engine._plan.triage.snapshot import build_triage_snapshot
 from desloppify.engine._state.filtering import path_scoped_issues
+from desloppify.engine._state.schema import StateModel
 from desloppify.engine._work_queue.ranking import build_issue_items
 from desloppify.engine._work_queue.synthetic import (
     build_subjective_items,
@@ -29,7 +32,6 @@ from desloppify.engine._work_queue.synthetic_workflow import (
     build_score_checkpoint_item,
 )
 from desloppify.engine._work_queue.types import WorkQueueItem
-from desloppify.engine._state.schema import StateModel
 
 PHASE_REVIEW_INITIAL = "review_initial"
 PHASE_EXECUTE = "execute"
@@ -98,6 +100,25 @@ def _review_issue_items(items: Iterable[WorkQueueItem]) -> list[WorkQueueItem]:
         item for item in items
         if item.get("detector", "") in {"review", "concerns", "subjective_review"}
     ]
+
+
+def _executable_review_issue_items(
+    plan: dict | None,
+    state: StateModel,
+    review_issue_items: list[WorkQueueItem],
+) -> list[WorkQueueItem]:
+    """Hide raw review findings until triage is current for the live issue set."""
+    if not review_issue_items or not isinstance(plan, dict):
+        return review_issue_items
+
+    triage_snapshot = build_triage_snapshot(plan, state)
+    if triage_snapshot.has_triage_in_queue:
+        return []
+    if triage_snapshot.is_triage_stale:
+        return []
+    if not triage_snapshot.triage_has_run:
+        return []
+    return review_issue_items
 
 
 def _subjective_partitions(
@@ -237,12 +258,17 @@ def build_queue_snapshot(
         if item.get("id", "") in planned_ids
     ]
     review_issue_items = _review_issue_items(all_issue_items)
+    executable_review_items = _executable_review_issue_items(
+        effective_plan,
+        state,
+        review_issue_items,
+    )
     initial_review_items, subjective_postflight_items = _subjective_partitions(
         state,
         scoped_issues=scoped_issues,
         threshold=target_strict,
     )
-    postflight_review_items = [*subjective_postflight_items, *review_issue_items]
+    postflight_review_items = [*subjective_postflight_items, *executable_review_items]
     scan_items, postflight_workflow_items, triage_items = _workflow_partitions(
         effective_plan,
         state,
@@ -271,7 +297,15 @@ def build_queue_snapshot(
     execution_ids = {item.get("id", "") for item in execution_items}
     backlog_items = [
         item for item in (
-            [*planned_objective_items, *initial_review_items, *postflight_review_items, *scan_items, *postflight_workflow_items, *triage_items]
+            [
+                *planned_objective_items,
+                *initial_review_items,
+                *subjective_postflight_items,
+                *review_issue_items,
+                *scan_items,
+                *postflight_workflow_items,
+                *triage_items,
+            ]
         )
         if item.get("id", "") not in execution_ids
     ]

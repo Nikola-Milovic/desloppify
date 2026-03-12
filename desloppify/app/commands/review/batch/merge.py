@@ -20,7 +20,6 @@ from .core_merge_support import (
     _compute_abstraction_components,
     _compute_merged_assessments,
     _issue_identity_key,
-    _issue_pressure_by_dimension,
     assessment_weight,
 )
 from .core_models import (
@@ -139,8 +138,6 @@ def _build_review_quality_payload(
     coverage_values: list[float],
     evidence_density_values: list[float],
     high_score_missing_issue_note_total: float,
-    issue_pressure_by_dim: dict[str, float],
-    issue_count_by_dim: dict[str, int],
 ) -> dict[str, object]:
     quality: dict[str, object] = {
         "batch_count": batch_count,
@@ -152,8 +149,6 @@ def _build_review_quality_payload(
             sum(evidence_density_values) / max(len(evidence_density_values), 1),
             3,
         ),
-        "issue_pressure": round(sum(issue_pressure_by_dim.values()), 3),
-        "dimensions_with_issues": len(issue_count_by_dim),
     }
     quality[REVIEW_QUALITY_HIGH_SCORE_MISSING_ISSUES_KEY] = int(
         high_score_missing_issue_note_total
@@ -187,7 +182,6 @@ def merge_batch_results(
 ) -> dict[str, object]:
     """Deterministically merge assessments/issues across batch outputs."""
     score_buckets: dict[str, list[tuple[float, float]]] = {}
-    score_raw_by_dim: dict[str, list[float]] = {}
     all_issues: list[BatchIssuePayload] = []
     merged_dimension_notes: dict[str, BatchDimensionNotePayload] = {}
     merged_dimension_judgment: dict[str, BatchDimensionJudgmentPayload] = {}
@@ -198,11 +192,12 @@ def merge_batch_results(
         axis: [] for axis in abstraction_sub_axes
     }
 
+    merged_context_updates: dict[str, dict[str, object]] = {}
+
     for result in batch_results:
         _accumulate_batch_scores(
             result,
             score_buckets=score_buckets,
-            score_raw_by_dim=score_raw_by_dim,
             merged_dimension_notes=merged_dimension_notes,
             abstraction_axis_scores=abstraction_axis_scores,
             abstraction_sub_axes=abstraction_sub_axes,
@@ -217,16 +212,15 @@ def merge_batch_results(
         for dim_key, judgment in result.get("dimension_judgment", {}).items():
             if isinstance(judgment, dict) and dim_key not in merged_dimension_judgment:
                 merged_dimension_judgment[dim_key] = cast(BatchDimensionJudgmentPayload, judgment)
+        # Collect context_updates — each batch covers different dimensions, accumulate
+        batch_ctx = result.get("context_updates")
+        if isinstance(batch_ctx, dict):
+            for dim_key, updates in batch_ctx.items():
+                if isinstance(updates, dict) and dim_key not in merged_context_updates:
+                    merged_context_updates[dim_key] = updates
 
     merged_issues = _merge_issues_transitively(all_issues)
-    issue_pressure_by_dim, issue_count_by_dim = _issue_pressure_by_dimension(
-        merged_issues,
-        dimension_notes=merged_dimension_notes,
-    )
-
-    merged_assessments = _compute_merged_assessments(
-        score_buckets, score_raw_by_dim, issue_pressure_by_dim, issue_count_by_dim
-    )
+    merged_assessments = _compute_merged_assessments(score_buckets)
 
     merged_assessment_payload: dict[str, float | dict[str, object]] = {
         key: value for key, value in merged_assessments.items()
@@ -244,7 +238,7 @@ def merge_batch_results(
             "component_scores": component_scores,
         }
 
-    return _build_merged_review_payload(
+    payload = _build_merged_review_payload(
         assessments=merged_assessment_payload,
         dimension_notes=merged_dimension_notes,
         dimension_judgment=merged_dimension_judgment,
@@ -254,10 +248,11 @@ def merge_batch_results(
             coverage_values=coverage_values,
             evidence_density_values=evidence_density_values,
             high_score_missing_issue_note_total=high_score_missing_issue_note_total,
-            issue_pressure_by_dim=issue_pressure_by_dim,
-            issue_count_by_dim=issue_count_by_dim,
         ),
     )
+    if merged_context_updates:
+        payload["context_updates"] = merged_context_updates
+    return payload
 
 
 __all__ = ["assessment_weight", "merge_batch_results"]

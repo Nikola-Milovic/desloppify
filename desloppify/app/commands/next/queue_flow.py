@@ -16,7 +16,7 @@ from desloppify.base.output.terminal import colorize
 from desloppify.base.output.user_message import print_user_message
 from desloppify.engine._state.filtering import path_scoped_issues
 from desloppify.engine._work_queue.context import queue_context
-from desloppify.engine._work_queue.core import QueueBuildOptions, build_work_queue
+from desloppify.engine._work_queue.core import QueueBuildOptions
 from desloppify.engine._work_queue.plan_order import (
     collapse_clusters,
     filter_cluster_focus,

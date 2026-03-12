@@ -13,16 +13,15 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-
 import desloppify.app.commands.scan.plan_reconcile as reconcile_mod
 from desloppify.base.subjective_dimensions import DISPLAY_NAMES
-from desloppify.engine._plan.operations.lifecycle import purge_ids
-from desloppify.engine._plan.schema import empty_plan
 from desloppify.engine._plan.constants import (
     TRIAGE_STAGE_IDS,
     WORKFLOW_COMMUNICATE_SCORE_ID,
     WORKFLOW_CREATE_PLAN_ID,
 )
+from desloppify.engine._plan.operations.lifecycle import purge_ids
+from desloppify.engine._plan.schema import empty_plan
 from desloppify.engine._work_queue.core import (
     QueueBuildOptions,
     build_work_queue,
@@ -302,24 +301,15 @@ class TestTriageInjectedOnScan:
         assert all(sid in plan["queue_order"] for sid in TRIAGE_STAGE_IDS)
 
         # Once objective queue drains, lifecycle enters postflight.
-        # Review issues are non-objective, so they surface in postflight phase.
+        # Review issues are non-objective, but they stay behind triage.
         state["issues"]["obj-1"]["status"] = "fixed"
         state["issues"]["obj-2"]["status"] = "fixed"
         ids = _queue_ids(state, plan)
-        # Non-objective review issues + subjective reruns visible
-        non_obj_ids = [fid for fid in ids if fid.startswith("subjective::") or fid.startswith("review")]
-        assert len(non_obj_ids) > 0, ids
+        # Subjective reruns surface first.
+        assert any(fid.startswith("subjective::") for fid in ids), ids
 
-        # After subjective reruns complete, review issues (non-objective) still visible.
+        # After subjective reruns complete, workflow items surface before triage.
         _complete_endgame_subjective_reruns(state)
-        ids = _queue_ids(state, plan)
-        review_ids = [fid for fid in ids if fid.startswith("review")]
-        assert len(review_ids) > 0, f"Expected review issues: {ids}"
-
-        # After resolving review issues, workflow items appear before triage.
-        for fid in list(state["issues"]):
-            if state["issues"][fid].get("detector") == "review":
-                state["issues"][fid]["status"] = "fixed"
         ids = _queue_ids(state, plan)
         workflow_ids = [fid for fid in ids if fid.startswith("workflow::")]
         assert len(workflow_ids) > 0, f"Expected workflow items: {ids}"
@@ -329,6 +319,15 @@ class TestTriageInjectedOnScan:
         ids = _queue_ids(state, plan)
         triage_ids = [fid for fid in ids if fid.startswith("triage::")]
         assert len(triage_ids) == len(TRIAGE_STAGE_IDS), ids
+
+        # After triage completes for the live review issue set, the findings surface.
+        plan.setdefault("epic_triage_meta", {})["triaged_ids"] = sorted(
+            fid for fid in state["issues"] if state["issues"][fid].get("detector") == "review"
+        )
+        purge_ids(plan, TRIAGE_STAGE_IDS)
+        ids = _queue_ids(state, plan)
+        review_ids = [fid for fid in ids if fid.startswith("review")]
+        assert len(review_ids) > 0, f"Expected review issues after triage: {ids}"
 
 
 # ---------------------------------------------------------------------------
@@ -397,31 +396,13 @@ class TestFullLifecycleGoldenPath:
         assert "obj-1" in ids and "obj-2" in ids, f"Scan 3: {ids}"
 
         # ── Complete objective queue → rescan injects triage in plan, but
-        #    lifecycle shows subjective reruns first ──
+        #    postflight still starts with workflow items ──
         state["issues"]["obj-1"]["status"] = "fixed"
         state["issues"]["obj-2"]["status"] = "fixed"
         plan = _reconcile(state, plan, monkeypatch)
         ids = _queue_ids(state, plan)
-        # Post-flight: non-objective items visible (subjective reruns + review issues)
-        assert all(
-            fid.startswith("subjective::") or fid.startswith("review")
-            for fid in ids
-        ), f"Subjective phase: {ids}"
-
-        # ── Complete subjective reruns → review issues still visible ──
-        _complete_endgame_subjective_reruns(state)
-        ids = _queue_ids(state, plan)
-        # Review issues (non-objective) block triage
-        review_ids = [fid for fid in ids if fid.startswith("review")]
-        assert len(review_ids) > 0, f"Expected review issues: {ids}"
-
-        # ── Resolve review issues → workflow items appear ──
-        for fid in list(state["issues"]):
-            if state["issues"][fid].get("detector") == "review":
-                state["issues"][fid]["status"] = "fixed"
-        ids = _queue_ids(state, plan)
         workflow_ids = [fid for fid in ids if fid.startswith("workflow::")]
-        assert len(workflow_ids) > 0, f"Expected workflow items: {ids}"
+        assert len(workflow_ids) > 0, f"Expected workflow phase: {ids}"
 
         # ── Complete workflow items → triage unlocks ──
         purge_ids(plan, workflow_ids)
@@ -432,7 +413,12 @@ class TestFullLifecycleGoldenPath:
             "triage_recommended should be cleared after injection"
         )
 
-        # ── Complete triage ──
+        # ── Complete triage → review findings finally become executable ──
+        plan.setdefault("epic_triage_meta", {})["triaged_ids"] = sorted(
+            fid for fid in state["issues"] if state["issues"][fid].get("detector") == "review"
+        )
         purge_ids(plan, list(TRIAGE_STAGE_IDS))
         ids = _queue_ids(state, plan)
         assert not any(fid.startswith("triage::") for fid in ids), f"Post-triage: {ids}"
+        review_ids = [fid for fid in ids if fid.startswith("review")]
+        assert len(review_ids) > 0, f"Expected review execution after triage: {ids}"

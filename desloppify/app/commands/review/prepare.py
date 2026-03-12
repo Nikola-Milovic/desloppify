@@ -79,10 +79,9 @@ def _print_prepare_summary(
             )
         )
         for i, batch in enumerate(batches, 1):
-            n_files = len(batch["files_to_read"])
             print(
                 colorize(
-                    f"    {i}. {batch['name']} ({n_files} files) — {batch['why']}",
+                    f"    {i}. {batch['name']} — {batch['why']}",
                     "dim",
                 )
             )

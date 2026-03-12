@@ -8,7 +8,6 @@ import textwrap
 from desloppify.languages.typescript.fixers import __all__
 from desloppify.languages.typescript.fixers.fixer_io import apply_fixer
 from desloppify.languages.typescript.fixers.if_chain import (
-    _find_if_chain_end,
     fix_empty_if_chain,
 )
 from desloppify.languages.typescript.fixers.imports import fix_unused_imports

@@ -12,6 +12,8 @@ import desloppify.app.commands.review.importing.flags as flags_mod
 import desloppify.app.commands.review.importing.plan_sync as plan_sync_mod
 import desloppify.app.commands.review.importing.results as results_mod
 import desloppify.engine._plan.constants as plan_constants_mod
+import desloppify.intelligence.review.importing.holistic as holistic_import_mod
+from desloppify.state import empty_state as build_empty_state
 
 
 def _empty_visibility_policy() -> SimpleNamespace:
@@ -220,6 +222,39 @@ def test_sync_plan_after_import_runs_review_sync_for_auto_resolved_deltas(monkey
 
     assert seen["import_called"] is True
     assert seen["stale_called"] is True
+
+
+def test_import_holistic_issues_ignores_unknown_context_update_dimensions() -> None:
+    state = build_empty_state()
+
+    holistic_import_mod.import_holistic_issues(
+        {
+            "assessments": {"naming_quality": 90},
+            "dimension_judgment": {
+                "naming_quality": {
+                    "strengths": ["Names are mostly precise."],
+                    "issue_character": "Minor drift remains localized.",
+                    "score_rationale": "The naming is mostly dependable with a few rough edges.",
+                }
+            },
+            "issues": [],
+            "context_updates": {
+                "not_a_real_dimension": {
+                    "add": [
+                        {
+                            "header": "Bogus insight",
+                            "description": "Should be ignored.",
+                            "settled": False,
+                        }
+                    ]
+                }
+            },
+        },
+        state,
+        "python",
+    )
+
+    assert state.get("dimension_contexts", {}) == {}
 
 
 def test_sync_plan_after_import_logs_triage_provenance(monkeypatch) -> None:
