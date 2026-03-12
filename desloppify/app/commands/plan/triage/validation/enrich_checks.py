@@ -7,7 +7,7 @@ from pathlib import Path
 
 from desloppify.base.output.terminal import colorize
 
-from ..helpers import cluster_issue_ids
+from ..review_coverage import cluster_issue_ids
 from .stage_policy import require_prerequisite
 
 _PATH_RE = re.compile(r"(?:[\w./-]+/)?(?:src|supabase)/[\w./-]+\.\w+(?::\d+(?:[-:]\d+)?)?")

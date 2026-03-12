@@ -20,11 +20,11 @@ from ..validation.core import (
     _clusters_with_directory_scatter,
     _clusters_with_high_step_ratio,
 )
-from ..helpers import (
+from ..completion_flow import count_log_activity_since
+from ..observe_batches import observe_dimension_breakdown
+from ..review_coverage import (
     cluster_issue_ids,
-    count_log_activity_since,
     manual_clusters_with_issues,
-    observe_dimension_breakdown,
     open_review_ids_from_state,
 )
 from ..stages.helpers import unclustered_review_issues, unenriched_clusters

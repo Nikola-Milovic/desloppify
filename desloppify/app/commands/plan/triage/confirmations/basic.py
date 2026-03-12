@@ -12,7 +12,7 @@ from .shared import (
     ensure_stage_is_confirmable,
     finalize_stage_confirmation,
 )
-from ..helpers import observe_dimension_breakdown
+from ..observe_batches import observe_dimension_breakdown
 from ..services import TriageServices, default_triage_services
 
 

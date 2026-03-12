@@ -14,7 +14,7 @@ from .enrich_checks import (
     _steps_without_effort,
     _underspecified_steps,
 )
-from ..helpers import cluster_issue_ids
+from ..review_coverage import cluster_issue_ids
 
 Severity = Literal["failure", "warning"]
 

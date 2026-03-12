@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from desloppify.state_io import utc_now
 
-from ..helpers import cascade_clear_later_confirmations
+from ..stage_queue import cascade_clear_later_confirmations
 
 
 def resolve_reusable_report(

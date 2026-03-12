@@ -119,7 +119,7 @@ def _fake_services(plan, state, save_plan_fn=None):
 def _patch_triage(monkeypatch, plan, state, save_plan_fn=None):
     """Apply standard triage monkeypatches."""
     monkeypatch.setattr(
-        triage_mod, "build_default_triage_services",
+        triage_mod, "default_triage_services",
         lambda: _fake_services(plan, state, save_plan_fn),
     )
     monkeypatch.setattr(triage_mod, "require_issue_inventory", lambda s: True)

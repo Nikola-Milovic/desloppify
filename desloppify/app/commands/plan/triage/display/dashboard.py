@@ -16,11 +16,11 @@ from .layout import (
     show_plan_summary,
 )
 from .primitives import print_stage_progress
-from ..helpers import (
+from ..review_coverage import (
     cluster_issue_ids,
-    print_cascade_clear_feedback,
     triage_coverage,
 )
+from ..stage_queue import print_cascade_clear_feedback
 from ..services import TriageServices, default_triage_services
 
 

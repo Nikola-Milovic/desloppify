@@ -5,7 +5,7 @@ from __future__ import annotations
 from desloppify.app.commands.helpers.issue_id_display import short_issue_id
 from desloppify.base.output.terminal import colorize
 
-from ..helpers import manual_clusters_with_issues
+from ..review_coverage import manual_clusters_with_issues
 
 
 def _print_observe_report_requirement() -> None:

@@ -11,7 +11,7 @@ from desloppify.engine.plan_state import save_plan
 from desloppify.engine.plan_triage import collect_triage_input, detect_recurring_patterns
 from desloppify.state_io import utc_now
 
-from ..helpers import (
+from ..review_coverage import (
     cluster_issue_ids,
     manual_clusters_with_issues,
 )

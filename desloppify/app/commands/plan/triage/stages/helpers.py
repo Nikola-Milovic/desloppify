@@ -5,7 +5,7 @@ from __future__ import annotations
 from desloppify.base.output.terminal import colorize
 from desloppify.engine.plan_triage import TRIAGE_IDS
 
-from ..helpers import cluster_issue_ids, live_active_triage_issue_ids
+from ..review_coverage import cluster_issue_ids, live_active_triage_issue_ids
 
 
 def _require_triage_pending(plan: dict, *, action: str) -> bool:

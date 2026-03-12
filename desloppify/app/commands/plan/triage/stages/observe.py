@@ -7,7 +7,11 @@ import argparse
 from desloppify.base.output.terminal import colorize
 from desloppify.base.output.user_message import print_user_message
 
-from ..helpers import has_triage_in_queue, inject_triage_stages, print_cascade_clear_feedback
+from ..stage_queue import (
+    has_triage_in_queue,
+    inject_triage_stages,
+    print_cascade_clear_feedback,
+)
 from ..lifecycle import TriageLifecycleDeps, ensure_triage_started
 from ..services import TriageServices, default_triage_services
 from .flow_helpers import validate_stage_report_length

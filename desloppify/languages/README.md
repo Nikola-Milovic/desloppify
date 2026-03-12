@@ -87,7 +87,7 @@ The generic system is the right starting point for any language. Only invest in 
 Create `languages/<name>/__init__.py`:
 
 ```python
-from desloppify.languages._framework.generic import generic_lang
+from desloppify.languages._framework.generic_support.core import generic_lang
 from desloppify.languages._framework.treesitter.specs.specs import MY_SPEC  # if available
 
 generic_lang(

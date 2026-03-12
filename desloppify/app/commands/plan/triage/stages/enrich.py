@@ -19,13 +19,12 @@ from ..validation.enrich_checks import (
     _steps_without_effort,
     _underspecified_steps,
 )
-from ..helpers import (
+from ..completion_flow import count_log_activity_since
+from ..review_coverage import (
     active_triage_issue_ids,
-    count_log_activity_since,
-    has_triage_in_queue,
     open_review_ids_from_state,
-    print_cascade_clear_feedback,
 )
+from ..stage_queue import has_triage_in_queue, print_cascade_clear_feedback
 from ..services import TriageServices, default_triage_services
 
 ColorizeFn = Callable[[str, str], str]

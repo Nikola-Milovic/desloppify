@@ -7,11 +7,9 @@ import argparse
 from desloppify.base.output.terminal import colorize
 
 from ..display.dashboard import print_organize_result
-from ..helpers import (
-    count_log_activity_since,
-    has_triage_in_queue,
-    open_review_ids_from_state,
-)
+from ..completion_flow import count_log_activity_since
+from ..review_coverage import open_review_ids_from_state
+from ..stage_queue import has_triage_in_queue
 from ..services import TriageServices, default_triage_services
 from ..validation.stage_policy import (
     ReflectAutoConfirmDeps,

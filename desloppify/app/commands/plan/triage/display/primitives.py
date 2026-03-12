@@ -11,7 +11,7 @@ from desloppify.engine.plan_triage import (
     triage_runner_commands,
 )
 
-from ..helpers import manual_clusters_with_issues
+from ..review_coverage import manual_clusters_with_issues
 from ..stages.helpers import unenriched_clusters
 
 

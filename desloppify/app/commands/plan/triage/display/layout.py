@@ -23,7 +23,7 @@ from desloppify.engine.plan_triage import (
 from desloppify.base.output.terminal import colorize
 
 from .primitives import print_stage_progress
-from ..helpers import (
+from ..review_coverage import (
     cluster_issue_ids,
     find_cluster_for,
     manual_clusters_with_issues,

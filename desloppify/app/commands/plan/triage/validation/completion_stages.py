@@ -6,7 +6,7 @@ from desloppify.base.output.terminal import colorize
 from desloppify.engine.plan_triage import TRIAGE_CMD_ORGANIZE
 
 from .enrich_checks import _underspecified_steps
-from ..helpers import manual_clusters_with_issues
+from ..review_coverage import manual_clusters_with_issues
 from ..stages.helpers import unenriched_clusters
 from .stage_policy import (
     AutoConfirmStageRequest,

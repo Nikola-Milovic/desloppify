@@ -56,7 +56,8 @@ def test_triage_helper_modules_direct_coverage_smoke() -> None:
     assert "from .primitives import print_stage_progress" in display_src
 
     command_src = inspect.getsource(triage_command_mod)
-    assert "run_plan_triage_workflow(" in command_src
+    assert "run_triage_workflow(" in command_src
+    assert "default_triage_services()" in command_src
     assert "runner.orchestrator_codex_pipeline" not in command_src
     assert "runner.orchestrator_claude" not in command_src
     assert "stages import commands" not in command_src

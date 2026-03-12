@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from ..helpers import cluster_issue_ids
+from ..review_coverage import cluster_issue_ids
 
 
 def _sense_check_job_block(*, mode: str) -> str:

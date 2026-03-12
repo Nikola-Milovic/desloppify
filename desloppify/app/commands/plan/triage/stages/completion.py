@@ -29,14 +29,14 @@ from ..validation.completion_stages import (
     _auto_confirm_stage_for_complete,
 )
 from ..validation.enrich_checks import _underspecified_steps
-from ..helpers import (
-    apply_completion,
-    has_triage_in_queue,
+from ..completion_flow import apply_completion
+from ..review_coverage import (
     manual_clusters_with_issues,
     open_review_ids_from_state,
     sync_undispositioned_triage_meta,
     triage_coverage,
 )
+from ..stage_queue import has_triage_in_queue
 from ..services import TriageServices, default_triage_services
 
 

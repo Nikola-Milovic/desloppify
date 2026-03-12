@@ -18,7 +18,8 @@ from ..validation.enrich_checks import (
     _steps_without_effort,
     _underspecified_steps,
 )
-from ..helpers import active_triage_issue_ids, has_triage_in_queue, open_review_ids_from_state, print_cascade_clear_feedback
+from ..review_coverage import active_triage_issue_ids, open_review_ids_from_state
+from ..stage_queue import has_triage_in_queue, print_cascade_clear_feedback
 from ..services import TriageServices, default_triage_services
 from .enrich import ColorizeFn
 
@@ -116,7 +117,7 @@ def _sense_check_evidence_failures(
         validate_report_has_file_paths,
         validate_report_references_clusters,
     )
-    from ..helpers import manual_clusters_with_issues
+    from ..review_coverage import manual_clusters_with_issues
 
     failures: list[object] = []
     if open_review_ids_from_state(state):

@@ -15,7 +15,7 @@ from desloppify.engine.plan_state import (
     render_policy_block,
 )
 
-from ..helpers import manual_clusters_with_issues
+from ..review_coverage import manual_clusters_with_issues
 from .codex_runner import (
     TriageStageRunResult,
     _output_file_has_text,

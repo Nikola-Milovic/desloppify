@@ -30,7 +30,7 @@ from desloppify.app.commands.plan.queue_render import cmd_plan_queue
 from desloppify.app.commands.plan.repair_state import cmd_plan_repair_state
 from desloppify.app.commands.plan.reorder_handlers import cmd_plan_reorder
 from desloppify.app.commands.plan.shared.cluster_membership import cluster_issue_ids
-from desloppify.app.commands.plan.triage import cmd_plan_triage
+from desloppify.app.commands.plan.triage.command import cmd_plan_triage
 from desloppify.engine.plan_state import (
     commit_tracking_summary,
     load_plan,

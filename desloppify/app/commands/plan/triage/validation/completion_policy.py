@@ -7,7 +7,7 @@ from desloppify.base.output.terminal import colorize
 from desloppify.engine.plan_triage import extract_issue_citations
 
 from ..display.dashboard import show_plan_summary
-from ..helpers import (
+from ..review_coverage import (
     cluster_issue_ids,
     manual_clusters_with_issues,
     open_review_ids_from_state,

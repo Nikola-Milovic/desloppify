@@ -10,7 +10,7 @@ from desloppify.app.commands.review.runner_parallel import BatchProgressEvent
 from desloppify.base.discovery.file_paths import safe_write_text
 from desloppify.base.output.terminal import colorize
 
-from ..helpers import group_issues_into_observe_batches
+from ..observe_batches import group_issues_into_observe_batches
 from .codex_runner import (
     TriageStageRunResult,
     _output_file_has_text,

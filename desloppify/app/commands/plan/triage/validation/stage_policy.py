@@ -12,7 +12,7 @@ from desloppify.engine.plan_triage import collect_triage_input, detect_recurring
 from desloppify.state_io import utc_now
 
 from ..confirmations.basic import MIN_ATTESTATION_LEN, validate_attestation
-from ..helpers import observe_dimension_breakdown
+from ..observe_batches import observe_dimension_breakdown
 from .reflect_accounting import validate_reflect_accounting
 
 

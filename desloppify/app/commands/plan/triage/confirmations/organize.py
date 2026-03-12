@@ -14,9 +14,9 @@ from .shared import (
     finalize_stage_confirmation,
 )
 from ..display.dashboard import show_plan_summary
-from ..helpers import (
+from ..completion_flow import count_log_activity_since
+from ..review_coverage import (
     cluster_issue_ids,
-    count_log_activity_since,
     open_review_ids_from_state,
     triage_coverage,
 )

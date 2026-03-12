@@ -79,7 +79,7 @@ def test_plan_cmd_routes_through_capability_packages() -> None:
     assert "from desloppify.app.commands.plan.cluster import cmd_cluster_dispatch" in text
     assert "from desloppify.app.commands.plan.commit_log import cmd_commit_log_dispatch" in text
     assert "from desloppify.app.commands.plan.override import (" in text
-    assert "from desloppify.app.commands.plan.triage import cmd_plan_triage" in text
+    assert "from desloppify.app.commands.plan.triage.command import cmd_plan_triage" in text
 
 
 def test_development_philosophy_documents_passthrough_shim_exception() -> None:

@@ -8,7 +8,7 @@ from desloppify.base.output.terminal import colorize
 from desloppify.state_io import utc_now
 
 from ..display.dashboard import print_reflect_result
-from ..helpers import cascade_clear_later_confirmations, has_triage_in_queue
+from ..stage_queue import cascade_clear_later_confirmations, has_triage_in_queue
 from ..services import TriageServices, default_triage_services
 from ..validation.core import (
     ReflectDisposition,
