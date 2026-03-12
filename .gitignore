@@ -30,6 +30,9 @@ todos/
 dogfood-observations.md
 pytest-full.xml
 
+# Secrets
+.env
+
 # Dev tool configs
 .importlinter
 
@@ -38,4 +41,4 @@ pytest-full.xml
 /skills/
 CLAUDE.md
 tasks/
-scripts/
+/scripts/
