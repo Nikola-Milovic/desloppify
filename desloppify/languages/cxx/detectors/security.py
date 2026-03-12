@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 _SOURCE_SUFFIXES = frozenset({".c", ".cc", ".cpp", ".cxx"})
 _HEADER_SUFFIXES = frozenset({".h", ".hpp"})
 _CXX_SUFFIXES = _SOURCE_SUFFIXES | _HEADER_SUFFIXES
+_UNSAFE_C_STRING_APIS = ("strcpy", "strcat", "sprintf", "vsprintf", "gets", "scanf", "sscanf", "fscanf")
 _PROJECT_MARKERS = ("compile_commands.json", "CMakeLists.txt", "Makefile")
 _TOOL_PRIORITY = {"clang-tidy": 0, "cppcheck": 1, "regex": 2}
 
@@ -80,6 +81,7 @@ class CxxToolScanResult:
     state: ToolState
     entries: list[dict]
     detail: str = ""
+    covered_files: tuple[str, ...] = ()
 
     def is_success(self) -> bool:
         return self.state in {"ok", "empty"}
@@ -388,8 +390,11 @@ def _cxx_files_in_scope(files: list[str], zone_map: FileZoneMap | None) -> list[
 def _scan_root_from_files(files: list[str]) -> Path | None:
     if not files:
         return None
-    parent_paths = [str(Path(filepath).resolve().parent) for filepath in files]
-    common = Path(os.path.commonpath(parent_paths)).resolve()
+    try:
+        parent_paths = [str(Path(filepath).resolve().parent) for filepath in files]
+        common = Path(os.path.commonpath(parent_paths)).resolve()
+    except (OSError, ValueError):
+        return None
     for candidate in (common, *common.parents):
         if any((candidate / marker).exists() for marker in _PROJECT_MARKERS):
             return candidate
@@ -423,7 +428,9 @@ def _run_clang_tidy(scan_root: Path, files: list[str]) -> CxxToolScanResult:
     if shutil.which("clang-tidy") is None:
         return CxxToolScanResult(tool="clang-tidy", state="missing_tool", entries=[])
 
-    source_files = [filepath for filepath in files if Path(filepath).suffix.lower() in _SOURCE_SUFFIXES]
+    source_files = [
+        filepath for filepath in files if Path(filepath).suffix.lower() in _SOURCE_SUFFIXES
+    ]
     if not source_files:
         return CxxToolScanResult(tool="clang-tidy", state="empty", entries=[])
 
@@ -438,6 +445,7 @@ def _run_clang_tidy(scan_root: Path, files: list[str]) -> CxxToolScanResult:
         state=_tool_result_state(result),
         entries=_normalize_tool_entries(result.entries),
         detail=result.message or result.error_kind or "",
+        covered_files=tuple(source_files),
     )
 
 
@@ -462,17 +470,43 @@ def _run_cppcheck(scan_root: Path, files: list[str]) -> CxxToolScanResult:
         state=_tool_result_state(result),
         entries=_normalize_tool_entries(result.entries),
         detail=result.message or result.error_kind or "",
+        covered_files=tuple(files),
     )
 
 
+def _dedupe_subject(detail: dict) -> str:
+    kind = str(detail.get("kind") or "")
+    check_id = str(detail.get("check_id") or "")
+    content = str(detail.get("content") or "")
+    text = f"{check_id} {content}".lower()
+
+    if kind == "command_injection":
+        return "system" if "system" in text else (check_id or content or kind)
+    if kind == "unsafe_c_string":
+        for api in _UNSAFE_C_STRING_APIS:
+            if api in text:
+                return api
+        if "buffer" in text:
+            return "buffer"
+    if kind == "insecure_random":
+        if "rand" in text or "msc30" in text:
+            return "rand"
+    if kind == "weak_crypto_hash":
+        if "md5" in text:
+            return "md5"
+        if "sha1" in text or "sha-1" in text:
+            return "sha1"
+    return check_id or content or kind
+
+
 def _dedupe_entries(entries: list[dict]) -> list[dict]:
-    best: dict[tuple[str, str, int], dict] = {}
+    best: dict[tuple[str, str, int, str], dict] = {}
     for entry in entries:
         detail = entry.get("detail") or {}
         kind = str(detail.get("kind") or detail.get("check_id") or entry.get("name", ""))
         file_key = str(entry.get("file", ""))
         line = int(detail.get("line", 0) or 0)
-        key = (kind, file_key, line)
+        key = (kind, file_key, line, _dedupe_subject(detail))
         source = str(detail.get("source", "")).strip()
         current = best.get(key)
         if current is None:
@@ -489,6 +523,7 @@ def _dedupe_entries(entries: list[dict]) -> list[dict]:
             int((item.get("detail") or {}).get("line", 0) or 0),
             _TOOL_PRIORITY.get(str((item.get("detail") or {}).get("source", "")), 99),
             str((item.get("detail") or {}).get("kind", "")),
+            str((item.get("detail") or {}).get("check_id", "")),
         ),
     )
 
@@ -536,10 +571,23 @@ def _fallback_coverage(results: list[CxxToolScanResult]) -> DetectorCoverageStat
     )
 
 
+def _scan_root_failure_coverage() -> DetectorCoverageStatus:
+    return DetectorCoverageStatus(
+        detector="security",
+        status="reduced",
+        confidence=0.65,
+        summary="C++ security fell back to regex heuristics because a common scan root could not be determined.",
+        impact=_TOOL_IMPACT_TEXT,
+        remediation="Scan files from a single checkout root or rerun the detector on one project tree at a time.",
+        tool="clang-tidy/cppcheck",
+        reason="execution_error",
+    )
+
+
 def detect_cxx_security(
     files: list[str],
     zone_map: FileZoneMap | None,
-) -> LangSecurityResult:
+ ) -> LangSecurityResult:
     """Detect C/C++ security issues with tool-backed normalization and regex fallback."""
     scoped_files = _cxx_files_in_scope(files, zone_map)
     if not scoped_files:
@@ -547,19 +595,42 @@ def detect_cxx_security(
 
     scan_root = _scan_root_from_files(scoped_files)
     if scan_root is None:
-        return LangSecurityResult(entries=_regex_fallback(scoped_files), files_scanned=len(scoped_files))
+        fallback_entries = _dedupe_entries(_regex_fallback(scoped_files))
+        return LangSecurityResult(
+            entries=fallback_entries,
+            files_scanned=len(scoped_files),
+            coverage=_scan_root_failure_coverage(),
+        )
 
     tool_results: list[CxxToolScanResult] = []
     if (scan_root / "compile_commands.json").is_file():
         tool_results.append(_run_clang_tidy(scan_root, scoped_files))
     tool_results.append(_run_cppcheck(scan_root, scoped_files))
 
-    tool_entries = _dedupe_entries(
-        [entry for result in tool_results if result.is_success() for entry in result.entries]
-    )
+    tool_entries = [
+        entry
+        for result in tool_results
+        if result.is_success()
+        for entry in result.entries
+    ]
+    covered_files = {
+        filepath
+        for result in tool_results
+        if result.is_success()
+        for filepath in result.covered_files
+    }
+    uncovered_files = [filepath for filepath in scoped_files if filepath not in covered_files]
+    if uncovered_files:
+        merged_entries = _dedupe_entries(tool_entries + _regex_fallback(uncovered_files))
+        return LangSecurityResult(
+            entries=merged_entries,
+            files_scanned=len(scoped_files),
+            coverage=_fallback_coverage(tool_results),
+        )
+
     if any(result.is_success() for result in tool_results):
         return LangSecurityResult(
-            entries=tool_entries,
+            entries=_dedupe_entries(tool_entries),
             files_scanned=len(scoped_files),
             coverage=None,
         )
