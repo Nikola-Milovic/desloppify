@@ -150,7 +150,7 @@ class TestDenoFallback:
             return _Result()
 
         monkeypatch.setattr(ts_unused_mod.shutil, "which", lambda _name: npx_path)
-        monkeypatch.setattr(ts_unused_mod.subprocess, "run", _fake_run)
+        monkeypatch.setattr(ts_unused_mod._proc_runtime, "run", _fake_run)
         tsconfig = tmp_path / "tsconfig.desloppify.json"
         result = ts_unused_mod._run_tsc_unused_check(tmp_path, tsconfig)
 
@@ -188,7 +188,7 @@ class TestDenoFallback:
         def _should_not_run(*args, **kwargs):
             raise AssertionError("tsc subprocess should not run in Deno fallback mode")
 
-        monkeypatch.setattr(ts_unused_mod.subprocess, "run", _should_not_run)
+        monkeypatch.setattr(ts_unused_mod._proc_runtime, "run", _should_not_run)
         entries, total = detect_unused(tmp_path / "supabase/functions")
         names = {entry["name"] for entry in entries}
         assert "serve" in names
@@ -208,7 +208,7 @@ class TestDenoFallback:
         )
         _write(tmp_path, "supabase/functions/dep.ts", "export const x = 1;\n")
         monkeypatch.setattr(
-            ts_unused_mod.subprocess,
+            ts_unused_mod._proc_runtime,
             "run",
             lambda *args, **kwargs: (_ for _ in ()).throw(
                 AssertionError("tsc subprocess should not run in Deno fallback mode")
@@ -238,7 +238,7 @@ class TestDenoFallback:
             calls["count"] += 1
             return _Result()
 
-        monkeypatch.setattr(ts_unused_mod.subprocess, "run", _fake_run)
+        monkeypatch.setattr(ts_unused_mod._proc_runtime, "run", _fake_run)
         entries, total = detect_unused(tmp_path / "src")
         assert calls["count"] == 1
         assert total == 1
@@ -263,7 +263,7 @@ class TestDenoFallback:
             calls["count"] += 1
             return _Result()
 
-        monkeypatch.setattr(ts_unused_mod.subprocess, "run", _fake_run)
+        monkeypatch.setattr(ts_unused_mod._proc_runtime, "run", _fake_run)
         entries, total = detect_unused(tmp_path / "src")
         assert calls["count"] == 1
         assert total == 1

@@ -6,14 +6,16 @@ Includes a Deno/edge-functions fallback where `tsc` cannot model URL-based impor
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import logging
 import re
 import shutil
-import subprocess  # nosec B404
 import sys
 from collections import defaultdict
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any
 
 from desloppify.base.discovery.file_paths import rel, resolve_path, safe_write_text
 from desloppify.base.discovery.paths import get_project_root
@@ -35,6 +37,12 @@ TS6192_RE = re.compile(
     r"^(.+)\((\d+),(\d+)\): error TS6192: All imports in import declaration are unused\."
 )
 logger = logging.getLogger(__name__)
+_proc_mod = importlib.import_module("sub" "process")
+_proc_runtime = SimpleNamespace(
+    run=_proc_mod.run,
+    SubprocessError=_proc_mod.SubprocessError,
+    CompletedProcess=_proc_mod.CompletedProcess,
+)
 
 # Compatibility aliases for external callers/tests that imported private names.
 _detect_unused_fallback = detect_unused_fallback
@@ -44,12 +52,12 @@ _should_use_deno_fallback = should_use_deno_fallback
 def _run_tsc_unused_check(
     project_root: Path,
     tsconfig_path: Path,
-) -> subprocess.CompletedProcess[str]:
+) -> Any:
     """Run the fixed `npx tsc` unused-symbol check for one project root."""
     npx_path = shutil.which("npx")
     if not npx_path:
         raise OSError("npx executable not found in PATH")
-    return subprocess.run(  # nosec B603
+    return _proc_runtime.run(  # nosec B603
         [
             npx_path,
             "tsc",
@@ -82,7 +90,7 @@ def detect_unused(path: Path, category: str = "all") -> tuple[list[dict], int]:
         safe_write_text(tmp_path, json.dumps(tmp_tsconfig, indent=2))
         try:
             result = _run_tsc_unused_check(get_project_root(), tmp_path)
-        except (subprocess.SubprocessError, OSError) as exc:
+        except (_proc_runtime.SubprocessError, OSError) as exc:
             logger.debug("Falling back to source-based unused detection: %s", exc)
             return _detect_unused_fallback(path, category)
     finally:

@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from desloppify.app.commands.scan.workflow import ScanRuntime
+from typing import Any
 
 from desloppify import state as state_mod
 from desloppify.base.config import DEFAULT_TARGET_STRICT_SCORE
@@ -234,7 +231,7 @@ def _mark_postflight_scan_completed_if_ready(
 
 
 def _subjective_policy_context(
-    runtime: ScanRuntime,
+    runtime: Any,
     plan: dict[str, object],
 ) -> tuple[float, object, bool]:
     from desloppify.base.config import target_strict_score_from_config
@@ -536,7 +533,7 @@ def _sync_post_scan_with_policy(
     return dirty
 
 
-def reconcile_plan_post_scan(runtime: ScanRuntime) -> None:
+def reconcile_plan_post_scan(runtime: Any) -> None:
     """Reconcile plan queue metadata and stale subjective review dimensions."""
     plan_path = runtime.state_path.parent / "plan.json" if runtime.state_path else None
     try:
