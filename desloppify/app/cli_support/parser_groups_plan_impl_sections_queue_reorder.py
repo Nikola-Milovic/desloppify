@@ -16,6 +16,34 @@ def _add_queue_subparser(plan_sub) -> None:
                          help="Sort order (default: priority)")
 
 
+def _add_promote_subparser(plan_sub) -> None:
+    p_promote = plan_sub.add_parser(
+        "promote",
+        help="Promote backlog issues or clusters into the queue",
+        epilog="""\
+patterns accept issue IDs, detector names, file paths, globs, or cluster names.
+cluster names expand to all member IDs automatically.
+
+examples:
+  desloppify plan promote security top
+  desloppify plan promote auto/test_coverage bottom
+  desloppify plan promote my-cluster before -t workflow::run-scan""",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    p_promote.add_argument(
+        "patterns", nargs="+", metavar="PATTERN",
+        help="Issue ID(s), detector, file path, glob, or cluster name",
+    )
+    p_promote.add_argument(
+        "position", nargs="?", choices=["top", "bottom", "before", "after"], default="bottom",
+        help="Where to insert in the active queue (default: bottom)",
+    )
+    p_promote.add_argument(
+        "-t", "--target", default=None,
+        help="Required for before/after (issue ID or cluster name)",
+    )
+
+
 def _add_reorder_subparser(plan_sub) -> None:
     p_move = plan_sub.add_parser(
         "reorder",
@@ -48,5 +76,4 @@ examples:
         help="Required for before/after (issue ID or cluster name) and up/down (integer offset)",
     )
 
-
-__all__ = ["_add_queue_subparser", "_add_reorder_subparser"]
+__all__ = ["_add_promote_subparser", "_add_queue_subparser", "_add_reorder_subparser"]

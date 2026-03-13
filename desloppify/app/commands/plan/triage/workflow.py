@@ -80,7 +80,8 @@ def _cmd_triage_start(
         return
 
     si = services.collect_triage_input(plan, state)
-    print(f"  Open review issues: {len(si.open_issues)}")
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
+    print(f"  Open review issues: {len(review_issues)}")
     print(colorize("  Begin with observe:", "dim"))
     print(colorize(f"    {TRIAGE_CMD_OBSERVE}", "dim"))
 
@@ -122,7 +123,8 @@ def _run_dry_run(
     existing_clusters = si.existing_clusters
     print(colorize("  Cluster triage - dry run", "bold"))
     print(colorize("  " + "─" * 60, "dim"))
-    print(f"  Open review issues: {len(si.open_issues)}")
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
+    print(f"  Open review issues: {len(review_issues)}")
     print(f"  Existing clusters: {len(existing_clusters)}")
     print(f"  New since last: {len(si.new_since_last)}")
     print(f"  Resolved since last: {len(si.resolved_since_last)}")

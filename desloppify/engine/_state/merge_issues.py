@@ -4,6 +4,10 @@ from __future__ import annotations
 
 from desloppify.base.discovery.file_paths import matches_exclusion
 from desloppify.engine._state.filtering import matched_ignore_pattern
+from desloppify.engine._state.issue_semantics import (
+    is_import_only_issue,
+    is_review_request,
+)
 
 
 def find_suspect_detectors(
@@ -25,14 +29,14 @@ def find_suspect_detectors(
             previous_open_by_detector.get(detector, 0) + 1
         )
 
-    # 'review' issues enter via `desloppify review --import`, not via scan phases.
-    # They are always suspect so the scan never auto-resolves them — regardless
-    # of current issue status (open, wontfix, etc.).
-    import_only_detectors = {"review"}
-    suspect: set[str] = set(import_only_detectors)
+    suspect: set[str] = {
+        str(issue.get("detector", "unknown"))
+        for issue in existing.values()
+        if isinstance(issue, dict) and is_import_only_issue(issue)
+    }
 
     for detector, previous_count in previous_open_by_detector.items():
-        if detector in import_only_detectors:
+        if detector in suspect:
             continue
         if current_by_detector.get(detector, 0) > 0:
             continue
@@ -213,11 +217,11 @@ def upsert_issues(
         previous["suppression_pattern"] = None
 
         if previous["status"] in ("fixed", "auto_resolved", "false_positive"):
-            # subjective_review issues are condition-based.  When just
+            # Review-request issues are condition-based. When just
             # completed by an agent import, skip reopening to avoid a
             # resolve-then-reopen loop on the same scan cycle.
             if (
-                detector == "subjective_review"
+                is_review_request(previous)
                 and previous["status"] in {"fixed", "auto_resolved"}
                 and (previous.get("resolution_attestation") or {}).get("kind") == "agent_import"
             ):

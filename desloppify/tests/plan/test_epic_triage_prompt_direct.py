@@ -26,8 +26,8 @@ def test_build_triage_prompt_includes_completed_clusters_and_resolved_issue_cont
         dimension="abstraction_fitness",
     )
     triage_input = TriageInput(
-        open_issues={open_id: open_issue},
-        mechanical_issues={},
+        review_issues={open_id: open_issue},
+        objective_backlog_issues={},
         existing_clusters={},
         dimension_scores={},
         new_since_last={open_id},
@@ -70,8 +70,8 @@ def test_build_triage_prompt_renders_recurring_dimension_summary() -> None:
         dimension="naming_quality",
     )
     triage_input = TriageInput(
-        open_issues={open_id: open_issue},
-        mechanical_issues={},
+        review_issues={open_id: open_issue},
+        objective_backlog_issues={},
         existing_clusters={},
         dimension_scores={},
         new_since_last=set(),
@@ -90,3 +90,54 @@ def test_build_triage_prompt_renders_recurring_dimension_summary() -> None:
     assert "## Potential recurring dimensions (resolved issues still have open peers)" in prompt
     assert "- api_surface_coherence: 1 open / 1 recently resolved" in prompt
     assert "naming_quality: 1 open" not in prompt
+
+
+def test_build_triage_prompt_includes_mechanical_backlog_context() -> None:
+    open_id, open_issue = _issue(
+        "review::open::1111aaaa",
+        summary="Open API drift",
+        dimension="api_surface_coherence",
+    )
+    triage_input = TriageInput(
+        review_issues={open_id: open_issue},
+        objective_backlog_issues={
+            "unused::src/a.py::dead": {
+                "detector": "unused",
+                "summary": "Unused export",
+                "file": "src/a.py",
+                "confidence": "high",
+            },
+            "test_coverage::src/b.py::miss": {
+                "detector": "test_coverage",
+                "summary": "Missing behavioral coverage",
+                "file": "src/b.py",
+                "confidence": "medium",
+            },
+        },
+        auto_clusters={
+            "auto/unused-imports": {
+                "auto": True,
+                "issue_ids": ["unused::src/a.py::dead"],
+                "description": "Remove 1 unused import issue",
+                "action": "desloppify autofix import-cleanup --dry-run",
+            }
+        },
+        existing_clusters={},
+        dimension_scores={},
+        new_since_last=set(),
+        resolved_since_last=set(),
+        previously_dismissed=[],
+        triage_version=1,
+        resolved_issues={},
+        completed_clusters=[],
+    )
+
+    prompt = build_triage_prompt(triage_input)
+
+    assert "## Mechanical backlog (2 items: 1 in 1 auto-clusters, 1 unclustered)" in prompt
+    assert "### Auto-clusters" in prompt
+    assert "- auto/unused-imports (1 items) [autofix: desloppify autofix import-cleanup --dry-run]" in prompt
+    assert "Remove 1 unused import issue" in prompt
+    assert "### Unclustered items (1 items — needs human judgment or isolated findings)" in prompt
+    assert "- [medium] test_coverage::src/b.py::miss — Missing behavioral coverage" in prompt
+    assert "Inspect a cluster: `desloppify plan cluster show auto/<name>`" in prompt

@@ -117,11 +117,11 @@ def triage_epics(
     si = collect_triage_input(plan, state)
 
     prompt = build_triage_prompt(si)
-    valid_ids = set(si.open_issues.keys())
+    valid_ids = set(si.review_issues.keys())
 
     if dry_run or deps is None or deps.llm_call is None:
         result = TriageMutationResult(dry_run=True)
-        result.strategy_summary = f"[dry-run] Prompt built with {len(si.open_issues)} issues"
+        result.strategy_summary = f"[dry-run] Prompt built with {len(si.review_issues)} issues"
         return result
 
     try:

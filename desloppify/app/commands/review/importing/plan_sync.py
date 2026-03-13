@@ -39,6 +39,10 @@ from desloppify.engine.plan_triage import (
     TRIAGE_CMD_RUN_STAGES_CLAUDE,
     TRIAGE_CMD_RUN_STAGES_CODEX,
 )
+from desloppify.engine._state.issue_semantics import (
+    is_review_request,
+    is_triage_finding,
+)
 from desloppify.intelligence.review.importing.contracts_types import (
     NormalizedReviewImportPayload,
 )
@@ -76,7 +80,7 @@ def _has_postflight_review_work(state: dict, *, policy) -> bool:
     if any(
         isinstance(issue, dict)
         and issue.get("status") == "open"
-        and issue.get("detector") in {"review", "concerns", "subjective_review"}
+        and (is_triage_finding(issue) or is_review_request(issue))
         for issue in issues.values()
     ):
         return True

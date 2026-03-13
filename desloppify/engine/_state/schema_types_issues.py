@@ -12,6 +12,8 @@ class Issue(TypedDict):
 
     id: str
     detector: str
+    issue_kind: str
+    origin: str
     file: str
     tier: int
     confidence: str

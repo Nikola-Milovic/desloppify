@@ -12,6 +12,7 @@ import logging
 from datetime import UTC, datetime
 
 from desloppify.base.output.issues import issue_weight
+from desloppify.engine._state.issue_semantics import is_review_finding
 from desloppify.engine._work_queue.helpers import detail_dict
 
 logger = logging.getLogger(__name__)
@@ -43,7 +44,7 @@ def list_open_review_issues(state: dict) -> list[dict]:
     review = [
         issue
         for issue in issues.values()
-        if issue.get("status") == "open" and issue.get("detector") == "review"
+        if issue.get("status") == "open" and is_review_finding(issue)
     ]
 
     def _sort_key(issue: dict) -> tuple[float, str]:
@@ -74,7 +75,7 @@ def mark_stale_holistic(state: dict, max_age_days: int = 30) -> list[str]:
     expired: list[str] = []
 
     for issue_id, issue in state.get("issues", {}).items():
-        if issue.get("detector") != "review":
+        if not is_review_finding(issue):
             continue
         if issue.get("status") != "open":
             continue

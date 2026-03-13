@@ -12,6 +12,7 @@ __all__ = [
 
 from desloppify.base.text_utils import is_numeric
 from desloppify.engine._state.filtering import _matches_pattern
+from desloppify.engine._state.issue_semantics import is_review_finding
 from desloppify.engine._state.schema import (
     StateModel,
     ensure_state_defaults,
@@ -72,7 +73,7 @@ def _mark_stale_assessments_on_review_resolve(
 
     touched_dimensions: set[str] = set()
     for issue in resolved_issues:
-        if issue.get("detector") != "review":
+        if not is_review_finding(issue):
             continue
         dimension = str(issue.get("detail", {}).get("dimension", "")).strip()
         if dimension:

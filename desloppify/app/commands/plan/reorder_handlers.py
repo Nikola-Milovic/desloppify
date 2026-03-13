@@ -17,6 +17,7 @@ from desloppify.engine.plan_ops import (
     append_log_entry,
     move_items,
 )
+from desloppify.engine._plan.promoted_ids import add_promoted_ids
 
 
 def resolve_target(plan: dict, target: str | None, position: str) -> str | None:
@@ -81,4 +82,39 @@ def cmd_plan_reorder(args: argparse.Namespace) -> None:
     print(colorize(f"  Moved {count} item(s) to {position}.", "green"))
 
 
-__all__ = ["cmd_plan_reorder", "resolve_target"]
+def cmd_plan_promote(args: argparse.Namespace) -> None:
+    """Promote backlog issues or cluster members into the active queue."""
+    state = command_runtime(args).state
+    if not require_issue_inventory(state):
+        return
+
+    patterns: list[str] = getattr(args, "patterns", [])
+    position: str = getattr(args, "position", "bottom")
+    target: str | None = getattr(args, "target", None)
+
+    if position in ("before", "after") and target is None:
+        print(colorize(f"  '{position}' requires --target (-t). Example: plan promote <pat> {position} -t <id>", "red"))
+        return
+
+    plan = load_plan()
+    target = resolve_target(plan, target, position)
+
+    issue_ids = resolve_ids_from_patterns(state, patterns, plan=plan)
+    if not issue_ids:
+        print(colorize("  No matching issues found.", "yellow"))
+        return
+
+    count = move_items(plan, issue_ids, position, target=target)
+    add_promoted_ids(plan, issue_ids)
+    append_log_entry(
+        plan,
+        "promote",
+        issue_ids=issue_ids,
+        actor="user",
+        detail={"position": position, "target": target},
+    )
+    save_plan(plan)
+    print(colorize(f"  Promoted {count} item(s) into the active queue.", "green"))
+
+
+__all__ = ["cmd_plan_promote", "cmd_plan_reorder", "resolve_target"]

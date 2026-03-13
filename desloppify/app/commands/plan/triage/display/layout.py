@@ -56,9 +56,10 @@ def print_dashboard_header(
     snapshot: TriageSnapshot | None = None,
 ) -> None:
     """Print the header section: title, open issues count, stage progress, overall status."""
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
     print(colorize("  Cluster triage", "bold"))
     print(colorize("  " + "─" * 60, "dim"))
-    print(f"  Open review issues: {len(si.open_issues)}")
+    print(f"  Open review issues: {len(review_issues)}")
     print(colorize("  Goal: identify contradictions, resolve them, then group the coherent", "cyan"))
     print(colorize("  remainder into clusters by root cause with action steps and priorities.", "cyan"))
     print(colorize("  Preferred: staged runner workflow (Codex or Claude).", "cyan"))
@@ -74,7 +75,7 @@ def print_dashboard_header(
     if new_since_last:
         print(colorize(f"  New since last triage: {len(new_since_last)}", "yellow"))
         for fid in sorted(new_since_last):
-            issue = si.open_issues.get(fid, {})
+            issue = review_issues.get(fid, {})
             dim = ""
             detail = issue.get("detail")
             if isinstance(detail, dict):

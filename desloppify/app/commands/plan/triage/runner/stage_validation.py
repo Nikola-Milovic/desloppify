@@ -87,7 +87,12 @@ def _validate_observe_stage(
             f"(need {min_citations}+). Reference specific issue "
             f"hashes to prove you read them."
         )
-    valid_ids = set(triage_input.open_issues.keys()) if triage_input else set()
+    review_issues = (
+        getattr(triage_input, "review_issues", getattr(triage_input, "open_issues", {}))
+        if triage_input
+        else {}
+    )
+    valid_ids = set(review_issues.keys())
     evidence = parse_observe_evidence(report, valid_ids)
     ev_failures = validate_observe_evidence(evidence, issue_count)
     blocking = [failure for failure in ev_failures if failure.blocking]
@@ -343,12 +348,13 @@ def build_auto_attestation(
     triage_input: TriageInput,
 ) -> str:
     """Generate valid 80+ char attestation referencing real dimensions/cluster names."""
+    review_issues = getattr(triage_input, "review_issues", getattr(triage_input, "open_issues", {}))
     if stage == "observe":
         _by_dim, dim_names = observe_dimension_breakdown(triage_input)
         top_dims = dim_names[:3]
         dims_str = ", ".join(top_dims)
         return (
-            f"I have thoroughly analysed {len(triage_input.open_issues)} issues "
+            f"I have thoroughly analysed {len(review_issues)} issues "
             f"across dimensions including {dims_str}, identifying themes, "
             f"root causes, and contradictions across the codebase."
         )
@@ -358,7 +364,7 @@ def build_auto_attestation(
         top_dims = dim_names[:3]
         dims_str = ", ".join(top_dims)
         return (
-            f"My strategy accounts for {len(triage_input.open_issues)} issues "
+            f"My strategy accounts for {len(review_issues)} issues "
             f"across dimensions including {dims_str}, comparing against "
             f"resolved history and forming priorities for execution."
         )

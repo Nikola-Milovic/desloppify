@@ -14,6 +14,7 @@ from desloppify.engine._scoring.policy.core import (
     ScoreMode,
     detector_policy,
 )
+from desloppify.engine._state.issue_semantics import is_scoring_excluded_detector
 from desloppify.engine._state.schema import Issue
 
 # Tiered file-count cap thresholds for non-LOC file-based detectors.
@@ -141,10 +142,9 @@ def detector_stats_by_mode(
     if potential <= 0:
         return {mode: (1.0, 0, 0.0) for mode in SCORING_MODES}
 
-    # Review and concern issues are scored via subjective assessments only —
-    # exclude them from the detection-side scoring pipeline so resolving these
-    # issues never changes the score directly.
-    if detector in ("review", "concerns"):
+    # Some detectors remain queue-visible but are intentionally excluded from
+    # detector-side scoring.
+    if is_scoring_excluded_detector(detector):
         return {mode: (1.0, 0, 0.0) for mode in SCORING_MODES}
 
     policy = detector_policy(detector)

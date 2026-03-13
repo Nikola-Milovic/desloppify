@@ -33,19 +33,21 @@ from .stage_prompts_validation import _validation_requirements
 
 def _required_issue_hashes(triage_input: TriageInput) -> list[str]:
     """Return sorted short hashes for open review issues."""
-    return sorted(issue_id.rsplit("::", 1)[-1] for issue_id in triage_input.open_issues)
+    review_issues = getattr(triage_input, "review_issues", getattr(triage_input, "open_issues", {}))
+    return sorted(issue_id.rsplit("::", 1)[-1] for issue_id in review_issues)
 
 
 def _compact_issue_summary(triage_input: TriageInput) -> str:
     """Return a compact issue summary for later triage stages."""
+    review_issues = getattr(triage_input, "review_issues", getattr(triage_input, "open_issues", {}))
     by_dim: Counter[str] = Counter()
-    for issue in triage_input.open_issues.values():
+    for issue in review_issues.values():
         detail = issue.get("detail", {}) if isinstance(issue.get("detail"), dict) else {}
         by_dim[str(detail.get("dimension", "unknown"))] += 1
     dims = ", ".join(f"{name} ({count})" for name, count in sorted(by_dim.items()))
     parts = [
         "## Issue Summary",
-        f"Open review issues: {len(triage_input.open_issues)}",
+        f"Open review issues: {len(review_issues)}",
     ]
     if dims:
         parts.append(f"Open dimensions: {dims}")

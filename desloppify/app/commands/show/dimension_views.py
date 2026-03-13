@@ -5,6 +5,7 @@ from __future__ import annotations
 from desloppify.app.commands.helpers.query import write_query
 from desloppify.base.config import target_strict_score_from_config
 from desloppify.base.output.terminal import colorize
+from desloppify.engine._state.issue_semantics import is_triage_finding
 
 from .render import show_subjective_followup
 from .scope import _detector_names_hint, _lookup_dimension_score, load_matches
@@ -75,7 +76,7 @@ def _render_subjective_dimension(
     dim_reviews = [
         issue
         for issue in (state.get("issues") or {}).values()
-        if issue.get("detector") == "review"
+        if is_triage_finding(issue)
         and issue.get("status") == "open"
         and lowered
         in str(issue.get("detail", {}).get("dimension", "")).lower().replace(" ", "_")

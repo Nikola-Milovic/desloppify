@@ -46,7 +46,8 @@ def _validate_reflect_submission(
     ):
         return None
 
-    issue_count = len(triage_input.open_issues)
+    review_issues = getattr(triage_input, "review_issues", getattr(triage_input, "open_issues", {}))
+    issue_count = len(review_issues)
     if not validate_stage_report_length(
         report=report,
         issue_count=issue_count,
@@ -55,7 +56,7 @@ def _validate_reflect_submission(
         return None
 
     recurring = services.detect_recurring_patterns(
-        triage_input.open_issues,
+        review_issues,
         triage_input.resolved_issues,
     )
     recurring_dims = sorted(recurring.keys())
@@ -66,7 +67,7 @@ def _validate_reflect_submission(
     ):
         return None
 
-    valid_ids = set(triage_input.open_issues.keys())
+    valid_ids = set(review_issues.keys())
 
     # Exclude issues already auto-skipped by observe from reflect accounting
     meta = plan.get("epic_triage_meta", {})

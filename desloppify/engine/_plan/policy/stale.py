@@ -5,19 +5,17 @@ from __future__ import annotations
 import hashlib
 
 from desloppify.base.config import DEFAULT_TARGET_STRICT_SCORE
+from desloppify.engine._state.issue_semantics import is_triage_finding
 from desloppify.engine._state.schema import StateModel
 from desloppify.engine._work_queue.helpers import slugify
 from desloppify.engine.planning.scorecard_projection import all_subjective_entries
-
-_REVIEW_DETECTORS = ("review", "concerns")
-
 
 def open_review_ids(state: StateModel) -> set[str]:
     """Return IDs of open review/concerns issues from state."""
     return {
         fid
         for fid, f in state.get("issues", {}).items()
-        if f.get("status") == "open" and f.get("detector") in _REVIEW_DETECTORS
+        if f.get("status") == "open" and is_triage_finding(f)
     }
 
 

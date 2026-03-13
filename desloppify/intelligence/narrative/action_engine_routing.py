@@ -6,6 +6,11 @@ from collections.abc import Callable
 from typing import Any
 
 from desloppify.engine._scoring.results.core import get_dimension_for_detector
+from desloppify.engine._state.issue_semantics import (
+    REVIEW_FINDING,
+    REVIEW_REQUEST,
+    infer_issue_kind,
+)
 from desloppify.intelligence.narrative._constants import DETECTOR_TOOLS
 from desloppify.intelligence.narrative.action_models import ActionItem
 
@@ -53,14 +58,15 @@ def _build_refactor_entry(
     guidance = tool_info.get("guidance", "manual fix")
     adjusted_info = {**tool_info, "guidance": guidance}
 
-    if detector == "subjective_review":
+    issue_kind = infer_issue_kind(detector)
+    if issue_kind == REVIEW_REQUEST:
         command = "desloppify review --prepare"
         suffix = "s" if count != 1 else ""
         description = (
             f"{count} subjective dimension{suffix} need review — run holistic "
             "review to refresh subjective scores"
         )
-    elif detector == "review":
+    elif issue_kind == REVIEW_FINDING:
         command = "desloppify show review --status open"
         suffix = "s" if count != 1 else ""
         description = (

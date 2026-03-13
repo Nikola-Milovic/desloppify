@@ -11,6 +11,7 @@ from .parser_groups_plan_impl_sections_annotations import (
 )
 from .parser_groups_plan_impl_sections_cluster import _add_cluster_subparser
 from .parser_groups_plan_impl_sections_queue_reorder import (
+    _add_promote_subparser,
     _add_queue_subparser,
     _add_reorder_subparser,
 )
@@ -50,6 +51,7 @@ subcommands:
   show       Show plan metadata summary
   queue      Compact table of execution queue items
   reset      Reset plan to empty
+  promote    Promote backlog issues or clusters into the queue
   reorder    Reposition issues or clusters in the queue
   resolve    Mark issues as fixed (score movement + next-step)
   describe   Set augmented description
@@ -81,6 +83,7 @@ subcommands:
     # plan reset
     plan_sub.add_parser("reset", help="Reset plan to empty")
 
+    _add_promote_subparser(plan_sub)
     _add_reorder_subparser(plan_sub)
     _add_annotation_subparsers(plan_sub)
     _add_skip_subparsers(plan_sub)

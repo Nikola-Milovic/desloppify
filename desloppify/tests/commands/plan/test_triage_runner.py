@@ -32,8 +32,8 @@ def _make_triage_input(n_issues: int = 5) -> TriageInput:
             "detail": {"dimension": f"dim_{i % 3}", "suggestion": "Fix it"},
         }
     return TriageInput(
-        open_issues=issues,
-        mechanical_issues={},
+        review_issues=issues,
+        objective_backlog_issues={},
         existing_clusters={},
         dimension_scores={"dim_0": {"score": 70, "strict": 65, "failing": 2}},
         new_since_last=set(),

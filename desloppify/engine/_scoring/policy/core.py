@@ -11,6 +11,7 @@ from desloppify.base.scoring_constants import (
     CONFIDENCE_WEIGHTS,
     HOLISTIC_MULTIPLIER,
 )
+from desloppify.engine._state.issue_semantics import is_scoring_excluded_detector
 from desloppify.engine.policy.zones import EXCLUDED_ZONE_VALUES
 
 ScoreMode = Literal["lenient", "strict", "verified_strict"]
@@ -38,20 +39,6 @@ class DetectorScoringPolicy:
 SECURITY_EXCLUDED_ZONES = frozenset({"test", "config", "generated", "vendor"})
 _DEFAULT_EXCLUDED_ZONES = frozenset(EXCLUDED_ZONE_VALUES)
 
-# Non-objective detectors are tracked in state/queue but excluded from
-# mechanical dimension scoring.
-_NON_OBJECTIVE_DETECTORS = frozenset(
-    {
-        "concerns",
-        "review",
-        "subjective_review",
-        "uncalled_functions",
-        "unused_enums",
-        "signature",
-        "stale_wontfix",
-    }
-)
-
 # Keep policy details that are independent of tier/dimension wiring.
 _FILE_BASED_POLICY_DETECTORS = frozenset(
     {"smells", "dict_keys", "test_coverage", "security", "concerns", "review"}
@@ -66,7 +53,7 @@ def _build_builtin_detector_scoring_policies() -> dict[str, DetectorScoringPolic
     """Build baseline scoring policies from DetectorMeta plus policy overrides."""
     policies: dict[str, DetectorScoringPolicy] = {}
     for detector, meta in DETECTORS.items():
-        if detector in _NON_OBJECTIVE_DETECTORS:
+        if is_scoring_excluded_detector(detector):
             dimension: str | None = None
             tier: int | None = None
         else:

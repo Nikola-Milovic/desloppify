@@ -106,7 +106,10 @@ def test_objective_issues_counted():
         _issue("u2", "unused"),
         _issue("r1", "review"),  # non-objective
     )
-    policy = compute_subjective_visibility(state)
+    policy = compute_subjective_visibility(
+        state,
+        plan={"queue_order": ["u1", "u2", "r1"], "skipped": {}},
+    )
     assert policy.has_objective_backlog is True
     assert policy.objective_count == 2
 
@@ -115,7 +118,10 @@ def test_suppressed_issues_excluded():
     state = _state_with_issues(
         _issue("u1", "unused", suppressed=True),
     )
-    policy = compute_subjective_visibility(state)
+    policy = compute_subjective_visibility(
+        state,
+        plan={"queue_order": ["u1"], "skipped": {}},
+    )
     assert policy.has_objective_backlog is False
     assert policy.objective_count == 0
 
@@ -124,7 +130,10 @@ def test_closed_issues_excluded():
     state = _state_with_issues(
         _issue("u1", "unused", status="resolved"),
     )
-    policy = compute_subjective_visibility(state)
+    policy = compute_subjective_visibility(
+        state,
+        plan={"queue_order": ["u1"], "skipped": {}},
+    )
     assert policy.has_objective_backlog is False
 
 
@@ -135,7 +144,10 @@ def test_non_objective_detectors_excluded():
         _issue("sr1", "subjective_review"),
         _issue("sa1", "subjective_assessment"),
     )
-    policy = compute_subjective_visibility(state)
+    policy = compute_subjective_visibility(
+        state,
+        plan={"queue_order": ["r1", "c1", "sr1", "sa1"], "skipped": {}},
+    )
     assert policy.has_objective_backlog is False
     assert policy.objective_count == 0
 

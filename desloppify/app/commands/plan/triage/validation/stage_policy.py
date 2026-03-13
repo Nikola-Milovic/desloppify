@@ -172,7 +172,8 @@ def auto_confirm_reflect_for_organize(
         runtime = runtime_factory(args)
         triage_input = resolved_deps.collect_triage_input_fn(plan, runtime.state)
 
-    valid_ids = set(triage_input.open_issues.keys())
+    review_issues = getattr(triage_input, "review_issues", getattr(triage_input, "open_issues", {}))
+    valid_ids = set(review_issues.keys())
     accounting_ok, cited_ids, missing_ids, duplicate_ids = validate_reflect_accounting(
         report=str(reflect_stage.get("report", "")),
         valid_ids=valid_ids,
@@ -184,7 +185,7 @@ def auto_confirm_reflect_for_organize(
     reflect_stage["duplicate_issue_ids"] = duplicate_ids
 
     recurring = resolved_deps.detect_recurring_patterns_fn(
-        triage_input.open_issues,
+        review_issues,
         triage_input.resolved_issues,
     )
     _by_dim, observe_dims = observe_dimension_breakdown(triage_input)

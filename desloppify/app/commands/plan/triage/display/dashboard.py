@@ -182,12 +182,12 @@ def print_reflect_dashboard(
     resolved_services = services or default_triage_services()
     completed = getattr(si, "completed_clusters", [])
     resolved = getattr(si, "resolved_issues", {})
-    open_issues = getattr(si, "open_issues", {})
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
 
     _print_completed_clusters(completed)
     _print_resolved_issue_deltas(resolved)
     _print_recurring_or_first_triage(
-        recurring=resolved_services.detect_recurring_patterns(open_issues, resolved),
+        recurring=resolved_services.detect_recurring_patterns(review_issues, resolved),
         completed=completed,
         resolved=resolved,
     )
@@ -269,12 +269,13 @@ def cmd_triage_dashboard(
     print_dashboard_header(si, stages, meta, plan, snapshot=snapshot)
     print_action_guidance(stages, meta, si, plan, snapshot=snapshot)
     print_prior_stage_reports(stages)
-    print_issues_by_dimension(si.open_issues)
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
+    print_issues_by_dimension(review_issues)
 
     if "observe" in stages and "reflect" not in stages:
         print_reflect_dashboard(si, plan, services=resolved_services)
 
-    print_progress(plan, si.open_issues)
+    print_progress(plan, review_issues)
 
 
 __all__ = [

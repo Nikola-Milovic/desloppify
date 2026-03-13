@@ -120,12 +120,13 @@ def test_plan_ordered_stale_subjective_gated_with_objective_backlog():
         }
     }
 
-    # Without plan: stale subjective item is gated
+    # Without an explicit queue, pre-triage objective work still blocks stale
+    # subjective review items from surfacing.
     queue_no_plan = build_work_queue(state, count=None, include_subjective=True)
     subj_no_plan = [
         i["id"] for i in queue_no_plan["items"] if i["id"].startswith("subjective::")
     ]
-    assert len(subj_no_plan) == 0
+    assert subj_no_plan == []
 
     # With plan that includes the stale dim in queue_order: still gated
     plan = empty_plan()
@@ -282,7 +283,7 @@ def test_execution_queue_excludes_unplanned_objective_items():
 
 
 def test_backlog_queue_excludes_execution_objective_items():
-    """Backlog should exclude objective work already admitted to execution."""
+    """Backlog should exclude execution items and synthetic workflow helpers."""
     from desloppify.engine._plan.schema import empty_plan
 
     state = _state(
@@ -304,8 +305,8 @@ def test_backlog_queue_excludes_execution_objective_items():
     )
     ids = [item["id"] for item in queue["items"]]
     assert "smells::src/a.py::planned" not in ids
-    assert "smells::src/b.py::unplanned" not in ids
-    assert "workflow::run-scan" in ids
+    assert "smells::src/b.py::unplanned" in ids
+    assert "workflow::run-scan" not in ids
 
 
 def test_unplanned_objective_items_dont_block_postflight():
@@ -444,7 +445,13 @@ def test_wontfixed_issues_excluded_from_queue():
         ]
     )
 
-    queue = build_work_queue(state, count=None, include_subjective=False)
+    queue = build_backlog_queue(
+        state,
+        options=QueueBuildOptions(
+            count=None,
+            include_subjective=False,
+        ),
+    )
     ids = {item["id"] for item in queue["items"]}
     assert "a" in ids
     assert "d" in ids

@@ -710,11 +710,45 @@ def test_queue_snapshot_enforces_phase_boundaries() -> None:
         },
         plan={"queue_order": ["triage::observe"], "plan_start_scores": {"strict": 75.0}},
     )
-    assert execute.phase == snapshot_mod.PHASE_EXECUTE
-    assert [item["id"] for item in execute.execution_items] == ["unused::a"]
+    assert execute.phase == snapshot_mod.PHASE_SCAN
+    assert [item["id"] for item in execute.execution_items] == ["workflow::run-scan"]
     backlog_ids = {item["id"] for item in execute.backlog_items}
     assert "triage::observe" in backlog_ids
-    assert "subjective::naming_quality" in backlog_ids
+    assert "unused::a" in backlog_ids
+
+
+def test_queue_snapshot_allows_autofix_cluster_to_execute_without_manual_queueing() -> None:
+    state = {
+        "issues": {
+            "unused::a": {
+                "id": "unused::a",
+                "detector": "unused",
+                "status": "open",
+                "file": "src/a.py",
+                "tier": 1,
+                "confidence": "high",
+                "summary": "unused import",
+                "detail": {},
+            }
+        }
+    }
+    plan = {
+        "queue_order": [],
+        "clusters": {
+            "auto/unused": {
+                "issue_ids": ["unused::a"],
+                "auto": True,
+                "action": "desloppify autofix unused-imports --dry-run",
+            }
+        },
+        "plan_start_scores": {"strict": 80.0},
+    }
+
+    snapshot = snapshot_mod.build_queue_snapshot(state, plan=plan)
+
+    assert snapshot.phase == snapshot_mod.PHASE_EXECUTE
+    assert [item["id"] for item in snapshot.execution_items] == ["unused::a"]
+    assert "unused::a" not in {item["id"] for item in snapshot.backlog_items}
 
 
 def test_queue_snapshot_orders_scan_review_and_workflow_postflight() -> None:

@@ -8,6 +8,10 @@ from typing import Any
 
 from desloppify.base.enums import issue_status_tokens
 from desloppify.base.registry import DETECTORS
+from desloppify.engine._state.issue_semantics import (
+    is_review_finding,
+    is_review_request,
+)
 from desloppify.engine._state.schema import StateModel
 from desloppify.engine._work_queue.types import WorkQueueItem
 
@@ -30,12 +34,11 @@ def status_matches(item_status: str, status_filter: str) -> bool:
 
 
 def is_subjective_issue(item: WorkQueueItem | dict[str, Any]) -> bool:
-    detector = item.get("detector")
-    return detector in {"subjective_assessment", "holistic_review", "subjective_review"}
+    return is_review_request(item)
 
 
 def is_review_issue(item: WorkQueueItem | dict[str, Any]) -> bool:
-    return item.get("detector") == "review"
+    return is_review_finding(item)
 
 
 def is_subjective_queue_item(item: WorkQueueItem | dict[str, Any]) -> bool:
@@ -158,7 +161,7 @@ def primary_command_for_issue(
         ]
         if available_fixers:
             return f"desloppify autofix {available_fixers[0]} --dry-run"
-    if detector == "subjective_review":
+    if is_review_request(item):
         dim_key = (item.get("detail") or {}).get("dimension", "")
         if dim_key:
             return f"desloppify review --prepare --dimensions {dim_key}"

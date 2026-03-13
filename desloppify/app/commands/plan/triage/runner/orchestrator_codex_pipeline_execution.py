@@ -211,7 +211,9 @@ def preflight_stage(
     reflect_report = str(stages.get("reflect", {}).get("report", ""))
     accounting_ok, _cited, missing_ids, duplicate_ids = validate_reflect_issue_accounting(
         report=reflect_report,
-        valid_ids=set(getattr(triage_input, "open_issues", {}).keys()),
+        valid_ids=set(
+            getattr(triage_input, "review_issues", getattr(triage_input, "open_issues", {})).keys()
+        ),
     )
     if not accounting_ok:
         reason_parts: list[str] = []
@@ -311,7 +313,9 @@ def repair_reflect_report_if_needed(
     """Retry reflect once with a targeted repair prompt when accounting is invalid."""
     _cited, missing_ids, duplicate_ids = dependencies.analyze_reflect_issue_accounting(
         report=report,
-        valid_ids=set(getattr(triage_input, "open_issues", {}).keys()),
+        valid_ids=set(
+            getattr(triage_input, "review_issues", getattr(triage_input, "open_issues", {})).keys()
+        ),
     )
     if not missing_ids and not duplicate_ids:
         return report, None
@@ -354,7 +358,9 @@ def repair_reflect_report_if_needed(
 
     _cited, missing_after, duplicates_after = dependencies.analyze_reflect_issue_accounting(
         report=repaired_report,
-        valid_ids=set(getattr(triage_input, "open_issues", {}).keys()),
+        valid_ids=set(
+            getattr(triage_input, "review_issues", getattr(triage_input, "open_issues", {})).keys()
+        ),
     )
     if missing_after or duplicates_after:
         return None, "reflect_repair_invalid"

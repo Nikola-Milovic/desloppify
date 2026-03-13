@@ -16,6 +16,7 @@ from desloppify.base.config import load_config
 from desloppify.base.output.terminal import colorize, log
 from desloppify.base.output.user_message import print_user_message
 from desloppify.engine._scoring.results.core import compute_health_breakdown
+from desloppify.engine._state.issue_semantics import is_review_request
 from desloppify.engine._work_queue.core import ATTEST_EXAMPLE
 from desloppify.intelligence.integrity import (
     unassessed_subjective_dimensions,
@@ -60,8 +61,7 @@ def render_single_item_resolution_hint(items: list[dict]) -> None:
     if kind != "issue":
         return
     item = items[0]
-    detector_name = item.get("detector", "")
-    if detector_name == "subjective_review":
+    if is_review_request(item):
         dim_key = (item.get("detail") or {}).get("dimension", "")
         primary = item.get("primary_command", "")
         if not primary:

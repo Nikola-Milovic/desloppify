@@ -5,6 +5,8 @@ from pathlib import Path
 
 
 from desloppify.engine._state import filtering as state_query_mod
+from desloppify.engine._state.issue_semantics import MECHANICAL_FINDING, SCAN_ORIGIN
+from desloppify.engine._state.schema import CURRENT_VERSION
 from desloppify.state import (
     MergeScanOptions,
     apply_issue_noise_budget,
@@ -238,6 +240,8 @@ class TestMakeIssue:
         assert f["tier"] == 2
         assert f["confidence"] == "medium"
         assert f["summary"] == "sum"
+        assert f["issue_kind"] == MECHANICAL_FINDING
+        assert f["origin"] == SCAN_ORIGIN
 
 
 # ---------------------------------------------------------------------------
@@ -248,7 +252,7 @@ class TestMakeIssue:
 class TestEmptyState:
     def test_structure(self):
         s = empty_state()
-        assert s["version"] == 1
+        assert s["version"] == CURRENT_VERSION
         assert s["last_scan"] is None
         assert s["scan_count"] == 0
         assert "config" not in s  # config moved to config.json
@@ -269,7 +273,7 @@ class TestEmptyState:
 class TestLoadState:
     def test_nonexistent_file_returns_empty_state(self, tmp_path):
         s = load_state(tmp_path / "missing.json")
-        assert s["version"] == 1
+        assert s["version"] == CURRENT_VERSION
         assert s["issues"] == {}
 
     def test_valid_json_returns_parsed_data(self, tmp_path):
@@ -290,6 +294,8 @@ class TestLoadState:
         assert s["scan_count"] == 0
         assert s["stats"] == {}
         assert s["issues"]["x"]["status"] == "open"
+        assert s["issues"]["x"]["issue_kind"] == MECHANICAL_FINDING
+        assert s["issues"]["x"]["origin"] == SCAN_ORIGIN
         validate_state_invariants(s)
 
     def test_corrupt_json_tries_backup(self, tmp_path):
@@ -306,7 +312,7 @@ class TestLoadState:
         p = tmp_path / "state.json"
         p.write_text("{bad json!!")
         s = load_state(p)
-        assert s["version"] == 1
+        assert s["version"] == CURRENT_VERSION
         assert s["issues"] == {}
 
     def test_corrupt_json_renames_file(self, tmp_path):
@@ -322,7 +328,7 @@ class TestLoadState:
         backup.write_text("{also bad")
 
         s = load_state(p)
-        assert s["version"] == 1
+        assert s["version"] == CURRENT_VERSION
         assert s["issues"] == {}
 
 
@@ -338,7 +344,7 @@ class TestSaveState:
         save_state(st, p)
         assert p.exists()
         loaded = json.loads(p.read_text())
-        assert loaded["version"] == 1
+        assert loaded["version"] == CURRENT_VERSION
 
     def test_creates_backup_of_previous(self, tmp_path):
         p = tmp_path / "state.json"
@@ -852,4 +858,3 @@ class TestWontfixAutoResolution:
         # Overall/strict are dragged down by the low assessment score.
         assert st["overall_score"] < 100.0
         assert st["strict_score"] < 100.0
-

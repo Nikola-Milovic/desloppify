@@ -273,10 +273,9 @@ def test_build_and_render_backlog_queue_uses_real_backlog_policy(capsys) -> None
     )
 
     out = capsys.readouterr().out
-    assert "Run post-flight scan" in out
+    assert "Unplanned issue" in out
     assert "Planned issue" not in out
-    assert "Unplanned issue" not in out
-    assert written[0]["items"][0]["id"] == "workflow::run-scan"
+    assert written[0]["items"][0]["id"] == unplanned["id"]
 
 
 def test_build_and_render_backlog_queue_hides_execution_prompt(capsys) -> None:

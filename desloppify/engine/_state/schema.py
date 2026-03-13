@@ -8,6 +8,11 @@ from typing import Any, cast
 
 from desloppify.base.discovery.paths import get_project_root
 from desloppify.base.enums import Status, canonical_issue_status, issue_status_tokens
+from desloppify.engine._state.issue_semantics import (
+    ISSUE_KINDS,
+    ISSUE_ORIGINS,
+    ensure_issue_semantics,
+)
 from desloppify.engine._state.schema_scores import (
     json_default,
 )
@@ -85,7 +90,7 @@ def get_state_file() -> Path:
     return get_state_dir() / "state.json"
 
 
-CURRENT_VERSION = 1
+CURRENT_VERSION = 2
 
 
 def utc_now() -> str:
@@ -175,6 +180,11 @@ def ensure_state_defaults(state: StateModel | dict) -> None:
     mutable_state = cast(dict[str, Any], state)
     for key, value in empty_state().items():
         mutable_state.setdefault(key, value)
+    version = mutable_state.get("version")
+    if not isinstance(version, int):
+        mutable_state["version"] = CURRENT_VERSION
+    elif version < CURRENT_VERSION:
+        mutable_state["version"] = CURRENT_VERSION
 
     if not isinstance(state.get("issues"), dict):
         state["issues"] = {}
@@ -199,6 +209,7 @@ def ensure_state_defaults(state: StateModel | dict) -> None:
 
         issue.setdefault("id", issue_id)
         issue.setdefault("detector", "unknown")
+        ensure_issue_semantics(issue)
         issue.setdefault("file", "")
         issue.setdefault("tier", 3)
         issue.setdefault("confidence", "low")
@@ -259,6 +270,16 @@ def validate_state_invariants(state: StateModel) -> None:
             raise ValueError(f"issue {issue_id!r} must be a dict")
         if issue.get("id") != issue_id:
             raise ValueError(f"issue id mismatch for {issue_id!r}")
+        issue_kind = issue.get("issue_kind")
+        if issue_kind not in ISSUE_KINDS:
+            raise ValueError(
+                f"issue {issue_id!r} has invalid issue_kind {issue_kind!r}"
+            )
+        origin = issue.get("origin")
+        if origin not in ISSUE_ORIGINS:
+            raise ValueError(
+                f"issue {issue_id!r} has invalid origin {origin!r}"
+            )
         if issue.get("status") not in _ALLOWED_ISSUE_STATUSES:
             raise ValueError(
                 f"issue {issue_id!r} has invalid status {issue.get('status')!r}"

@@ -134,7 +134,16 @@ and think the fix has value, cluster them. These are judgment calls, not factual
 6. **Check recurring patterns** — compare current issues against resolved history. If the same
    dimension keeps producing issues, that's a root cause that needs addressing, not just
    another round of fixes.
-7. **Account for every issue exactly once** — every open issue hash must appear in exactly one
+7. **Consider mechanical backlog** — the backlog section shows auto-clusters
+   (pre-grouped detector findings) and unclustered items. For each auto-cluster:
+   - **promote**: name it in a `## Backlog Promotions` section. Prefer clusters with
+     `[autofix: ...]` hints because they are lower-risk.
+   - **leave**: say nothing. Silence means it stays in backlog.
+   - **supersede**: absorb the underlying work into a review cluster when the same files
+     or root cause already belong together.
+   For unclustered items: promote individually or group related ones into a manual cluster.
+   Mechanical items are NOT part of the Coverage Ledger — that ledger remains review-issues only.
+8. **Account for every issue exactly once** — every open issue hash must appear in exactly one
    cluster line or one skip line. Do not drop hashes, and do not repeat a hash in multiple
    clusters or in both a cluster and a skip.
 
@@ -149,6 +158,9 @@ This blueprint is what the organize stage will execute. Be specific:
 ## Cluster Blueprint
 Cluster "media-lightbox-hooks" (all in src/domains/media-lightbox/)
 Cluster "task-typing" (both touch src/types/database.ts)
+
+## Backlog Promotions
+- Promote auto/unused-imports (overlaps with the files in cluster "task-typing")
 
 ## Skip Decisions
 Skip "false-positive-current-code" (false positive per observe)
@@ -203,9 +215,13 @@ def _organize_instructions(mode: PromptMode = "self_record") -> str:
 3. Create clusters as specified in the blueprint:
    `desloppify plan cluster create <name> --description "..."`
 4. Add issues: `desloppify plan cluster add <name> <patterns...>`
-5. Add steps that consolidate: one step per file or logical change, NOT one step per issue
-6. Set `--effort` on each step individually (trivial/small/medium/large)
-7. Set `--depends-on` when clusters touch overlapping files
+5. Promote any mechanical backlog items that reflect explicitly selected:
+   - Auto-clusters: `desloppify plan promote auto/<cluster-name>`
+   - Individual items: `desloppify plan promote <issue-id>`
+   - With placement: `desloppify plan promote <pattern> before -t <target>`
+6. Add steps that consolidate: one step per file or logical change, NOT one step per issue
+7. Set `--effort` on each step individually (trivial/small/medium/large)
+8. Set `--depends-on` when clusters touch overlapping files
 """
     tail = """\
 When done, run:

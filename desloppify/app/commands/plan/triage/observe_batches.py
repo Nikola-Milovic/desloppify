@@ -10,8 +10,9 @@ from desloppify.engine.plan_triage import TriageInput
 
 def observe_dimension_breakdown(si: TriageInput) -> tuple[dict[str, int], list[str]]:
     """Count open triage issues by review dimension."""
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
     by_dim: dict[str, int] = defaultdict(int)
-    for issue in si.open_issues.values():
+    for issue in review_issues.values():
         detail = issue.get("detail", {}) if isinstance(issue.get("detail"), dict) else {}
         dim = detail.get("dimension", "unknown")
         by_dim[dim] += 1
@@ -24,9 +25,10 @@ def group_issues_into_observe_batches(
     max_batches: int = 5,
 ) -> list[tuple[list[str], dict[str, Issue]]]:
     """Group observe issues into dimension-balanced batches."""
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
     by_dim, dim_names = observe_dimension_breakdown(si)
     if len(dim_names) <= 1:
-        return [(dim_names, dict(si.open_issues))]
+        return [(dim_names, dict(review_issues))]
 
     num_batches = min(max_batches, len(dim_names))
     batch_dims: list[list[str]] = [[] for _ in range(num_batches)]
@@ -37,7 +39,7 @@ def group_issues_into_observe_batches(
         batch_counts[lightest] += by_dim[dim]
 
     dim_to_issues: dict[str, dict[str, Issue]] = defaultdict(dict)
-    for fid, issue in si.open_issues.items():
+    for fid, issue in review_issues.items():
         detail = issue.get("detail", {}) if isinstance(issue.get("detail"), dict) else {}
         dim = detail.get("dimension", "unknown")
         dim_to_issues[dim][fid] = issue

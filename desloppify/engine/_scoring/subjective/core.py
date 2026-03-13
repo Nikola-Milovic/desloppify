@@ -6,6 +6,7 @@ from desloppify.base.subjective_dimension_catalog import DISPLAY_NAMES
 from desloppify.base.subjective_dimensions import default_dimension_keys
 from desloppify.base.text_utils import is_numeric
 from desloppify.engine._scoring.policy.core import SUBJECTIVE_CHECKS
+from desloppify.engine._state.issue_semantics import is_triage_finding
 from desloppify.intelligence.review.dimensions.metadata import (
     dimension_display_name as metadata_dimension_display_name,
 )
@@ -174,7 +175,7 @@ def _subjective_issue_count(
     return sum(
         1
         for issue in issues.values()
-        if issue.get("detector") in ("review", "concerns")
+        if is_triage_finding(issue)
         and issue.get("status") in failure_set
         and _normalize_dimension_key(issue.get("detail", {}).get("dimension")) == dim_name
     )

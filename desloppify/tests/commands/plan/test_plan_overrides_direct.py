@@ -14,6 +14,7 @@ import desloppify.app.commands.plan.override_resolve_cmd as override_resolve_cmd
 import desloppify.app.commands.plan.override_resolve_helpers as resolve_helpers_mod
 import desloppify.app.commands.plan.override_resolve_workflow as resolve_workflow_mod
 import desloppify.app.commands.plan.override_skip as override_skip_mod
+import desloppify.app.commands.plan.reorder_handlers as reorder_handlers_mod
 from desloppify.base.exception_sets import CommandError
 
 
@@ -372,6 +373,40 @@ def test_override_misc_focus_and_scan_gate_paths(monkeypatch, capsys) -> None:
     out_skip = capsys.readouterr().out
     assert "marked as satisfied" in out_skip
     assert plan["scan_gate_skipped"] is True
+
+
+def test_plan_promote_moves_backlog_items_into_queue(monkeypatch, capsys) -> None:
+    plan = {"queue_order": [], "clusters": {}}
+    runtime = SimpleNamespace(state={"issues": {"unused::a": {"status": "open"}}})
+    moved: list[tuple[list[str], str, str | None]] = []
+
+    monkeypatch.setattr(reorder_handlers_mod, "command_runtime", lambda _args: runtime)
+    monkeypatch.setattr(reorder_handlers_mod, "require_issue_inventory", lambda _state: True)
+    monkeypatch.setattr(reorder_handlers_mod, "load_plan", lambda: plan)
+    monkeypatch.setattr(reorder_handlers_mod, "save_plan", lambda *_a, **_k: None)
+    monkeypatch.setattr(reorder_handlers_mod, "append_log_entry", lambda *_a, **_k: None)
+    monkeypatch.setattr(
+        reorder_handlers_mod,
+        "resolve_ids_from_patterns",
+        lambda *_a, **_k: ["unused::a"],
+    )
+
+    def _move_items(plan_obj, issue_ids, position, target=None, offset=None):
+        moved.append((list(issue_ids), position, target))
+        plan_obj["queue_order"].extend(issue_ids)
+        return len(issue_ids)
+
+    monkeypatch.setattr(reorder_handlers_mod, "move_items", _move_items)
+
+    reorder_handlers_mod.cmd_plan_promote(
+        argparse.Namespace(patterns=["unused"], position="top", target=None)
+    )
+    out = capsys.readouterr().out
+
+    assert "Promoted 1 item(s)" in out
+    assert moved == [(["unused::a"], "top", None)]
+    assert plan["queue_order"] == ["unused::a"]
+    assert plan["promoted_ids"] == ["unused::a"]
 
 
 def test_override_skip_helpers_and_commands(monkeypatch, capsys) -> None:

@@ -10,6 +10,10 @@ from desloppify.engine._scoring.results.core import (
     compute_score_impact,
     get_dimension_for_detector,
 )
+from desloppify.engine._state.issue_semantics import (
+    is_review_finding,
+    is_review_request,
+)
 from desloppify.engine._work_queue.helpers import workflow_stage_name
 
 from .render_support import is_auto_fix_command
@@ -188,9 +192,11 @@ _KIND_RENDERERS = {
 
 
 def _render_item_type(item: dict) -> None:
-    detector = item.get("detector")
-    if detector == "review":
+    if is_review_finding(item):
         print(colorize("  Type: Design review (requires judgment)", "dim"))
+        return
+    if is_review_request(item):
+        print(colorize("  Type: Review request", "dim"))
         return
     if is_auto_fix_command(item.get("primary_command")):
         print(colorize("  Type: Auto-fixable", "dim"))

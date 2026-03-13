@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from desloppify.base.output.terminal import colorize
+from desloppify.engine._state.issue_semantics import is_triage_finding
 from desloppify.engine.plan_triage import TRIAGE_IDS
 
 from ..review_coverage import cluster_issue_ids, live_active_triage_issue_ids
@@ -97,7 +98,7 @@ def unclustered_review_issues(plan: dict, state: dict | None = None) -> list[str
         review_ids = [
             fid for fid, finding in state.get("issues", {}).items()
             if finding.get("status") == "open"
-            and finding.get("detector") in ("review", "concerns")
+            and is_triage_finding(finding)
         ]
         frozen_ids = (plan.get("epic_triage_meta", {}) or {}).get("active_triage_issue_ids")
         if isinstance(frozen_ids, list) and frozen_ids:

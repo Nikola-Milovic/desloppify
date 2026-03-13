@@ -29,6 +29,7 @@ from desloppify.app.commands.plan.policy_cmd import cmd_policy_dispatch
 from desloppify.app.commands.plan.queue_render import cmd_plan_queue
 from desloppify.app.commands.plan.repair_state import cmd_plan_repair_state
 from desloppify.app.commands.plan.reorder_handlers import cmd_plan_reorder
+from desloppify.app.commands.plan.reorder_handlers import cmd_plan_promote
 from desloppify.app.commands.plan.shared.cluster_membership import cluster_issue_ids
 from desloppify.app.commands.plan.triage.command import cmd_plan_triage
 from desloppify.engine.plan_state import (
@@ -212,6 +213,7 @@ _PLAN_ACTION_HANDLERS = {
     "queue": cmd_plan_queue,
     "reset": _cmd_plan_reset,
     "reorder": cmd_plan_reorder,
+    "promote": cmd_plan_promote,
     "describe": cmd_plan_describe,
     "resolve": cmd_plan_resolve,
     "note": cmd_plan_note,

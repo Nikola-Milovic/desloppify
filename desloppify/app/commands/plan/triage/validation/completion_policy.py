@@ -177,7 +177,8 @@ def _note_cites_new_issues_or_error(note: str, si) -> bool:
     new_ids = si.new_since_last
     if not new_ids:
         return True
-    valid_ids = set(si.open_issues.keys())
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
+    valid_ids = set(review_issues.keys())
     cited = extract_issue_citations(note, valid_ids)
     new_cited = cited & new_ids
     if new_cited:

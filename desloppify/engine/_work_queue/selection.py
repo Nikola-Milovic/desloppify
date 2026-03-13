@@ -49,7 +49,12 @@ def select_queue_items(
 def items_for_visibility(*, snapshot, visibility: str) -> list[WorkQueueItem]:
     """Select the snapshot partition for one queue surface."""
     if visibility == QueueVisibility.BACKLOG:
-        return [dict(item) for item in snapshot.backlog_items]
+        source_items = snapshot.backlog_items or snapshot.execution_items
+        return [
+            dict(item)
+            for item in source_items
+            if item.get("kind") not in {"workflow_stage", "workflow_action"}
+        ]
     return [dict(item) for item in snapshot.execution_items]
 
 

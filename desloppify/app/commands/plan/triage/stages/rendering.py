@@ -56,8 +56,9 @@ def _print_complete_summary(plan: dict, stages: dict) -> None:
 
 def _print_new_issues_since_last(si) -> None:
     print(colorize(f"  {len(si.new_since_last)} new issue(s) since last triage:", "cyan"))
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
     for fid in sorted(si.new_since_last):
-        issue = si.open_issues.get(fid, {})
+        issue = review_issues.get(fid, {})
         print(f"    * [{short_issue_id(fid)}] {issue.get('summary', '')}")
     print()
 

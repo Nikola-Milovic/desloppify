@@ -10,6 +10,7 @@ from typing import Any
 
 from desloppify.engine.plan_triage import TRIAGE_STAGE_SPECS
 from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
+from desloppify.engine._state.issue_semantics import is_triage_finding
 from desloppify.engine._state.schema import StateModel
 from desloppify.engine._work_queue.helpers import (
     detail_dict,
@@ -130,7 +131,7 @@ def build_triage_stage_items(plan: dict, state: dict) -> list[WorkQueueItem]:
     open_review_count = sum(
         1 for f in issues.values()
         if f.get("status") == "open"
-        and f.get("detector") in ("review", "concerns")
+        and is_triage_finding(f)
     )
 
     label_map = dict(TRIAGE_STAGE_LABELS)
@@ -200,7 +201,7 @@ def build_subjective_items(
     for issue in issues.values():
         if issue.get("status") != "open":
             continue
-        if issue.get("detector") == "review":
+        if is_triage_finding(issue):
             dim_key = str(detail_dict(issue).get("dimension", "")).strip().lower()
             if dim_key:
                 review_open_by_dim[dim_key] = review_open_by_dim.get(dim_key, 0) + 1

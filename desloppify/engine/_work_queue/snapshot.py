@@ -11,12 +11,16 @@ from desloppify.engine._plan.constants import (
     WORKFLOW_DEFERRED_DISPOSITION_ID,
     WORKFLOW_RUN_SCAN_ID,
 )
-from desloppify.engine._plan.policy.subjective import NON_OBJECTIVE_DETECTORS
 from desloppify.engine._plan.schema import (
-    planned_objective_ids as _planned_objective_ids,
+    executable_objective_ids as _executable_objective_ids,
 )
 from desloppify.engine._plan.triage.snapshot import build_triage_snapshot
 from desloppify.engine._state.filtering import path_scoped_issues
+from desloppify.engine._state.issue_semantics import (
+    counts_toward_objective_backlog,
+    is_review_request,
+    is_triage_finding,
+)
 from desloppify.engine._state.schema import StateModel
 from desloppify.engine._work_queue.ranking import build_issue_items
 from desloppify.engine._work_queue.synthetic import (
@@ -90,7 +94,7 @@ def _is_fresh_boundary(plan: dict | None) -> bool:
 def _is_objective_item(item: WorkQueueItem, *, skipped_ids: set[str]) -> bool:
     return (
         item.get("kind") in {"issue", "cluster"}
-        and item.get("detector", "") not in NON_OBJECTIVE_DETECTORS
+        and counts_toward_objective_backlog(item)
         and item.get("id", "") not in skipped_ids
     )
 
@@ -98,8 +102,33 @@ def _is_objective_item(item: WorkQueueItem, *, skipped_ids: set[str]) -> bool:
 def _review_issue_items(items: Iterable[WorkQueueItem]) -> list[WorkQueueItem]:
     return [
         item for item in items
-        if item.get("detector", "") in {"review", "concerns", "subjective_review"}
+        if is_triage_finding(item)
     ]
+
+
+def _review_request_items(items: Iterable[WorkQueueItem]) -> list[WorkQueueItem]:
+    return [
+        item for item in items
+        if is_review_request(item)
+    ]
+
+
+def _auto_promoted_autofix_ids(plan: dict | None) -> set[str]:
+    """Return auto-cluster member IDs eligible to execute without manual promotion."""
+    if not isinstance(plan, dict):
+        return set()
+    autofix_ids: set[str] = set()
+    skipped_ids = set(plan.get("skipped", {}).keys())
+    for cluster in plan.get("clusters", {}).values():
+        if not isinstance(cluster, dict) or not cluster.get("auto"):
+            continue
+        action = str(cluster.get("action", ""))
+        if "desloppify autofix" not in action:
+            continue
+        for issue_id in cluster.get("issue_ids", []):
+            if isinstance(issue_id, str) and issue_id and issue_id not in skipped_ids:
+                autofix_ids.add(issue_id)
+    return autofix_ids
 
 
 def _executable_review_issue_items(
@@ -165,7 +194,7 @@ def _phase_for_snapshot(
     *,
     fresh_boundary: bool,
     initial_review_items: list[WorkQueueItem],
-    objective_items: list[WorkQueueItem],
+    explicit_queue_items: list[WorkQueueItem],
     scan_items: list[WorkQueueItem],
     postflight_review_items: list[WorkQueueItem],
     postflight_workflow_items: list[WorkQueueItem],
@@ -173,7 +202,7 @@ def _phase_for_snapshot(
 ) -> str:
     if fresh_boundary and initial_review_items:
         return PHASE_REVIEW_INITIAL
-    if objective_items:
+    if explicit_queue_items:
         return PHASE_EXECUTE
     if scan_items:
         return PHASE_SCAN
@@ -189,7 +218,7 @@ def _phase_for_snapshot(
 def _execution_items_for_phase(
     phase: str,
     *,
-    objective_items: list[WorkQueueItem],
+    explicit_queue_items: list[WorkQueueItem],
     initial_review_items: list[WorkQueueItem],
     scan_items: list[WorkQueueItem],
     postflight_review_items: list[WorkQueueItem],
@@ -199,7 +228,7 @@ def _execution_items_for_phase(
     if phase == PHASE_REVIEW_INITIAL:
         return initial_review_items
     if phase == PHASE_EXECUTE:
-        return objective_items
+        return explicit_queue_items
     if phase == PHASE_SCAN:
         deferred_items = [
             item for item in scan_items
@@ -249,26 +278,55 @@ def build_queue_snapshot(
         item for item in all_issue_items
         if _is_objective_item(item, skipped_ids=skipped_ids)
     ]
-    planned_ids = _planned_objective_ids(
+    executable_objective_ids = _executable_objective_ids(
         {item.get("id", "") for item in objective_items},
         effective_plan,
     )
-    planned_objective_items = [
+    explicit_objective_items = [
         item for item in objective_items
-        if item.get("id", "") in planned_ids
+        if item.get("id", "") in executable_objective_ids
     ]
     review_issue_items = _review_issue_items(all_issue_items)
+    review_request_items = _review_request_items(all_issue_items)
     executable_review_items = _executable_review_issue_items(
         effective_plan,
         state,
         review_issue_items,
     )
+    review_issue_ids = {item.get("id", "") for item in review_issue_items}
+    executable_review_ids = {item.get("id", "") for item in executable_review_items}
+    explicit_queue_ids = {
+        str(issue_id)
+        for issue_id in (effective_plan or {}).get("queue_order", [])
+        if isinstance(issue_id, str) and issue_id
+    } - skipped_ids
+    explicit_queue_ids |= _auto_promoted_autofix_ids(effective_plan)
+    queued_extra_items = [
+        item for item in all_issue_items
+        if item.get("id", "") in explicit_queue_ids
+        and (
+            item.get("id", "") not in review_issue_ids
+            or item.get("id", "") in executable_review_ids
+        )
+    ]
+    explicit_queue_items: list[WorkQueueItem] = []
+    seen_execution_ids: set[str] = set()
+    for item in [*explicit_objective_items, *queued_extra_items]:
+        item_id = str(item.get("id", ""))
+        if not item_id or item_id in seen_execution_ids:
+            continue
+        seen_execution_ids.add(item_id)
+        explicit_queue_items.append(item)
     initial_review_items, subjective_postflight_items = _subjective_partitions(
         state,
         scoped_issues=scoped_issues,
         threshold=target_strict,
     )
-    postflight_review_items = [*subjective_postflight_items, *executable_review_items]
+    postflight_review_items = [
+        *subjective_postflight_items,
+        *review_request_items,
+        *executable_review_items,
+    ]
     scan_items, postflight_workflow_items, triage_items = _workflow_partitions(
         effective_plan,
         state,
@@ -278,7 +336,7 @@ def build_queue_snapshot(
     phase = _phase_for_snapshot(
         fresh_boundary=fresh_boundary,
         initial_review_items=initial_review_items,
-        objective_items=planned_objective_items,
+        explicit_queue_items=explicit_queue_items,
         scan_items=scan_items,
         postflight_review_items=postflight_review_items,
         postflight_workflow_items=postflight_workflow_items,
@@ -286,7 +344,7 @@ def build_queue_snapshot(
     )
     execution_items = _execution_items_for_phase(
         phase,
-        objective_items=planned_objective_items,
+        explicit_queue_items=explicit_queue_items,
         initial_review_items=initial_review_items,
         scan_items=scan_items,
         postflight_review_items=postflight_review_items,
@@ -298,9 +356,10 @@ def build_queue_snapshot(
     backlog_items = [
         item for item in (
             [
-                *planned_objective_items,
+                *objective_items,
                 *initial_review_items,
                 *subjective_postflight_items,
+                *review_request_items,
                 *review_issue_items,
                 *scan_items,
                 *postflight_workflow_items,
@@ -310,9 +369,9 @@ def build_queue_snapshot(
         if item.get("id", "") not in execution_ids
     ]
     objective_backlog_count = sum(
-        1 for item in planned_objective_items if item.get("id", "") not in execution_ids
+        1 for item in objective_items if item.get("id", "") not in execution_ids
     )
-    has_unplanned_objective_blockers = len(planned_objective_items) < len(objective_items)
+    has_unplanned_objective_blockers = len(explicit_objective_items) < len(objective_items)
 
     return QueueSnapshot(
         phase=phase,
@@ -325,12 +384,12 @@ def build_queue_snapshot(
         execution_items=tuple(execution_items),
         backlog_items=tuple(backlog_items),
         objective_in_scope_count=len(objective_items),
-        planned_objective_count=len(planned_objective_items),
+        planned_objective_count=len(explicit_objective_items),
         objective_execution_count=sum(
             1
             for item in execution_items
             if item.get("kind") in {"issue", "cluster"}
-            and item.get("detector", "") not in NON_OBJECTIVE_DETECTORS
+            and counts_toward_objective_backlog(item)
         ),
         objective_backlog_count=objective_backlog_count,
         subjective_initial_count=len(initial_review_items),

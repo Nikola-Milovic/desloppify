@@ -551,10 +551,10 @@ class TestCollectTriageInput:
         state = _state_with_review_issues("r1", "r2")
         state["issues"]["u1"] = {"status": "open", "detector": "unused"}
         si = collect_triage_input(plan, state)
-        assert len(si.open_issues) == 2
-        assert "r1" in si.open_issues
-        assert len(si.mechanical_issues) == 1
-        assert "u1" in si.mechanical_issues
+        assert len(si.review_issues) == 2
+        assert "r1" in si.review_issues
+        assert len(si.objective_backlog_issues) == 1
+        assert "u1" in si.objective_backlog_issues
 
     def test_includes_existing_clusters(self):
         plan = empty_plan()
@@ -565,6 +565,35 @@ class TestCollectTriageInput:
         state = _state_with_review_issues("r1")
         si = collect_triage_input(plan, state)
         assert "epic/test" in si.existing_clusters
+
+    def test_collects_non_epic_auto_clusters_separately(self):
+        plan = empty_plan()
+        plan["clusters"]["epic/test"] = {
+            "name": "epic/test",
+            "thesis": "test",
+            "direction": "delete",
+            "issue_ids": [],
+            "auto": True,
+            "cluster_key": "epic::epic/test",
+        }
+        plan["clusters"]["auto/unused-imports"] = {
+            "name": "auto/unused-imports",
+            "issue_ids": ["u1"],
+            "auto": True,
+            "description": "Remove unused imports",
+            "action": "desloppify autofix import-cleanup --dry-run",
+        }
+        state = _state_with_review_issues("r1")
+        state["issues"]["u1"] = {"status": "open", "detector": "unused"}
+
+        si = collect_triage_input(plan, state)
+
+        assert "epic/test" in si.existing_clusters
+        assert "auto/unused-imports" not in si.existing_clusters
+        assert "auto/unused-imports" in si.auto_clusters
+        assert si.auto_clusters["auto/unused-imports"]["action"] == (
+            "desloppify autofix import-cleanup --dry-run"
+        )
 
     def test_tracks_new_since_last(self):
         plan = empty_plan()

@@ -205,7 +205,8 @@ def confirm_observe(
 
     by_dim, dim_names = observe_dimension_breakdown(si)
 
-    issue_count = obs.get("issue_count", len(si.open_issues))
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
+    issue_count = obs.get("issue_count", len(review_issues))
     print(f"  Your analysis covered {issue_count} issues across {len(by_dim)} dimensions:")
     for dim in dim_names:
         print(f"    {dim}: {by_dim[dim]} issues")
@@ -273,7 +274,8 @@ def confirm_reflect(
     print(colorize("  Stage: REFLECT — Form strategy & present to user", "bold"))
     print(colorize("  " + "─" * 50, "dim"))
 
-    recurring = resolved_services.detect_recurring_patterns(si.open_issues, si.resolved_issues)
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
+    recurring = resolved_services.detect_recurring_patterns(review_issues, si.resolved_issues)
     if recurring:
         print(f"  Your strategy identified {len(recurring)} recurring dimension(s):")
         for dim, info in sorted(recurring.items()):

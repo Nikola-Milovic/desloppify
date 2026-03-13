@@ -12,6 +12,7 @@ from desloppify.engine._plan.schema import (
     ensure_plan_defaults,
 )
 from desloppify.engine._plan.skip_policy import skip_kind_state_status
+from desloppify.engine._state.issue_semantics import is_triage_finding
 from desloppify.engine._state.schema import StateModel, utc_now
 
 from .dismiss import dismiss_triage_issues
@@ -171,7 +172,7 @@ def _set_triage_meta(
         fid
         for fid, issue in state.get("issues", {}).items()
         if issue.get("status") == "open"
-        and issue.get("detector") in ("review", "concerns")
+        and is_triage_finding(issue)
     )
 
     plan["epic_triage_meta"] = {

@@ -10,6 +10,7 @@ from desloppify.base.scoring_constants import (
     CONFIDENCE_WEIGHTS,
     HOLISTIC_MULTIPLIER,
 )
+from desloppify.engine._state.issue_semantics import is_triage_finding
 
 logger = logging.getLogger(__name__)
 
@@ -155,7 +156,7 @@ def render_issue_detail(
     detail = issue.get("detail", {})
     detector = issue.get("detector", "")
     is_holistic = detail.get("holistic", False)
-    is_review = detector in ("review", "concerns")
+    is_review = is_triage_finding(issue)
 
     # Derive dimension: from detail for review, from registry for mechanical.
     raw_dimension = detail.get("dimension", "")

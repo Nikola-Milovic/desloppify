@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
+from desloppify.engine._state.issue_semantics import is_review_request
 from desloppify.engine._scoring.policy.core import (
     SUBJECTIVE_TARGET_MATCH_TOLERANCE,
     matches_target_score,
@@ -50,10 +51,7 @@ def _iter_issues(
 
 def is_subjective_review_open(issue: dict) -> bool:
     """Return True when a issue is an open subjective-review signal."""
-    return (
-        issue.get("status") == "open"
-        and issue.get("detector") == "subjective_review"
-    )
+    return issue.get("status") == "open" and is_review_request(issue)
 
 
 def is_holistic_subjective_issue(issue: dict, *, issue_id: str = "") -> bool:
@@ -76,7 +74,7 @@ def is_holistic_subjective_issue(issue: dict, *, issue_id: str = "") -> bool:
         return True
 
     # Dimension-level issues are codebase-wide by nature
-    if issue.get("detector") == "subjective_review" and detail.get("dimension"):
+    if is_review_request(issue) and detail.get("dimension"):
         return True
 
     return False

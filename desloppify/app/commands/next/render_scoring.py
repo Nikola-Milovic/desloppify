@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from desloppify.engine._state.issue_semantics import is_review_finding
+
 
 def _normalized_dimension_key(value: str | None) -> str:
     return str(value or "").lower().replace(" ", "_")
@@ -161,7 +163,7 @@ def render_score_impact(
             get_dimension_for_detector_fn=get_dimension_for_detector_fn,
         )
         return
-    if detector == "review" and dim_scores:
+    if is_review_finding(item) and dim_scores:
         render_review_dimension_drag(
             item,
             dim_scores,
@@ -198,7 +200,7 @@ def render_item_explain(
                 f"Dimension: {dimension.name} at {ds['score']:.1f}% "
                 f"({ds.get('failing', 0)} open issues)"
             )
-    if item.get("detector") == "review" and dim_scores:
+    if is_review_finding(item) and dim_scores:
         entry = _review_dimension_score_entry(item, dim_scores)
         if entry is not None:
             ds_name, ds_data = entry

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 import desloppify.engine._state.filtering as filtering_mod
+import desloppify.engine._state.issue_semantics as issue_semantics_mod
 import desloppify.engine._state.noise as noise_mod
 import desloppify.engine._state.persistence as persistence_mod
 import desloppify.engine._state.resolution as resolution_mod
@@ -72,6 +73,60 @@ def test_load_state_missing_and_backup_fallback(tmp_path):
     assert recovered["version"] == schema_mod.CURRENT_VERSION
     assert recovered["issues"] == {}
     assert recovered["strict_score"] == 0
+
+
+def test_issue_semantics_normalize_legacy_detector_rows():
+    review_issue = {"id": "review::src/a.py::naming", "detector": "review", "detail": {}}
+    concern_issue = {"id": "concerns::src/a.py::dup", "detector": "concerns", "detail": {}}
+    request_issue = {
+        "id": "subjective_review::.::holistic_unreviewed",
+        "detector": "subjective_review",
+        "detail": {},
+    }
+    mechanical_issue = {"id": "unused::src/a.py::x", "detector": "unused", "detail": {}}
+
+    issue_semantics_mod.ensure_issue_semantics(review_issue)
+    issue_semantics_mod.ensure_issue_semantics(concern_issue)
+    issue_semantics_mod.ensure_issue_semantics(request_issue)
+    issue_semantics_mod.ensure_issue_semantics(mechanical_issue)
+
+    assert review_issue["issue_kind"] == issue_semantics_mod.REVIEW_FINDING
+    assert review_issue["origin"] == issue_semantics_mod.REVIEW_IMPORT_ORIGIN
+    assert concern_issue["issue_kind"] == issue_semantics_mod.CONCERN_FINDING
+    assert request_issue["issue_kind"] == issue_semantics_mod.REVIEW_REQUEST
+    assert request_issue["origin"] == issue_semantics_mod.SYNTHETIC_REQUEST_ORIGIN
+    assert mechanical_issue["issue_kind"] == issue_semantics_mod.MECHANICAL_FINDING
+    assert mechanical_issue["origin"] == issue_semantics_mod.SCAN_ORIGIN
+
+
+def test_validate_state_invariants_rejects_invalid_issue_semantics():
+    state = schema_mod.empty_state()
+    state["issues"] = {
+        "bad": {
+            "id": "bad",
+            "detector": "unused",
+            "file": "src/a.py",
+            "tier": 2,
+            "confidence": "high",
+            "summary": "bad",
+            "detail": {},
+            "status": "open",
+            "note": None,
+            "first_seen": "2025-01-01T00:00:00+00:00",
+            "last_seen": "2025-01-01T00:00:00+00:00",
+            "resolved_at": None,
+            "reopen_count": 0,
+            "issue_kind": "not_real",
+            "origin": issue_semantics_mod.SCAN_ORIGIN,
+        }
+    }
+
+    try:
+        schema_mod.validate_state_invariants(state)
+    except ValueError as exc:
+        assert "issue_kind" in str(exc)
+    else:
+        raise AssertionError("validate_state_invariants should reject invalid issue_kind")
 
 
 def test_state_persistence_defaults_follow_runtime_project_root(tmp_path):

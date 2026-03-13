@@ -34,6 +34,8 @@ class QueueItemCommon(QueueItemBase, total=False):
     """Optional fields shared across multiple queue item variants."""
 
     detector: str
+    issue_kind: str
+    origin: str
     file: str
     confidence: str
     detail: dict[str, Any]

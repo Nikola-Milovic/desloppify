@@ -17,6 +17,7 @@ __all__ = [
 ]
 
 from desloppify.base.discovery.file_paths import rel
+from desloppify.engine._state.issue_semantics import ensure_issue_semantics
 from desloppify.engine._state.schema import (
     Issue,
     StateModel,
@@ -159,7 +160,7 @@ def make_issue(
     rfile = rel(file)
     issue_id = f"{detector}::{rfile}::{name}" if name else f"{detector}::{rfile}"
     now = utc_now()
-    return {
+    issue: Issue = {
         "id": issue_id,
         "detector": detector,
         "file": rfile,
@@ -174,6 +175,8 @@ def make_issue(
         "resolved_at": None,
         "reopen_count": 0,
     }
+    ensure_issue_semantics(issue)
+    return issue
 
 
 _HEX8_RE = re.compile(r'^[0-9a-f]{8}$')

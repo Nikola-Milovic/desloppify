@@ -12,12 +12,14 @@ from dataclasses import dataclass
 from desloppify.base.config import DEFAULT_TARGET_STRICT_SCORE
 from desloppify.base.enums import Status
 from desloppify.base.registry import DETECTORS
-from desloppify.engine._plan.schema import planned_objective_ids as _planned_objective_ids
+from desloppify.engine._plan.schema import executable_objective_ids as _executable_objective_ids
 from desloppify.engine._state.filtering import issue_in_scan_scope
+from desloppify.engine._state.issue_semantics import counts_toward_objective_backlog
 from desloppify.engine._state.schema import StateModel
 from desloppify.engine.planning.helpers import CONFIDENCE_ORDER
 
-# Detectors whose issues are NOT objective mechanical work.
+# Legacy export for modules that still need detector-name display behavior.
+# Objective/non-objective semantics should flow through issue_kind helpers.
 NON_OBJECTIVE_DETECTORS: frozenset[str] = frozenset({
     "review", "concerns", "subjective_review", "subjective_assessment",
 })
@@ -118,16 +120,16 @@ def compute_subjective_visibility(
         issue_id
         for issue_id, issue in issues.items()
         if issue.get("status") == Status.OPEN
-        and issue.get("detector") not in NON_OBJECTIVE_DETECTORS
+        and counts_toward_objective_backlog(issue)
         and not issue.get("suppressed")
         and not _is_evidence_only(issue)
         and issue_in_scan_scope(str(issue.get("file", "")), resolved_scan_path)
         and issue_id not in skipped_ids
     ]
 
-    # When the plan has tracked objectives (post-triage), only count
-    # planned items — unplanned items are backlog, not blocking work.
-    objective_count = len(_planned_objective_ids(set(objective_issue_ids), plan))
+    # Only explicitly queued objectives count — backlog items don't block
+    # subjective reruns.
+    objective_count = len(_executable_objective_ids(set(objective_issue_ids), plan))
 
     unscored = current_unscored_ids(state)
     stale = current_stale_ids(state)

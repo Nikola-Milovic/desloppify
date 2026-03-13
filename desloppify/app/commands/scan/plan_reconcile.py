@@ -37,6 +37,10 @@ from desloppify.engine._plan.refresh_lifecycle import set_lifecycle_phase
 from desloppify.engine._work_queue.context import queue_context
 from desloppify.engine._work_queue.snapshot import coarse_phase_name
 from desloppify.engine.work_queue import build_deferred_disposition_item
+from desloppify.engine._state.issue_semantics import (
+    is_review_request,
+    is_triage_finding,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -403,7 +407,7 @@ def _has_postflight_review_work(
     has_review_like_issue = any(
         isinstance(issue, dict)
         and issue.get("status") == "open"
-        and issue.get("detector") in {"review", "concerns", "subjective_review"}
+        and (is_triage_finding(issue) or is_review_request(issue))
         for issue in issues.values()
     )
     if has_review_like_issue:

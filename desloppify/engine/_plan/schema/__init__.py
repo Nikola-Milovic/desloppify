@@ -216,7 +216,7 @@ class PlanModel(TypedDict, total=False):
     overrides: dict[str, ItemOverride]
     clusters: dict[str, Cluster]
     superseded: dict[str, SupersededEntry]
-    promoted_ids: list[str]  # IDs user explicitly positioned via move_items()
+    promoted_ids: list[str]  # IDs explicitly promoted from backlog into the queue
     plan_start_scores: PlanStartScores
     previous_plan_start_scores: PlanStartScores
     refresh_state: RefreshState
@@ -280,49 +280,73 @@ def triage_clusters(plan: dict[str, Any]) -> dict[str, Cluster]:
     }
 
 
-def tracked_plan_ids(plan: dict[str, Any] | None) -> set[str]:
-    """Collect all issue IDs the plan is actively tracking.
-
-    Includes queue_order, skipped, overrides, and cluster members/step refs.
-    Returns an empty set for None or non-dict plans.
-    """
+def _tracked_plan_ids(plan: dict[str, Any] | None) -> set[str]:
+    """Collect live issue IDs the plan is actively tracking."""
     if not isinstance(plan, dict):
         return set()
-    tracked: set[str] = set(plan.get("queue_order", []))
-    tracked.update(plan.get("skipped", {}).keys())
-    tracked.update(plan.get("overrides", {}).keys())
+    tracked: set[str] = {
+        str(issue_id)
+        for issue_id in plan.get("queue_order", [])
+        if isinstance(issue_id, str) and issue_id
+        and not any(issue_id.startswith(prefix) for prefix in SYNTHETIC_PREFIXES)
+    }
+    tracked.update(
+        str(issue_id)
+        for issue_id in plan.get("skipped", {}).keys()
+        if isinstance(issue_id, str) and issue_id
+        and not any(issue_id.startswith(prefix) for prefix in SYNTHETIC_PREFIXES)
+    )
+    tracked.update(
+        str(issue_id)
+        for issue_id in plan.get("overrides", {}).keys()
+        if isinstance(issue_id, str) and issue_id
+        and not any(issue_id.startswith(prefix) for prefix in SYNTHETIC_PREFIXES)
+    )
     for cluster in plan.get("clusters", {}).values():
-        tracked.update(cluster.get("issue_ids", []))
+        if not isinstance(cluster, dict):
+            continue
+        tracked.update(
+            str(issue_id)
+            for issue_id in cluster.get("issue_ids", [])
+            if isinstance(issue_id, str) and issue_id
+            and not any(issue_id.startswith(prefix) for prefix in SYNTHETIC_PREFIXES)
+        )
         for step in cluster.get("action_steps", []):
-            if isinstance(step, dict):
-                tracked.update(step.get("issue_refs", []))
+            if not isinstance(step, dict):
+                continue
+            tracked.update(
+                str(issue_id)
+                for issue_id in step.get("issue_refs", [])
+                if isinstance(issue_id, str) and issue_id
+                and not any(issue_id.startswith(prefix) for prefix in SYNTHETIC_PREFIXES)
+            )
     return tracked
 
 
-def planned_objective_ids(
+def executable_objective_ids(
     all_objective_ids: set[str],
     plan: dict[str, Any] | None,
 ) -> set[str]:
-    """Return the subset of objective IDs the plan considers active work.
+    """Return objective IDs eligible for execution.
 
-    Pre-triage (plan tracks nothing): all objective IDs are treated as
-    planned work.
-
-    Once the plan tracks anything, only the intersection with live
-    objective IDs counts as planned. This lets stale queue_order entries
-    fail closed into postflight/backlog instead of broadening execution
-    back out to the entire objective backlog.
+    Before the plan tracks any live objective work, all objective IDs are
+    implicitly executable. Once the plan tracks objective IDs, execution
+    becomes backlog-first and only objective IDs explicitly present in
+    ``plan["queue_order"]`` remain eligible for ``next``.
     """
-    tracked = tracked_plan_ids(plan)
-    skipped_ids = set(plan.get("skipped", {}).keys()) if isinstance(plan, dict) else set()
-    active_tracked = {
-        issue_id
-        for issue_id in tracked - skipped_ids
-        if not any(issue_id.startswith(prefix) for prefix in SYNTHETIC_PREFIXES)
-    }
-    if not active_tracked:
+    if not isinstance(plan, dict):
         return set(all_objective_ids)
-    return all_objective_ids & active_tracked
+    tracked_ids = _tracked_plan_ids(plan)
+    if not tracked_ids:
+        return set(all_objective_ids)
+    skipped_ids = set(plan.get("skipped", {}).keys())
+    queued_ids = {
+        issue_id
+        for issue_id in plan.get("queue_order", [])
+        if issue_id not in skipped_ids
+        and not any(issue_id.startswith(prefix) for prefix in SYNTHETIC_PREFIXES)
+    }
+    return all_objective_ids & queued_ids
 
 
 def validate_plan(plan: dict[str, Any]) -> None:
@@ -374,8 +398,7 @@ __all__ = [
     "VALID_SKIP_KINDS",
     "empty_plan",
     "ensure_plan_defaults",
-    "planned_objective_ids",
-    "tracked_plan_ids",
+    "executable_objective_ids",
     "triage_clusters",
     "validate_plan",
 ]

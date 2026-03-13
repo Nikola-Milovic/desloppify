@@ -61,7 +61,8 @@ def cmd_stage_observe(
         return
 
     si = resolved_services.collect_triage_input(plan, state)
-    issue_count = len(si.open_issues)
+    review_issues = getattr(si, "review_issues", getattr(si, "open_issues", {}))
+    issue_count = len(review_issues)
     if issue_count == 0:
         cleared = record_observe_stage(
             stages,
@@ -93,7 +94,7 @@ def cmd_stage_observe(
         validate_observe_evidence,
     )
 
-    valid_ids = set(si.open_issues.keys())
+    valid_ids = set(review_issues.keys())
     cited = resolved_services.extract_issue_citations(report, valid_ids)
     evidence = parse_observe_evidence(report, valid_ids)
     evidence_failures = validate_observe_evidence(evidence, issue_count)
