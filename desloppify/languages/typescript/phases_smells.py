@@ -106,10 +106,12 @@ def phase_smells(path: Path, lang: LangRuntimeContract) -> tuple[list[Issue], di
     if bool_entries:
         log(f"         react: {len(bool_entries)} boolean state explosions")
 
-    return results, {
+    potentials: dict[str, int] = {
         "smells": adjust_potential(lang.zone_map, total_smell_files),
         "react": total_effects,
     }
+
+    return results, potentials
 
 
 __all__ = ["phase_smells"]

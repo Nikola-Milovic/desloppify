@@ -27,11 +27,16 @@ from .render_scoring import render_item_explain as _render_item_explain_impl
 from .render_scoring import render_score_impact as _render_score_impact_impl
 from .render_workflow import render_workflow_action as _render_workflow_action_impl
 from .render_workflow import render_workflow_stage as _render_workflow_stage_impl
+from .render_workflow import step_full as _step_full_impl
 from .render_workflow import step_text as _step_text_impl
 
 
 def _step_text(step: str | dict) -> str:
     return _step_text_impl(step)
+
+
+def _step_full(step: str | dict, *, indent: str = "    ") -> list[str]:
+    return _step_full_impl(step, indent=indent)
 
 
 def _render_workflow_stage(item: dict) -> None:
@@ -108,11 +113,31 @@ def _render_plan_cluster_detail(
     desc_str = f' — "{cluster_desc}"' if cluster_desc else ""
     print(colorize(f"  Cluster: {cluster_name}{desc_str} ({total} items)", "dim"))
     steps = plan_cluster.get("action_steps") or []
-    if not (steps and single_item and not header_showed_plan):
+    if not steps:
         return
-    print(colorize("\n  Steps:", "dim"))
-    for idx, step in enumerate(steps, 1):
-        print(colorize(f"    {idx}. {_step_text(step)}", "dim"))
+
+    # Find steps relevant to this item (via issue_refs)
+    item_id = item.get("id", "")
+    item_hash = item_id.rsplit("::", 1)[-1] if item_id else ""
+    relevant = [
+        (idx, step) for idx, step in enumerate(steps, 1)
+        if isinstance(step, dict) and (
+            item_id in step.get("issue_refs", [])
+            or any(item_hash and ref.endswith(item_hash) for ref in step.get("issue_refs", []))
+        )
+    ]
+
+    if relevant:
+        # Show full detail for relevant steps — this is the execution view
+        print(colorize("\n  Your step(s):", "bold"))
+        for idx, step in relevant:
+            for line in _step_full(step, indent="    "):
+                print(colorize(line, "dim"))
+    elif single_item and not header_showed_plan:
+        # No matching steps — show the full plan as context
+        print(colorize("\n  Steps:", "dim"))
+        for idx, step in enumerate(steps, 1):
+            print(colorize(f"    {idx}. {_step_text(step)}", "dim"))
 
 
 def _render_issue_metadata(item: dict, detail: dict) -> None:
@@ -297,12 +322,15 @@ def _render_cluster_drill_header(
     steps = cluster_data.get("action_steps") or []
     if steps:
         print(colorize("  │", "cyan"))
-        print(colorize("  │ Action plan:", "cyan"))
+        print(colorize("  │ Steps:", "cyan"))
         for idx, step in enumerate(steps, 1):
-            print(colorize(f"  │   {idx}. {_step_text(step)}", "cyan"))
+            done = isinstance(step, dict) and step.get("done", False)
+            marker = "[x]" if done else "[ ]"
+            print(colorize(f"  │   {idx}. {marker} {_step_text(step)}", "cyan"))
     print(colorize("  └" + "─" * 60 + "┘", "cyan"))
     print(colorize("  Back to full queue: desloppify next", "dim"))
     if steps:
+        print(colorize(f"  Step detail: desloppify plan cluster show {cluster_name}", "dim"))
         print(colorize(f"  Mark step done: desloppify plan cluster update {cluster_name} --done-step N", "dim"))
     return bool(steps)
 

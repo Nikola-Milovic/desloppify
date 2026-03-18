@@ -10,8 +10,28 @@ from desloppify.engine.plan_triage import (
 
 def step_text(step: str | dict) -> str:
     if isinstance(step, dict):
-        return step.get("title", str(step))
+        title = step.get("title", str(step))
+        effort = step.get("effort", "")
+        return f"{title}  [{effort}]" if effort else title
     return str(step)
+
+
+def step_full(step: str | dict, *, indent: str = "    ") -> list[str]:
+    """Return the full step rendering: title + effort + detail + refs."""
+    import textwrap
+
+    if isinstance(step, str):
+        return [f"{indent}{step}"]
+    lines: list[str] = [f"{indent}{step_text(step)}"]
+    detail = step.get("detail", "")
+    if detail:
+        for line in textwrap.wrap(detail, width=90):
+            lines.append(f"{indent}  {line}")
+    refs = step.get("issue_refs", [])
+    if refs:
+        short_refs = [r.rsplit("::", 1)[-1] for r in refs]
+        lines.append(f"{indent}  Refs: {', '.join(short_refs)}")
+    return lines
 
 
 def _detail_mapping(item: dict) -> dict:
@@ -120,4 +140,4 @@ def render_workflow_action(item: dict, *, colorize_fn) -> None:
     print(colorize_fn(f"\n  Action: {item.get('primary_command', '')}", "cyan"))
 
 
-__all__ = ["render_workflow_action", "render_workflow_stage", "step_text"]
+__all__ = ["render_workflow_action", "render_workflow_stage", "step_full", "step_text"]

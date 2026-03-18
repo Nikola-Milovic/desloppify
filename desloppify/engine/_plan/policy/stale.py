@@ -5,18 +5,34 @@ from __future__ import annotations
 import hashlib
 
 from desloppify.base.config import DEFAULT_TARGET_STRICT_SCORE
-from desloppify.engine._state.issue_semantics import is_triage_finding
 from desloppify.engine._state.schema import StateModel
 from desloppify.engine._work_queue.helpers import slugify
 from desloppify.engine.planning.scorecard_projection import all_subjective_entries
 
 def open_review_ids(state: StateModel) -> set[str]:
-    """Return IDs of open review/concerns issues from state."""
+    """Return IDs of open review/concerns issues from state.
+
+    With the unified pipeline, ``is_triage_finding`` now includes mechanical
+    defects. For staleness/snapshot purposes we still track only review-type
+    issues — mechanical changes use threshold-based staleness via
+    ``is_triage_stale``.
+    """
+    from desloppify.engine._state.issue_semantics import is_review_work_item
     return {
         fid
         for fid, f in (state.get("work_items") or state.get("issues", {})).items()
-        if f.get("status") == "open" and is_triage_finding(f)
+        if f.get("status") == "open" and is_review_work_item(f)
     }
+
+
+def open_mechanical_count(state: StateModel) -> int:
+    """Return the count of open mechanical defects from state."""
+    from desloppify.engine._state.issue_semantics import is_objective_finding
+    return sum(
+        1
+        for f in (state.get("work_items") or state.get("issues", {})).values()
+        if f.get("status") == "open" and is_objective_finding(f)
+    )
 
 
 def _subjective_entry_id(
@@ -154,8 +170,18 @@ def compute_new_issue_ids(plan: dict, state: StateModel) -> set[str]:
 def is_triage_stale(
     plan: dict,
     state: StateModel,
+    *,
+    mechanical_growth_threshold: float = 0.10,
 ) -> bool:
-    """Return True when genuinely new review issues appeared since last triage.
+    """Return True when triage should be re-run.
+
+    Stale when:
+    - ANY new review issues appeared since last triage, OR
+    - Mechanical defect count grew by more than *mechanical_growth_threshold*
+      (default 10%) since last triage.
+
+    The threshold prevents trivial scan changes from forcing full re-triage
+    while still catching significant new mechanical findings.
 
     In-progress triage (confirmed stages + stage IDs in queue) is NOT
     considered stale — the lifecycle filter in the work queue already
@@ -165,7 +191,23 @@ def is_triage_stale(
     triaged_ids = set(meta.get("triaged_ids", []))
     active_ids = set(meta.get("active_triage_issue_ids", []))
     known = triaged_ids | active_ids
-    return bool(open_review_ids(state) - known)
+
+    # Any new review issue → stale
+    if open_review_ids(state) - known:
+        return True
+
+    # Check mechanical growth threshold
+    last_mechanical = meta.get("last_mechanical_count", 0)
+    current_mechanical = open_mechanical_count(state)
+    if last_mechanical > 0:
+        growth = (current_mechanical - last_mechanical) / last_mechanical
+        if growth > mechanical_growth_threshold:
+            return True
+    elif current_mechanical > 0 and not known:
+        # First triage with mechanical issues
+        return True
+
+    return False
 
 
 __all__ = [
@@ -174,6 +216,7 @@ __all__ = [
     "current_under_target_ids",
     "current_unscored_ids",
     "is_triage_stale",
+    "open_mechanical_count",
     "open_review_ids",
     "review_issue_snapshot_hash",
 ]

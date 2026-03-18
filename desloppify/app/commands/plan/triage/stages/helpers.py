@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from desloppify.base.output.terminal import colorize
 from desloppify.engine._plan.constants import is_synthetic_id
-from desloppify.engine._state.issue_semantics import is_triage_finding
+from desloppify.engine._state.issue_semantics import is_review_work_item, is_triage_finding
 from desloppify.engine.plan_triage import TRIAGE_IDS
 
 from ..review_coverage import (
@@ -155,10 +155,13 @@ def unclustered_review_issues(plan: dict, state: dict | None = None) -> list[str
     }
 
     if state is not None:
+        # Only count review-type issues for ledger purposes — mechanical
+        # defects are covered by cluster-level backlog decisions, not
+        # per-item ledger entries.
         review_ids = [
             fid for fid, finding in (state.get("work_items") or state.get("issues", {})).items()
             if finding.get("status") == "open"
-            and is_triage_finding(finding)
+            and is_review_work_item(finding)
         ]
         frozen_ids = (plan.get("epic_triage_meta", {}) or {}).get("active_triage_issue_ids")
         if isinstance(frozen_ids, list) and frozen_ids:

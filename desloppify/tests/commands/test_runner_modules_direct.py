@@ -9,6 +9,57 @@ import desloppify.app.commands.runner.codex_batch as codex_batch_mod
 import desloppify.app.commands.runner.run_logs as run_logs_mod
 
 
+def test_wrap_cmd_c_collapses_arguments_into_single_string() -> None:
+    """_wrap_cmd_c should join everything after /c into one quoted string."""
+    wrap = codex_batch_mod._wrap_cmd_c
+
+    # cmd /c with a path containing spaces — arguments are collapsed
+    cmd = ["cmd", "/c", "C:\\Program Files\\codex.cmd", "exec", "-C", "C:\\my project - Copy"]
+    result = wrap(cmd)
+    assert result[:2] == ["cmd", "/c"]
+    assert len(result) == 3  # exactly three elements
+    inner = result[2]
+    # The inner string should contain the quoted path
+    assert '"C:\\my project - Copy"' in inner
+    assert "exec" in inner
+    assert '"C:\\Program Files\\codex.cmd"' in inner
+
+    # Non-cmd command — returned unchanged
+    assert wrap(["codex", "exec", "-C", "path"]) == ["codex", "exec", "-C", "path"]
+
+    # cmd /c with simple paths (no spaces) — still collapses, no quotes needed
+    simple = wrap(["cmd", "/c", "codex", "exec", "-C", "repo"])
+    assert len(simple) == 3
+    assert simple[2] == "codex exec -C repo"
+
+
+def test_codex_batch_command_on_windows_collapses_cmd_c(monkeypatch, tmp_path: Path) -> None:
+    """On Windows with a .cmd wrapper, paths with spaces must be quoted inside a single /c arg."""
+    monkeypatch.setattr("sys.platform", "win32")
+    monkeypatch.setattr(
+        "shutil.which",
+        lambda _name: "C:\\Program Files\\npm\\codex.CMD",
+    )
+    repo = tmp_path / "core_project - Copy"
+    repo.mkdir()
+    output = repo / ".desloppify" / "out.json"
+
+    cmd = codex_batch_mod.codex_batch_command(
+        prompt="review prompt",
+        repo_root=repo,
+        output_file=output,
+    )
+    # Should be exactly ["cmd", "/c", "<single quoted command string>"]
+    assert cmd[0] == "cmd"
+    assert cmd[1] == "/c"
+    assert len(cmd) == 3
+    inner = cmd[2]
+    # The repo path with spaces must be quoted
+    assert f'"{repo}"' in inner or f'"{str(repo)}"' in inner
+    assert "exec" in inner
+    assert "--ephemeral" in inner
+
+
 def test_codex_batch_command_uses_sanitized_reasoning_effort(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("DESLOPPIFY_CODEX_REASONING_EFFORT", "HIGH")
 

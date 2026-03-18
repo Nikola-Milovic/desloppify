@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "desloppify"
-version = "0.9.9"
+version = "0.9.10"
 description = "Multi-language codebase health scanner and technical debt tracker"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -74,7 +74,7 @@ include-package-data = false
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
-testpaths = ['desloppify/tests', 'desloppify/languages/python/tests', 'desloppify/languages/typescript/tests', 'desloppify/languages/csharp/tests', 'desloppify/languages/cxx/tests', 'desloppify/languages/dart/tests', 'desloppify/languages/gdscript/tests', 'desloppify/languages/go/tests', 'desloppify/languages/rust/tests']
+testpaths = ['desloppify/tests', 'desloppify/languages/python/tests', 'desloppify/languages/typescript/tests', 'desloppify/languages/csharp/tests', 'desloppify/languages/cxx/tests', 'desloppify/languages/dart/tests', 'desloppify/languages/gdscript/tests', 'desloppify/languages/go/tests', 'desloppify/languages/rust/tests', 'desloppify/languages/javascript/tests']
 norecursedirs = ["desloppify/tests/fixtures"]
 
 [tool.ruff]

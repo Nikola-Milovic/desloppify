@@ -59,6 +59,17 @@ class ObserveEvidence:
 
 
 @dataclass
+class ClusterVerdict:
+    """A cluster-level verdict from observe-stage sampling."""
+
+    cluster_name: str
+    verdict: str  # "actionable", "mostly-false-positives", "mixed", "low-value"
+    sample_count: int = 0
+    false_positive_rate: float = 0.0
+    recommendation: str = ""  # "promote", "skip", "break_up"
+
+
+@dataclass
 class DecisionLedger:
     """Parsed keep/tighten/skip coverage from a value-check report."""
 
@@ -430,6 +441,96 @@ def validate_report_has_file_paths(report: str) -> list[EvidenceFailure]:
     )]
 
 
+# ---------------------------------------------------------------------------
+# Cluster-level verdict parsing (observe stage)
+# ---------------------------------------------------------------------------
+
+_CLUSTER_VERDICT_KEYWORDS = frozenset({
+    "actionable", "mostly-false-positives", "mostly false positives",
+    "mixed", "low-value", "low value",
+})
+
+# Matches:  - cluster: auto/security-B602
+_YAML_CLUSTER_RE = re.compile(r"^\s*-?\s*cluster\s*:\s*(\S+)", re.IGNORECASE)
+_YAML_SAMPLE_COUNT_RE = re.compile(r"^\s*sample_count\s*:\s*(\d+)", re.IGNORECASE)
+_YAML_FP_RATE_RE = re.compile(r"^\s*false_positive_rate\s*:\s*([\d.]+)", re.IGNORECASE)
+
+
+def parse_cluster_verdicts(report: str) -> list[ClusterVerdict]:
+    """Parse cluster-level verdicts from an observe-stage report.
+
+    Supports YAML-like format:
+        - cluster: auto/security-B602
+          verdict: mostly-false-positives
+          sample_count: 5
+          false_positive_rate: 0.8
+          recommendation: skip
+    """
+    verdicts: list[ClusterVerdict] = []
+    current: dict | None = None
+
+    for line in report.splitlines():
+        m_cluster = _YAML_CLUSTER_RE.match(line)
+        if m_cluster:
+            if current is not None:
+                v = _flush_cluster_verdict(current)
+                if v:
+                    verdicts.append(v)
+            current = {"cluster": m_cluster.group(1).strip()}
+            continue
+
+        if current is None:
+            continue
+
+        m_verdict = _YAML_VERDICT_RE.match(line)
+        if m_verdict:
+            current["verdict"] = m_verdict.group(1).strip()
+            continue
+
+        m_sample = _YAML_SAMPLE_COUNT_RE.match(line)
+        if m_sample:
+            current["sample_count"] = int(m_sample.group(1))
+            continue
+
+        m_fp = _YAML_FP_RATE_RE.match(line)
+        if m_fp:
+            try:
+                current["false_positive_rate"] = float(m_fp.group(1))
+            except ValueError:
+                pass
+            continue
+
+        m_rec = _YAML_RECOMMENDATION_RE.match(line)
+        if m_rec:
+            current["recommendation"] = m_rec.group(1).strip()
+            continue
+
+    if current is not None:
+        v = _flush_cluster_verdict(current)
+        if v:
+            verdicts.append(v)
+
+    return verdicts
+
+
+def _flush_cluster_verdict(current: dict) -> ClusterVerdict | None:
+    """Convert a collected cluster verdict dict into a ClusterVerdict."""
+    cluster_name = current.get("cluster", "")
+    if not cluster_name:
+        return None
+    raw_verdict = current.get("verdict", "")
+    # Accept any verdict text (don't enforce keywords — let the LLM express itself)
+    if not raw_verdict:
+        return None
+    return ClusterVerdict(
+        cluster_name=cluster_name,
+        verdict=raw_verdict.lower().strip(),
+        sample_count=current.get("sample_count", 0),
+        false_positive_rate=current.get("false_positive_rate", 0.0),
+        recommendation=current.get("recommendation", ""),
+    )
+
+
 _VALUE_LEDGER_RE = re.compile(
     r"^\s*-\s*(?P<target>.+?)\s*->\s*(?P<decision>keep|tighten|skip)\s*$",
     re.IGNORECASE,
@@ -497,12 +598,14 @@ def resolve_short_hash_to_full_id(short_hash: str, valid_ids: set[str]) -> str |
 
 
 __all__ = [
+    "ClusterVerdict",
     "DecisionLedger",
     "EvidenceFailure",
     "ObserveAssessment",
     "ObserveEvidence",
     "VERDICT_KEYWORDS",
     "format_evidence_failures",
+    "parse_cluster_verdicts",
     "parse_value_check_decision_ledger",
     "parse_observe_evidence",
     "resolve_short_hash_to_full_id",

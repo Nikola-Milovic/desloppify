@@ -134,8 +134,8 @@ def test_build_triage_prompt_includes_mechanical_backlog_context() -> None:
 
     prompt = build_triage_prompt(triage_input)
 
-    assert "## Mechanical backlog (2 items: 1 in 1 auto-clusters, 1 unclustered)" in prompt
-    assert "### Auto-clusters" in prompt
+    assert "## Auto-cluster candidates (2 items: 1 in 1 auto-clusters, 1 unclustered)" in prompt
+    assert "### Auto-clusters (decision required for each)" in prompt
     assert "- auto/unused-imports (1 items) [autofix: desloppify autofix import-cleanup --dry-run]" in prompt
     assert "Remove 1 unused import issue" in prompt
     assert "### Unclustered items (1 items — needs human judgment or isolated findings)" in prompt

@@ -9,6 +9,7 @@ from desloppify import state as state_mod
 from desloppify.base.exception_sets import PLAN_LOAD_EXCEPTIONS
 from desloppify.base.output.fallbacks import log_best_effort_failure
 from desloppify.base.output.terminal import colorize
+from desloppify.app.commands.helpers.transition_messages import emit_transition_message
 from desloppify.base.config import target_strict_score_from_config
 from desloppify.engine._plan.constants import (
     WORKFLOW_COMMUNICATE_SCORE_ID,
@@ -27,23 +28,30 @@ from desloppify.engine._plan.sync import (
 )
 from desloppify.engine._plan.sync.dimensions import current_unscored_ids
 from desloppify.engine._plan.sync.context import is_mid_cycle
-from desloppify.engine._plan.sync.workflow import clear_score_communicated_sentinel
+from desloppify.engine._plan.sync.workflow import (
+    clear_create_plan_sentinel,
+    clear_score_communicated_sentinel,
+)
 from desloppify.engine.work_queue import build_deferred_disposition_item
 
 logger = logging.getLogger(__name__)
 
 
 def _reset_cycle_for_force_rescan(plan: dict[str, object]) -> bool:
-    """Clear all cycle state when --force-rescan is used."""
+    """Clear synthetic queue items when --force-rescan is used.
+
+    Preserves ``plan_start_scores`` so that ``is_mid_cycle()`` still
+    returns True — this prevents ``auto_cluster_issues()`` from running
+    full cluster regeneration, which would wipe manual cluster items.
+    """
     order: list[str] = plan.get("queue_order", [])
     synthetic = [item for item in order if is_synthetic_id(item)]
-    if not synthetic and not plan.get("plan_start_scores"):
+    if not synthetic:
         return False
     for item in synthetic:
         order.remove(item)
-    plan["plan_start_scores"] = {}
     clear_score_communicated_sentinel(plan)
-    plan.pop("scan_count_at_plan_start", None)
+    clear_create_plan_sentinel(plan)
     meta = plan.get("epic_triage_meta", {})
     if isinstance(meta, dict):
         meta.pop("triage_recommended", None)
@@ -99,6 +107,7 @@ def _seed_plan_start_scores(plan: dict[str, object], state: state_mod.StateModel
         "verified": scores.verified,
     }
     clear_score_communicated_sentinel(plan)
+    clear_create_plan_sentinel(plan)
     plan["scan_count_at_plan_start"] = int(state.get("scan_count", 0) or 0)
     return True
 
@@ -145,6 +154,7 @@ def _clear_plan_start_scores_if_queue_empty(
     state["_plan_start_scores_for_reveal"] = dict(plan["plan_start_scores"])
     plan["plan_start_scores"] = {}
     clear_score_communicated_sentinel(plan)
+    clear_create_plan_sentinel(plan)
     return True
 
 
@@ -295,13 +305,14 @@ def reconcile_plan_post_scan(runtime: Any) -> None:
             plan,
             mid_cycle=_is_mid_cycle_scan(plan, runtime.state) or force_rescan,
         )
+        if result.lifecycle_phase_changed:
+            emit_transition_message(result.lifecycle_phase)
         dirty = result.dirty or dirty
 
-    if not force_rescan:
-        if _sync_plan_start_scores_and_log(plan, runtime.state):
-            dirty = True
-        if _sync_postflight_scan_completion_and_log(plan, runtime.state):
-            dirty = True
+    if not force_rescan and _sync_plan_start_scores_and_log(plan, runtime.state):
+        dirty = True
+    if _sync_postflight_scan_completion_and_log(plan, runtime.state):
+        dirty = True
 
     if dirty:
         try:

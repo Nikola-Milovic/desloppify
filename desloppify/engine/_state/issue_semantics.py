@@ -166,7 +166,7 @@ def is_review_work_item(issue: Mapping[str, Any]) -> bool:
 
 
 def is_triage_finding(issue: Mapping[str, Any]) -> bool:
-    return is_review_work_item(issue)
+    return is_defect_work_item(issue)
 
 
 def is_assessment_request(issue: Mapping[str, Any]) -> bool:

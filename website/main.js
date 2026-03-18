@@ -158,8 +158,10 @@ async function loadReleases() {
     }
 
     container.innerHTML = releases.map(r => {
-      const fullHtml = renderMarkdownLight(r.body || 'No release notes.');
-      const preview = getFirstParagraph(r.body || '');
+      // Strip HTML image blocks (mascot etc.) from release notes
+      const body = (r.body || 'No release notes.').replace(/<p[^>]*>[\s\S]*?<img[^>]*>[\s\S]*?<\/p>/gi, '').trim();
+      const fullHtml = renderMarkdownLight(body);
+      const preview = getFirstParagraph(body);
       const previewHtml = renderMarkdownLight(preview);
       const hasMore = (r.body || '').trim().length > preview.length + 10;
 

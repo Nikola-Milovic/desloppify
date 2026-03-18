@@ -76,6 +76,34 @@ def test_queue_clear_allows_scan():
         scan_queue_preflight(args)
 
 
+def test_queue_drained_with_non_scan_lifecycle_allows_scan():
+    """When queue is fully drained but lifecycle phase hasn't advanced to scan,
+    scan should still be allowed. Regression test for #441."""
+    from desloppify.app.commands.helpers.queue_progress import QueueBreakdown
+
+    args = SimpleNamespace(profile=None, force_rescan=False, state=None, lang="python")
+    plan = {"plan_start_scores": {"strict": 80.0}}
+    # lifecycle_phase stuck on "review" even though queue_total is 0
+    breakdown = QueueBreakdown(queue_total=0, workflow=0, lifecycle_phase="review")
+    with (
+        patch(
+            "desloppify.app.commands.scan.preflight.resolve_plan_load_status",
+            return_value=_plan_status(plan),
+        ),
+        patch(
+            "desloppify.app.commands.scan.preflight.state_path",
+            return_value="/tmp/test-state.json",
+        ),
+        patch("desloppify.app.commands.scan.preflight.state_mod") as mock_state_mod,
+        patch(
+            "desloppify.app.commands.scan.preflight.plan_aware_queue_breakdown",
+            return_value=breakdown,
+        ),
+    ):
+        mock_state_mod.load_state.return_value = {"issues": {}}
+        scan_queue_preflight(args)
+
+
 # ── Queue remaining = gate ──────────────────────────────────
 
 

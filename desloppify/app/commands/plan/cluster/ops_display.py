@@ -76,10 +76,36 @@ def _print_cluster_steps(steps: list[dict] | list[str]) -> None:
         print_step(i, step, colorize_fn=colorize)
 
 
-def _print_cluster_members(args: argparse.Namespace, issue_ids: list[str]) -> None:
+def _short_member_id(fid: str) -> str:
+    """Shorten an issue ID to its last segment for compact display."""
+    return fid.rsplit("::", 1)[-1]
+
+
+def _print_cluster_members(args: argparse.Namespace, issue_ids: list[str], *, has_steps: bool) -> None:
     print()
     if not issue_ids:
         print(colorize("  Members: (none)", "dim"))
+        return
+
+    # When steps exist, members are audit trail — show compact list only.
+    # When no steps, members ARE the work — show full detail.
+    if has_steps:
+        short_ids = [_short_member_id(fid) for fid in issue_ids]
+        label = f"  Members ({len(issue_ids)}): "
+        # Wrap IDs to fit ~100 char lines
+        lines: list[str] = []
+        current = label
+        for i, sid in enumerate(short_ids):
+            sep = ", " if i > 0 else ""
+            if len(current) + len(sep) + len(sid) > 100 and current != label:
+                lines.append(current)
+                current = "    " + sid
+            else:
+                current += sep + sid
+        lines.append(current)
+        for line in lines:
+            print(colorize(line, "dim"))
+        print(colorize(f"  Full detail: desloppify show <member-id> --no-budget", "dim"))
         return
 
     issues = _load_issues_best_effort(args)
@@ -106,7 +132,7 @@ def _cmd_cluster_show(args: argparse.Namespace) -> None:
     steps = cluster.get("action_steps") or []
     issue_ids = cluster_issue_ids(cluster)
     _print_cluster_steps(steps)
-    _print_cluster_members(args, issue_ids)
+    _print_cluster_members(args, issue_ids, has_steps=bool(steps))
     _print_cluster_commands(cluster_name)
 
 
@@ -135,22 +161,37 @@ def _print_cluster_list_verbose(
     active: str | None,
 ) -> None:
     """Print the verbose table view of the cluster list."""
-    name_width = _cluster_list_name_width(sorted_clusters)
-    total = len(sorted_clusters)
-    has_dep = any(c.get("dependency_order") is not None for _, c in sorted_clusters)
-    print(colorize(f"  Clusters ({total} total, sorted by priority/queue position):", "bold"))
+    # Filter out empty auto-clusters — they're noise
+    visible = [
+        (name, cluster) for name, cluster in sorted_clusters
+        if len(cluster_issue_ids(cluster)) > 0 or not cluster.get("auto")
+    ]
+    if not visible:
+        print("  No clusters with items.")
+        return
+
+    empty_auto = len(sorted_clusters) - len(visible)
+    name_width = max(20, min(35, max(len(name) for name, _ in visible)))
+    total_items = sum(len(cluster_issue_ids(c)) for _, c in visible)
+    total_steps = sum(len(c.get("action_steps") or []) for _, c in visible)
+    print(colorize(
+        f"  {len(visible)} clusters ({total_items} issues, {total_steps} steps):",
+        "bold",
+    ))
+    if empty_auto:
+        print(colorize(f"  ({empty_auto} empty auto-clusters hidden)", "dim"))
     print()
-    header, sep = _cluster_list_verbose_header(name_width, has_dep)
+    header = f"  {'Name':<{name_width}}  {'Issues':>6}  {'Steps':>5}  {'Effort':<10}"
+    sep = f"  {'─'*name_width}  {'─'*6}  {'─'*5}  {'─'*10}"
     print(colorize(header, "dim"))
     print(colorize(sep, "dim"))
-    for name, cluster in sorted_clusters:
+    for name, cluster in visible:
         print(
             _cluster_list_verbose_row(
                 name,
                 cluster,
                 min_pos_cache[name],
                 name_width=name_width,
-                has_dep=has_dep,
                 active=active,
             )
         )
@@ -165,12 +206,12 @@ def _cluster_list_verbose_header(name_width: int, has_dep: bool) -> tuple[str, s
     dep_header = f"  {'Dep':>3}" if has_dep else ""
     header = (
         f"  {'#pos':<5}  {'Pri':>3}{dep_header}  {'Name':<{name_width}}"
-        f"  {'Items':>5}  {'Steps':>5}  {'Type':<6}  Description"
+        f"  {'Items':>5}  {'Steps':>5}  {'Effort':<14}  {'Type':<6}  Description"
     )
     dep_sep = f"  {'─'*3}" if has_dep else ""
     sep = (
         f"  {'─'*4}  {'─'*3}{dep_sep}  {'─'*name_width}"
-        f"  {'─'*5}  {'─'*5}  {'─'*6}  {'─'*40}"
+        f"  {'─'*5}  {'─'*5}  {'─'*14}  {'─'*6}  {'─'*40}"
     )
     return header, sep
 
@@ -189,34 +230,45 @@ def _cluster_dependency_token(cluster: dict, *, has_dep: bool) -> str:
     return f"  {dep_token:>3}"
 
 
+def _effort_summary(steps: list[dict]) -> str:
+    """Summarize step effort tags into a compact string like '3T 1S'."""
+    if not steps:
+        return "—"
+    from collections import Counter
+    counts: Counter[str] = Counter()
+    for s in steps:
+        if isinstance(s, dict):
+            effort = s.get("effort", "")
+            if effort:
+                counts[effort] += 1
+    if not counts:
+        return "—"
+    # Order: trivial < small < medium < large
+    order = {"trivial": 0, "small": 1, "medium": 2, "large": 3}
+    abbrev = {"trivial": "T", "small": "S", "medium": "M", "large": "L"}
+    parts = []
+    for effort, _ in sorted(counts.items(), key=lambda kv: order.get(kv[0], 9)):
+        parts.append(f"{counts[effort]}{abbrev.get(effort, effort[0].upper())}")
+    return " ".join(parts)
+
+
 def _cluster_list_verbose_row(
     name: str,
     cluster: dict,
     min_pos: int,
     *,
     name_width: int,
-    has_dep: bool,
     active: str | None,
 ) -> str:
     member_count = len(cluster_issue_ids(cluster))
-    desc = _cluster_list_description(
-        cluster.get("description") or "",
-        min_pos=min_pos,
-        member_count=member_count,
-    )
-    pos_str = f"#{min_pos}" if min_pos < 999_999 else "—"
-    priority = cluster.get("priority")
-    pri_str = str(priority) if priority is not None else "—"
-    dep_str = _cluster_dependency_token(cluster, has_dep=has_dep)
     steps = cluster.get("action_steps") or []
     steps_str = str(len(steps)) if steps else "—"
-    type_str = "auto" if cluster.get("auto") else "manual"
-    desc_truncated = (desc[:39] + "…") if len(desc) > 40 else desc
+    effort_str = _effort_summary(steps)
     name_display = (name[: name_width - 1] + "…") if len(name) > name_width else name
     focused = " *" if name == active else ""
     return (
-        f"  {pos_str:>5}  {pri_str:>3}{dep_str}  {name_display:<{name_width}}"
-        f"  {member_count:>5}  {steps_str:>5}  {type_str:<6}  {desc_truncated}{focused}"
+        f"  {name_display:<{name_width}}"
+        f"  {member_count:>6}  {steps_str:>5}  {effort_str:<10}{focused}"
     )
 
 

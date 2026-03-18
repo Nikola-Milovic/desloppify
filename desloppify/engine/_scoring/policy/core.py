@@ -41,7 +41,16 @@ _DEFAULT_EXCLUDED_ZONES = frozenset(EXCLUDED_ZONE_VALUES)
 
 # Keep policy details that are independent of tier/dimension wiring.
 _FILE_BASED_POLICY_DETECTORS = frozenset(
-    {"smells", "dict_keys", "test_coverage", "security", "concerns", "review"}
+    {
+        "smells",
+        "dict_keys",
+        "test_coverage",
+        "security",
+        "concerns",
+        "review",
+        "nextjs",
+        "next_lint",
+    }
 )
 _LOC_WEIGHT_POLICY_DETECTORS = frozenset({"test_coverage"})
 _EXCLUDED_ZONE_OVERRIDES: dict[str, frozenset[str]] = {

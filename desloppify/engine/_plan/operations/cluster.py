@@ -98,16 +98,25 @@ def add_to_cluster(
     cluster_name: str,
     issue_ids: list[str],
 ) -> int:
-    """Add issue IDs to a cluster. Returns count added."""
+    """Add issue IDs to a cluster. Returns count added.
+
+    For non-auto clusters, also ensures the issue IDs appear in
+    ``queue_order`` so they're visible in ``desloppify next``.
+    """
     ensure_plan_defaults(plan)
     cluster = _cluster_or_raise(plan, cluster_name)
     member_ids: list[str] = cluster["issue_ids"]
+    queue_order: list[str] = plan.get("queue_order", [])
+    is_manual = not cluster.get("auto")
     count = 0
     now = utc_now()
     for fid in issue_ids:
         if fid not in member_ids:
             member_ids.append(fid)
             count += 1
+        # Ensure manual cluster members are in the queue
+        if is_manual and fid not in queue_order:
+            queue_order.append(fid)
         _upsert_cluster_override(
             plan,
             fid,

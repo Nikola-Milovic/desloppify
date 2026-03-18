@@ -512,11 +512,26 @@ class TestIsTriageStale:
         }
         assert is_triage_stale(plan, state) is False
 
-    def test_non_review_issues_ignored(self):
+    def test_mechanical_issues_trigger_staleness_on_first_triage(self):
+        """Mechanical issues trigger staleness when no prior triage exists."""
         plan = {"epic_triage_meta": {"triaged_ids": []}}
         state = {
             "issues": {
                 "u1": {"status": "open", "detector": "unused"},
+            }
+        }
+        assert is_triage_stale(plan, state) is True
+
+    def test_mechanical_within_threshold_not_stale(self):
+        """Mechanical count growth within threshold does not trigger staleness."""
+        plan = {"epic_triage_meta": {
+            "triaged_ids": ["r1"],
+            "last_mechanical_count": 100,
+        }}
+        state = {
+            "issues": {
+                "r1": {"status": "open", "detector": "review"},
+                **{f"u{i}": {"status": "open", "detector": "unused"} for i in range(105)},
             }
         }
         assert is_triage_stale(plan, state) is False

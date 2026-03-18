@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from dataclasses import dataclass
 
 from desloppify.engine._state.schema import Issue
 from desloppify.engine.plan_triage import TriageInput
@@ -56,7 +57,60 @@ def group_issues_into_observe_batches(
     return result
 
 
+@dataclass
+class AutoClusterSample:
+    """A sampled auto-cluster for observe-stage verification."""
+
+    cluster_name: str
+    total_count: int
+    sample_ids: list[str]
+    sample_issues: dict[str, Issue]
+
+
+def sample_auto_clusters(
+    si: TriageInput,
+    sample_size: int = 5,
+) -> list[AutoClusterSample]:
+    """Sample representative issues from each auto-cluster for verification.
+
+    For each auto-cluster, pick up to *sample_size* issues (biased toward
+    higher severity) so the observe stage can spot-check false-positive rates.
+    """
+    auto_clusters = getattr(si, "auto_clusters", {})
+    backlog = getattr(
+        si, "objective_backlog_issues",
+        getattr(si, "mechanical_issues", {}),
+    )
+    samples: list[AutoClusterSample] = []
+    for name, cluster in sorted(auto_clusters.items()):
+        issue_ids = cluster.get("issue_ids", [])
+        if not isinstance(issue_ids, list):
+            continue
+        member_ids = [iid for iid in issue_ids if isinstance(iid, str) and iid in backlog]
+        if not member_ids:
+            continue
+
+        # Sort by severity (high first) for representative sampling
+        def _severity_key(iid: str) -> int:
+            issue = backlog.get(iid, {})
+            detail = issue.get("detail") or {}
+            sev = str(detail.get("severity", "medium")).lower() if isinstance(detail, dict) else "medium"
+            return {"high": 0, "medium": 1, "low": 2}.get(sev, 1)
+
+        member_ids.sort(key=_severity_key)
+        selected = member_ids[:sample_size]
+        samples.append(AutoClusterSample(
+            cluster_name=name,
+            total_count=len(member_ids),
+            sample_ids=selected,
+            sample_issues={iid: backlog[iid] for iid in selected},
+        ))
+    return samples
+
+
 __all__ = [
+    "AutoClusterSample",
     "group_issues_into_observe_batches",
     "observe_dimension_breakdown",
+    "sample_auto_clusters",
 ]

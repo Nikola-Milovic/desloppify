@@ -553,6 +553,12 @@ def execute_batch_run(*, prepared: PreparedBatchRunContext, deps: BatchRunDeps) 
     )
 
 
+def _is_partial_batch_retry(prepared: PreparedBatchRunContext) -> bool:
+    """Return True when the current run targets a subset of the packet's batches."""
+    all_indexes = set(range(len(prepared.batches)))
+    return set(prepared.selected_indexes) != all_indexes
+
+
 def merge_and_import_batch_run(
     *,
     prepared: PreparedBatchRunContext,
@@ -578,10 +584,19 @@ def merge_and_import_batch_run(
         safe_write_text_fn=deps.safe_write_text_fn,
         colorize_fn=deps.colorize_fn,
     )
+
+    # When retrying a subset of batches (--only-batches), the merged output
+    # only contains the retried dimensions.  Skip the coverage gate so the
+    # partial result can be imported — the original run already covered the
+    # remaining dimensions.
+    allow_partial = prepared.allow_partial
+    if _is_partial_batch_retry(prepared):
+        allow_partial = True
+
     enforce_import_coverage(
         missing_after_import=missing_after_import,
         packet_dimensions=prepared.packet_dimensions,
-        allow_partial=prepared.allow_partial,
+        allow_partial=allow_partial,
         scan_path=prepared.scan_path,
         colorize_fn=deps.colorize_fn,
     )
@@ -606,6 +621,7 @@ __all__ = [
     "PreparedPacketScope",
     "PreparedBatchRunContext",
     "PreparedRunArtifacts",
+    "_is_partial_batch_retry",
     "_prepare_packet_scope",
     "_prepare_run_runtime",
     "_print_runtime_expectation",

@@ -17,7 +17,7 @@ from desloppify.engine._state.issue_semantics import is_triage_finding
 from desloppify.engine._state.schema import StateModel, ensure_state_defaults, utc_now
 
 from .dismiss import dismiss_triage_issues
-from .prompt import TriageResult
+from .prompt import AutoClusterDecision, TriageResult
 
 
 @dataclass
@@ -32,6 +32,9 @@ class TriageMutationResult:
     strategy_summary: str = ""
     triage_version: int = 0
     dry_run: bool = False
+    auto_clusters_promoted: int = 0
+    auto_clusters_skipped: int = 0
+    auto_clusters_broken_up: int = 0
 
     @property
     def clusters_created(self) -> int:
@@ -189,6 +192,90 @@ def _set_triage_meta(
     }
 
 
+def _apply_auto_cluster_decisions(
+    *,
+    plan: PlanModel,
+    decisions: list[AutoClusterDecision],
+    order: list[str],
+    now: str,
+    version: int,
+    result: TriageMutationResult,
+) -> None:
+    """Process auto_cluster_decisions from the triage result.
+
+    - promote: add cluster issue IDs to queue_order
+    - skip: mark the cluster as skipped in the plan
+    - break_up: record the decision for downstream processing
+    """
+    clusters = plan["clusters"]
+
+    for decision in decisions:
+        cluster_name = decision.cluster
+        cluster = clusters.get(cluster_name)
+        if cluster is None:
+            continue
+
+        action = decision.action
+
+        if action == "promote":
+            issue_ids = cluster.get("issue_ids", [])
+            existing_in_order = set(order)
+            new_ids = [
+                fid for fid in issue_ids
+                if isinstance(fid, str) and fid not in existing_in_order
+            ]
+            # Determine insertion position based on priority hint
+            priority = (decision.priority or "").lower().strip()
+            if priority == "first":
+                for i, fid in enumerate(new_ids):
+                    order.insert(i, fid)
+            elif priority.startswith("after "):
+                target = priority[len("after "):]
+                insert_idx = len(order)
+                for idx, item in enumerate(order):
+                    if target in item:
+                        insert_idx = idx + 1
+                        break
+                for i, fid in enumerate(new_ids):
+                    order.insert(insert_idx + i, fid)
+            elif priority.startswith("before "):
+                target = priority[len("before "):]
+                insert_idx = len(order)
+                for idx, item in enumerate(order):
+                    if target in item:
+                        insert_idx = idx
+                        break
+                for i, fid in enumerate(new_ids):
+                    order.insert(insert_idx + i, fid)
+            else:
+                # "last" or unrecognized: append to end
+                order.extend(new_ids)
+
+            cluster["execution_status"] = EXECUTION_STATUS_ACTIVE
+            cluster["updated_at"] = now
+            cluster["triage_version"] = version
+            result.auto_clusters_promoted += 1
+
+        elif action == "skip":
+            cluster["triage_skip"] = {
+                "reason": decision.reason,
+                "skipped_at": now,
+                "triage_version": version,
+            }
+            cluster["updated_at"] = now
+            result.auto_clusters_skipped += 1
+
+        elif action == "break_up":
+            cluster["triage_break_up"] = {
+                "reason": decision.reason,
+                "sub_clusters": decision.sub_clusters,
+                "decided_at": now,
+                "triage_version": version,
+            }
+            cluster["updated_at"] = now
+            result.auto_clusters_broken_up += 1
+
+
 def apply_triage_to_plan(
     plan: PlanModel,
     state: StateModel,
@@ -249,6 +336,17 @@ def apply_triage_to_plan(
         triage=triage,
         dismissed_ids=dismissed_ids,
     )
+
+    # Process auto-cluster decisions (backward-compatible: no-op if empty)
+    if triage.auto_cluster_decisions:
+        _apply_auto_cluster_decisions(
+            plan=plan,
+            decisions=triage.auto_cluster_decisions,
+            order=order,
+            now=now,
+            version=version,
+            result=result,
+        )
 
     _set_triage_meta(
         plan=plan,

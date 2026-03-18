@@ -155,8 +155,10 @@ def _to_security_entry(
     raw_severity = result.get("issue_severity", "MEDIUM").upper()
     raw_confidence = result.get("issue_confidence", "MEDIUM").upper()
 
-    # Suppress LOW-severity + LOW-confidence (very noisy, low signal).
-    if raw_severity == "LOW" and raw_confidence == "LOW":
+    # Suppress noisy low-signal combinations:
+    # - LOW severity + LOW confidence (very noisy, low signal)
+    # - MEDIUM severity + LOW confidence (e.g. "tokenizer_name" flagged as hardcoded secret)
+    if raw_confidence == "LOW" and raw_severity in ("LOW", "MEDIUM"):
         return None
 
     tier = _SEVERITY_TO_TIER.get(raw_severity, 3)
@@ -188,6 +190,7 @@ def detect_with_bandit(
     zone_map: FileZoneMap | None,
     timeout: int = 120,
     exclude_dirs: list[str] | None = None,
+    skip_tests: list[str] | None = None,
 ) -> BanditScanResult:
     """Run bandit on *path* and return issues + typed execution status.
 
@@ -197,6 +200,9 @@ def detect_with_bandit(
         Absolute directory paths to pass to bandit's ``--exclude`` flag.
         When non-empty, bandit will skip these directories during its
         recursive scan.
+    skip_tests:
+        Bandit test IDs to suppress via ``--skip`` (e.g. ``["B101", "B601"]``).
+        Allows users to disable entire rule families from ``config.json``.
     """
     cmd = [
         sys.executable,
@@ -209,6 +215,8 @@ def detect_with_bandit(
     ]
     if exclude_dirs:
         cmd.extend(["--exclude", ",".join(exclude_dirs)])
+    if skip_tests:
+        cmd.extend(["--skip", ",".join(skip_tests)])
     cmd.append(str(path.resolve()))
 
     try:

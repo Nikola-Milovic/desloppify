@@ -575,14 +575,15 @@ class TestTriageMeta:
 
         assert result.strategy_summary == "My strategy"
 
-    def test_only_open_review_issues_in_triaged_ids(self):
-        """triaged_ids should only contain IDs of open review/concerns issues."""
+    def test_only_open_defect_issues_in_triaged_ids(self):
+        """triaged_ids should contain IDs of all open defect issues (unified pipeline)."""
         state: dict = {
             "issues": {
                 "r1": {"status": "open", "detector": "review"},
                 "r2": {"status": "fixed", "detector": "review"},
                 "u1": {"status": "open", "detector": "unused"},
                 "c1": {"status": "open", "detector": "concerns"},
+                "a1": {"status": "open", "detector": "subjective_review"},
             },
             "scan_count": 1,
             "dimension_scores": {},
@@ -595,9 +596,10 @@ class TestTriageMeta:
         triaged = plan["epic_triage_meta"]["triaged_ids"]
         assert "r1" in triaged
         assert "c1" in triaged
-        # Fixed review and non-review issues should not appear
+        assert "u1" in triaged  # mechanical defects are now triage findings
+        # Fixed issues and assessment requests should not appear
         assert "r2" not in triaged
-        assert "u1" not in triaged
+        assert "a1" not in triaged
 
 
 # ---------------------------------------------------------------------------

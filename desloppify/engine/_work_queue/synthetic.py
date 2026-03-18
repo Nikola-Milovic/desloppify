@@ -10,7 +10,7 @@ from typing import Any
 
 from desloppify.engine.plan_triage import TRIAGE_STAGE_SPECS
 from desloppify.engine._scoring.subjective.core import DISPLAY_NAMES
-from desloppify.engine._state.issue_semantics import is_triage_finding
+from desloppify.engine._state.issue_semantics import is_review_work_item, is_triage_finding
 from desloppify.engine._state.schema import StateModel
 from desloppify.engine._work_queue.helpers import (
     detail_dict,
@@ -221,11 +221,13 @@ def build_subjective_items(
     }
 
     # Review issues are keyed by raw dimension name (snake_case).
+    # Only review-type issues contribute to subjective dimension counts,
+    # not mechanical defects (even those with a dimension field).
     review_open_by_dim: dict[str, int] = {}
     for issue in issues.values():
         if issue.get("status") != "open":
             continue
-        if is_triage_finding(issue):
+        if is_review_work_item(issue):
             dim_key = str(detail_dict(issue).get("dimension", "")).strip().lower()
             if dim_key:
                 review_open_by_dim[dim_key] = review_open_by_dim.get(dim_key, 0) + 1

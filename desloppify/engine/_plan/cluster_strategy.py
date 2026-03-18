@@ -32,8 +32,16 @@ def grouping_key(issue: dict, meta: DetectorMeta | None) -> str | None:
         return None
 
     if meta.action_type == "auto_fix":
+        detail = issue.get("detail") or {}
+        kind = detail.get("kind", "")
+        if kind:
+            return f"auto::{detector}::{kind}"
         return f"auto::{detector}"
 
+    detail = issue.get("detail") or {}
+    kind = detail.get("kind", "")
+    if kind:
+        return f"detector::{detector}::{kind}"
     return f"detector::{detector}"
 
 

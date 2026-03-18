@@ -33,7 +33,7 @@ def test_cluster_steps_print_step_variants(capsys) -> None:
     assert "1. [ ] Structured" in out
     assert "line one" in out
     assert "Refs: x, y" in out
-    assert "(completed)" in out
+    assert "2. [x] Done step" in out
 
 
 def test_cluster_display_helpers_and_renderers(monkeypatch, capsys) -> None:
@@ -71,14 +71,13 @@ def test_cluster_display_helpers_and_renderers(monkeypatch, capsys) -> None:
     cluster_display_mod._cmd_cluster_show(argparse.Namespace(cluster_name="alpha"))
     out_show = capsys.readouterr().out
     assert "Cluster: alpha" in out_show
-    assert "Members (1)" in out_show
-    assert "File: src/a.py at lines: 3, 7" in out_show
+    assert "Members (1): i1" in out_show
 
     cluster_display_mod._cmd_cluster_list(
         argparse.Namespace(verbose=True, missing_steps=False)
     )
     out_list = capsys.readouterr().out
-    assert "Clusters (2 total" in out_list
+    assert "2 clusters" in out_list
     assert "alpha" in out_list
     assert "beta" in out_list
 

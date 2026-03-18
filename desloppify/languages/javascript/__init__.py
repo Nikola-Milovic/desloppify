@@ -1,9 +1,12 @@
 """JavaScript/JSX language plugin — ESLint."""
 
+from __future__ import annotations
+
 from desloppify.languages._framework.generic_support.core import generic_lang
 from desloppify.languages._framework.treesitter import JS_SPEC
 
-generic_lang(
+
+cfg = generic_lang(
     name="javascript",
     extensions=[".js", ".jsx", ".mjs", ".cjs"],
     tools=[
@@ -21,6 +24,7 @@ generic_lang(
     detect_markers=["package.json"],
     default_src="src",
     treesitter_spec=JS_SPEC,
+    frameworks=True,
 )
 
 __all__ = [
