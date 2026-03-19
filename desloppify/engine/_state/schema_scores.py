@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +15,12 @@ def json_default(obj: Any) -> Any:
         return str(obj).replace("\\", "/")
     if hasattr(obj, "isoformat"):
         return obj.isoformat()
+    # Defensive: dataclass instances (e.g. EcosystemFrameworkDetection) can leak
+    # into review_cache via shared dict references. Convert to plain dict and let
+    # json.dumps recurse naturally, hitting the Path handler for any Path fields.
+    # Bug reported by @0-CYBERDYNE-SYSTEMS-0 in PR #486.
+    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
+        return dataclasses.asdict(obj)
     raise TypeError(
         f"Object of type {type(obj).__name__} is not JSON serializable: {obj!r}"
     )
